@@ -46,6 +46,17 @@ export class ListAppsQuery {
   @IsIn(TYPES)
   type?: CampusAppType;
 
+  @ApiPropertyOptional({
+    description:
+      '按标签筛选。**任意写法变体都能命中**（服务端做归一化：全角折半角、大小写、首尾空白）。'
+      + ' / filter by tag; any spelling variant matches because normalisation happens server-side.',
+    example: '羽毛球',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  tag?: string;
+
   @ApiPropertyOptional({ description: '标题 / 描述子串 / substring over title and description' })
   @IsOptional()
   @IsString()

@@ -9,13 +9,32 @@
  * explainable key rather than an opaque recommendation score.
  */
 import { Injectable, NotFoundException } from '@nestjs/common';
-import type { CampusApp } from '@campus/models';
+import { normalizeTagName, type CampusApp } from '@campus/models';
 import type { CampusApp as CampusAppRow, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { LAUNCH_TARGET_TYPE } from '../services/enum.mapper';
 import { toLaunchTarget } from '../services/launch-target.mapper';
 import { CAMPUS_APP_ORIGIN, CAMPUS_APP_TYPE, REVIEW_STATUS } from './app-enum.mapper';
 import type { ListAppsQuery } from './dto/list-apps.query';
+
+/**
+ * 带标签关联的行类型 / the row shape including its tag links.
+ *
+ * 用 `include` 而不是把标签冗余存进主表：只有关联表能承载词表、别名与归并，
+ * 而冗余的 `String[]` 正是参考项目标签分裂的根源。
+ *
+ * `include` rather than a denormalised `String[]`: only a link table can carry the vocabulary,
+ * aliases and merges, and a denormalised array is exactly where the reference implementation's
+ * tag keys split.
+ */
+type CampusAppRowWithTags = CampusAppRow & {
+  readonly tagLinks: readonly { readonly tag: { readonly name: string } }[];
+};
+
+/** 标签关联的取数形状，两处查询共用，避免各写一遍 / shared by both queries */
+const TAG_LINKS_INCLUDE = {
+  tagLinks: { include: { tag: { select: { name: true } } } },
+} as const;
 
 /**
  * 把数据库行转成领域模型 / row to domain model。
@@ -29,7 +48,7 @@ import type { ListAppsQuery } from './dto/list-apps.query';
  * Publishing them would disclose who submitted what, and a submitter may merely have forwarded
  * a classmate's project without consenting to that. Audit fields belong to an admin endpoint.
  */
-function toDomain(row: CampusAppRow): CampusApp {
+function toDomain(row: CampusAppRowWithTags): CampusApp {
   const targetType = row.targetType;
 
   return {
@@ -60,6 +79,9 @@ function toDomain(row: CampusAppRow): CampusApp {
     }),
     targetType: LAUNCH_TARGET_TYPE.toDomain[targetType],
     permissions: row.permissions as CampusApp['permissions'],
+    // 只给规范名；排序保证同名标签在多次请求间顺序稳定（否则前端列表会无谓抖动）。
+    // Canonical names only, sorted so repeated requests return a stable order.
+    tags: row.tagLinks.map((link) => link.tag.name).sort((a, b) => a.localeCompare(b)),
     screenshots: row.screenshots,
     version: row.version,
     status: REVIEW_STATUS.toDomain[row.status],
@@ -87,10 +109,24 @@ export class AppsService {
    * 排序口径与 §27.9 一致，且每一个都能用一句话解释（`APP_SORT_KEYS` 的注释即说明）。
    */
   async list(query: ListAppsQuery): Promise<readonly CampusApp[]> {
+    // 先把标签解析成 id，解析不到就**直接返回空**，而不是忽略这个筛选条件。
+    // 忽略它会把"查一个不存在的标签"变成"返回全部"，那是最容易被误认为"功能正常"的错。
+    //
+    // Resolve the tag to an id first; an unresolvable tag returns an empty result rather than
+    // silently dropping the filter — dropping it turns "unknown tag" into "return everything",
+    // the kind of wrong answer most easily mistaken for a working feature.
+    const tagId = query.tag === undefined ? undefined : await this.resolveTagId(query.tag);
+    if (query.tag !== undefined && !tagId) return [];
+
     const where: Prisma.CampusAppWhereInput = {
       status: 'approved',
       ...(query.origin ? { origin: CAMPUS_APP_ORIGIN.toPrisma[query.origin] } : {}),
       ...(query.type ? { type: CAMPUS_APP_TYPE.toPrisma[query.type] } : {}),
+      ...(tagId
+        ? {
+            tagLinks: { some: { tagId } },
+          }
+        : {}),
       ...(query.q
         ? {
             OR: [
@@ -111,13 +147,62 @@ export class AppsService {
             : // 缺省按上架时间倒序：这是最不意外、也最容易解释的口径。
               [{ createdAt: 'desc' }, { name: 'asc' }];
 
-    const rows = await this.prisma.campusApp.findMany({ where, orderBy });
+    const rows = await this.prisma.campusApp.findMany({
+      where,
+      orderBy,
+      include: TAG_LINKS_INCLUDE,
+    });
     return rows.map(toDomain);
+  }
+
+  /**
+   * 把一个写法变体解析成标签 id：**先归一化，再查词表，最后查别名，并跟随归并链**。
+   *
+   * 顺序与 `@campus/models` 的 `resolveTag` 一致——归一化规则只有一份实现（复用的同一个
+   * `normalizeTagName`），这里只多出"读数据库"这一步。
+   *
+   * 少了别名这一步，`羽球` 与 `ＢＡＤＭＩＮＴＯＮ` 这类写法会返回 0 条结果，
+   * 而它们本该命中「羽毛球」——这正是参考项目标签分裂的用户可见后果。
+   *
+   * Resolves a spelling variant to a tag id: normalise, vocabulary, aliases, then follow merges.
+   * The order matches `resolveTag`; the normalisation rules stay single-sourced. Without the alias
+   * step, spellings like `羽球` return nothing while they should hit `羽毛球` — the user-visible
+   * consequence of the reference implementation's tag key split.
+   */
+  private async resolveTagId(raw: string): Promise<string | null> {
+    const key = normalizeTagName(raw);
+    if (!key) return null;
+
+    const direct = await this.prisma.campusAppTag.findUnique({
+      where: { normalizedName: key },
+      select: { id: true, status: true, mergedIntoId: true },
+    });
+    if (direct) {
+      // 归并后必须落到存活的标签上，否则"已归并的写法"会查不到任何应用。
+      // A merged tag must resolve to its survivor, or the merged spelling would match nothing.
+      if (direct.status === 'merged' && direct.mergedIntoId) {
+        const survivor = await this.prisma.campusAppTag.findUnique({
+          where: { id: direct.mergedIntoId },
+          select: { id: true },
+        });
+        if (survivor) return survivor.id;
+      }
+      return direct.id;
+    }
+
+    const alias = await this.prisma.campusAppTagAlias.findUnique({
+      where: { normalizedAlias: key },
+      select: { tagId: true },
+    });
+    return alias?.tagId ?? null;
   }
 
   /** 应用详情。同样只允许已审核通过的条目 / details, approved only. */
   async getById(id: string): Promise<CampusApp> {
-    const row = await this.prisma.campusApp.findUnique({ where: { id } });
+    const row = await this.prisma.campusApp.findUnique({
+      where: { id },
+      include: TAG_LINKS_INCLUDE,
+    });
     if (!row) {
       // 不区分"不存在"与"未通过审核"：对未登录的浏览者而言，两者都不该可见，
       // 而区分开会泄露"某个 id 确实存在"这一信息。

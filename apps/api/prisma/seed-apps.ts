@@ -15,6 +15,7 @@
  * while real submissions keep database-generated cuids.
  */
 import type { PrismaClient } from '@prisma/client';
+import { normalizeTagName } from '@campus/models';
 
 /** 一门演示应用的定义 / one demo app definition */
 interface DemoApp {
@@ -76,6 +77,8 @@ export interface SeedAppsResult {
   readonly created: number;
   readonly updated: number;
   readonly total: number;
+  /** 演示标签的条数，便于在 seed 输出里一眼看出词表是否建立 / demo tag count */
+  readonly tagCount: number;
 }
 
 /**
@@ -142,5 +145,56 @@ export async function seedApps(
     else created += 1;
   }
 
-  return { created, updated, total: DEMO_APPS.length };
+  // 标签：先建词表与别名，再建立关联。
+  // Tags: the vocabulary and aliases first, then the links.
+  //
+  // 别名刻意用「全角写法」与「大小写混排」来演示归一化的作用：它们都能命中同一个标签，
+  // 这正是参考项目做不到、因而静默丢条目的地方。
+  //
+  // The aliases deliberately use full-width and mixed-case spellings to demonstrate
+  // normalisation: all of them resolve to one tag, which is exactly what the reference
+  // implementation failed at.
+  const demoTags: readonly { name: string; aliases: readonly string[] }[] = [
+    { name: '羽毛球', aliases: ['羽球', 'ＢＡＤＭＩＮＴＯＮ'] },
+    { name: '组队', aliases: ['  找队友  '] },
+    { name: '课程', aliases: [] },
+  ];
+
+  const tagIdByName = new Map<string, string>();
+  for (const tag of demoTags) {
+    const row = await prisma.campusAppTag.upsert({
+      where: { normalizedName: normalizeTagName(tag.name) },
+      create: { name: tag.name, normalizedName: normalizeTagName(tag.name) },
+      update: { name: tag.name },
+      select: { id: true },
+    });
+    tagIdByName.set(tag.name, row.id);
+
+    for (const alias of tag.aliases) {
+      const normalizedAlias = normalizeTagName(alias);
+      await prisma.campusAppTagAlias.upsert({
+        where: { normalizedAlias },
+        create: { normalizedAlias, tagId: row.id },
+        update: { tagId: row.id },
+      });
+    }
+  }
+
+  const links: readonly { appId: string; tagName: string }[] = [
+    { appId: 'demo-app-badminton', tagName: '羽毛球' },
+    { appId: 'demo-app-badminton', tagName: '组队' },
+    { appId: 'demo-app-competition-team', tagName: '组队' },
+    { appId: 'demo-app-course-review', tagName: '课程' },
+  ];
+  for (const link of links) {
+    const tagId = tagIdByName.get(link.tagName);
+    if (!tagId) continue;
+    await prisma.campusAppTagLink.upsert({
+      where: { appId_tagId: { appId: link.appId, tagId } },
+      create: { appId: link.appId, tagId },
+      update: {},
+    });
+  }
+
+  return { created, updated, total: DEMO_APPS.length, tagCount: demoTags.length };
 }

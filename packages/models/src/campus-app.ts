@@ -60,6 +60,15 @@ export interface CampusApp extends Timestamps {
    * they only become enforceable once the Runtime lands.
    */
   readonly permissions: readonly Permission[];
+  /**
+   * 标签的**规范展示名**。归一化与别名归并都在服务端完成，客户端只拿到规范名——
+   * 把归一化键或原始写法暴露给每个客户端，等于邀请它们各自再实现一套，那正是标签分裂的成因。
+   *
+   * The canonical display names. Normalisation and alias merging happen server-side; exposing the
+   * normalised key or the raw spellings would invite every client to reimplement it, which is
+   * precisely how tag keys split.
+   */
+  readonly tags: readonly string[];
   readonly screenshots: readonly string[];
   readonly version: string;
   readonly status: ReviewStatus;
