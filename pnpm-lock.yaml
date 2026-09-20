@@ -339,6 +339,16 @@ importers:
         specifier: 'catalog:'
         version: 7.0.2
 
+  packages/plugin-runtime:
+    dependencies:
+      '@campus/models':
+        specifier: workspace:*
+        version: link:../models
+    devDependencies:
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+
   packages/university-adapter:
     dependencies:
       '@campus/launcher':
