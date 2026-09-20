@@ -516,3 +516,75 @@ $env:JAVA_HOME='D:\Code\JDK'; $env:ANDROID_HOME='D:\Android\sdk'; $env:ANDROID_S
    真实教学周需等教务接口
 7. ARB 中 `stateOnline` / `stateMockBadge` 两个旧 key 已无引用，可清理
 8. 登录仍是 Phase 6 前的演示身份（后端无用户接口）
+
+---
+
+## 2026-09-20 · Stage 2 起步：CampusApp 持久化 / app persistence
+
+**状态 / status**：后端持久化完成（schema + migration + 接口，运行时实测通过）。客户端 Store 尚未切到真实数据。
+
+### 18. 为什么这是生态的第一块地基
+
+「应用」生态的四项功能（投稿—审核、标签、探索、反馈/点赞）**全部依赖后端表**，而此前
+`CampusApp` 连 model 都没有、也没有 `/api/apps`，Store 完全靠 `mock_campus_data.dart` 支撑。
+所以持久化不是"顺带做"，而是这几项的共同前置。
+
+设计依据见 [`docs/CAMPUS_APP_SCHEMA_DESIGN.md`](docs/CAMPUS_APP_SCHEMA_DESIGN.md)：设计一次做完整，
+但 **migration 按阶段出**，让每个阶段都能独立提交与验证。
+
+### 19. 本轮完成
+
+**19.1 数据模型（commit `7134699`）**
+
+- `campus_apps`：name/description/icon、`type`、`origin`（§18 四类标识）、
+  `scope_all` + `scope_university_ids`（判别联合的列式展开，§0.7 不用未约束 JSON）、
+  `repository_url`、`target_type` + 9 个 `launch_*` 列（与 `campus_services` 同构，
+  **复用既有 `launch-target.mapper.ts`**，不新造一套）、`permissions`、`screenshots`、
+  `version`、`status`、`install_count`、`last_verified_at`
+- `campus_app_usage(user_id, app_id, use_count, last_used_at)`：唯一键 `(user_id, app_id)`，
+  同时支撑每用户「最近使用」（§11 明确要求）、全局使用次数、以及失效检测的输入
+- `User` 补三条反向关系（Prisma 要求关系双向，加 FK 时必须一起做）
+- migration：`20260920123229_add_campus_apps_and_usage`，已应用
+
+**两个 P0 且不可后补的字段**（本轮最重要的决定）：
+
+| 字段 | 为什么现在就必须有 |
+| --- | --- |
+| `submitter_id` | 参考项目的投稿管道**没存提交者**，历史投稿一旦产生就**永久丢失**，无法事后补 |
+| `source_url` | 回到原始投稿（issue / 表单）的证据链接，审核结论需要可回溯 |
+
+**19.2 接口（commit `df59267`）**
+
+`app-enum.mapper`（复用 `services/enum.mapper` 的 `mapEnum` 保证失败行为一致）、
+`apps.service`、`apps.controller`、`apps.module`，注册进 `AppModule`。
+
+§27.9 的纪律落在实现里：
+
+- **只暴露 `approved` 的条目**，草稿与待审不进公开目录
+- **排序是具名且可解释的口径**（`latest` / `recently-updated` / `most-used` / `name`），
+  缺省按上架时间倒序 —— 不做算法推荐流（§21 明确排除内容推荐流）
+- 详情对「**不存在**」与「**未通过审核**」返回**同一个 404**：区分开会泄露"这个 id 确实存在"
+
+### 20. 本轮踩的坑 / pitfalls
+
+19. **TypeScript 接口做构造函数参数类型 → Nest 启动即崩。**
+    Nest 依据 `design:paramtypes` 元数据解析依赖，而**接口在运行时会被完全擦除**，
+    DI 会拿到 `Object` 并报错。`tsc` 完全不报，只在启动时暴露。必须注入具体的
+    `PrismaService` 类。
+20. **`prisma migrate dev` 之后 Client 没有自动重新生成。**
+    migration 应用成功、数据库已同步，但 `@prisma/client` 里还没有新类型，
+    构建报一堆"没有导出成员"。需要显式执行 `prisma generate`。
+
+### 21. 一个主动收紧的设计点
+
+公开的 `/api/apps` **不暴露 `submitterId` 与 `sourceUrl`** —— 尽管这两个字段是特意加的 P0 字段。
+理由是它们是**审核留痕**：公开出去等于公开"谁投了什么"，而投稿人可能只是替同学转发一个项目、
+并未同意被这样披露。**审计字段属于管理端接口，不属于公开目录。**
+
+### 22. 待办 / next
+
+1. Stage 1A（契约对齐）交付后复跑验收并提交
+2. Stage 1B：节次↔时刻映射 + migration + `periodsPerDay` 定案（现为后端 13 / Dart 12）
+3. Stage 2 收尾：seed 演示应用 + 客户端 Store 从 mock 切到真实数据
+4. Stage 3：标签**含归一化**（`trim → NFKC → 折叠空白 → 小写 → 别名归并`），
+   且归一化必须与标签功能一起交付，不可拆开
