@@ -86,28 +86,29 @@ campus/
 
 ## 本机开发环境 / local environment
 
-> ⚠️ **本机环境特殊，先读这一节再动手。**
-> This machine's environment is unusual — read this before running anything.
+> ⚠️ **更正 / correction**
+>
+> 本节曾声称本机"Windows HTTPS / 证书 / 代理链路异常、不同网络栈表现不一致"。
+> **该说法已作废** —— 在文件沙箱改为 `danger-full-access` 之后重测，PowerShell、`curl.exe`、
+> `choco`、Java 全部正常。
+>
+> This section previously claimed the machine's "Windows HTTPS / certificate / proxy chain
+> is misbehaving across network stacks". **That is retracted**: after the file sandbox moved
+> to `danger-full-access`, PowerShell, `curl.exe`, `choco` and Java all work.
 
-这台开发机的 **Windows HTTPS / 证书 / 代理链路存在异常，且不同网络栈表现不一致**：
-PowerShell 的 `Invoke-WebRequest`、`curl.exe` 与 `choco` 全部握手失败，`winget` 自身也
-损坏（exit `-1978335231`）；而 Node 的 `fetch`、npm 与 git 均正常。
+**确实存在的坑 / pitfalls that are real:**
 
-> 需要注意：`curl.exe` 失败**不足以**证明问题局限于 .NET —— 它只说明各个网络栈的可用性
-> 不统一。因此结论是"当前稳定可用的下载通道是 Node 的 HTTPS 与 git"，而不是"某个运行时
-> 坏了"。
+- **`winget` 已损坏**：`winget --version` 无输出、退出码 `-1978335231`，并会以访问违例
+  `3221225477` 使作业运行器崩溃。**请勿使用。**
+  **`winget` is broken**: no output, exit `-1978335231`, and it crashes the job runner with an
+  access violation. Do not use it.
+- PATH 上的 `pnpm` 指向一个损坏的 shim（`D:\pnpm-store\v11\...` 不存在），请用
+  `D:\npm-global\pnpm.cmd`。
+  The `pnpm` on PATH is a broken shim; use `D:\npm-global\pnpm.cmd`.
 
-On this machine the **Windows HTTPS / certificate / proxy chain is misbehaving, and
-different network stacks disagree**: PowerShell's `Invoke-WebRequest`, `curl.exe` and
-`choco` all fail the handshake while `winget` is itself corrupt. Node's `fetch`, npm
-and git all work.
-
-> A failing `curl.exe` does **not** prove the fault is .NET-specific; it only shows the
-> channels are inconsistent. The conclusion is therefore "Node's HTTPS and git are the
-> reliably working download channels", not "a particular runtime is broken".
-
-因此工具链由 Node 脚本下载、`tar.exe` 解压 / so the toolchain is fetched by a Node
-script and unpacked with `tar.exe`:
+工具链之所以仍由脚本安装，是为了**锁定精确版本、可复现**，而不是因为别的通道不可用：
+The toolchain is still installed by script, but to **pin exact versions reproducibly** rather
+than because other channels are unavailable:
 
 ```powershell
 node scripts/toolchain/fetch-tools.mjs        # 下载；可指定 postgresql / flutter / ...
@@ -126,6 +127,13 @@ node scripts/toolchain/fetch-tools.mjs        # 下载；可指定 postgresql / 
 > ⚠️ PATH 上的 `pnpm` 指向一个**损坏的 shim**（`D:\Code\dsh\...\.bin\pnpm.CMD` →
 > 不存在的 store 路径）。请使用 `D:\npm-global\pnpm.cmd`。
 > The `pnpm` on PATH is a broken shim; use `D:\npm-global\pnpm.cmd`.
+>
+> ⚠️ 本 harness 的 shell 是 **Windows PowerShell 5.1**（不是 PowerShell 7）。因此仓库里的
+> `.ps1` 脚本**必须保存为带 BOM 的 UTF-8**，否则 5.1 会按 ANSI 解码，含中文的字符串会破坏
+> 脚本结构。
+> The shell here is **Windows PowerShell 5.1**, not PowerShell 7. Scripts in this repo must
+> therefore be saved as **UTF-8 with BOM**; otherwise 5.1 decodes them as ANSI and non-ASCII
+> string literals corrupt the script.
 
 ### 常用命令 / common commands
 
@@ -134,22 +142,53 @@ D:\npm-global\pnpm.cmd install          # 安装依赖
 D:\npm-global\pnpm.cmd build            # 构建全部包（Turborepo 负责拓扑序）
 D:\npm-global\pnpm.cmd typecheck        # 类型检查
 node scripts/smoke/contracts.smoke.cjs  # 契约冒烟测试，无需额外依赖
+
+& scripts\toolchain\postgres.ps1 ensure # 数据库未运行则拉起
+D:\npm-global\pnpm.cmd db:migrate       # 生成并应用 migration
+D:\npm-global\pnpm.cmd --filter @campus/api run build
+D:\npm-global\pnpm.cmd db:seed          # 需要先 build
+cd apps\api; node dist\src\main.js     # 启动后端
 ```
+
+---
+
+## 后端 API / the backend API
+
+`apps/api` —— NestJS 12 + Prisma 7 + PostgreSQL 16。启动后：
+
+- API 前缀 / prefix：`http://127.0.0.1:3000/api`
+- OpenAPI 文档 / docs：`http://127.0.0.1:3000/api/docs`
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| GET | `/api/health` | 健康检查（含数据库连通性） |
+| GET | `/api/universities` | 已接入高校 |
+| GET | `/api/universities/:id` | 单所高校 |
+| GET | `/api/universities/:id/capabilities` | 适配器能力 vs 数据库声明能力 |
+| POST | `/api/universities/:id/services/sync` | 从适配器同步服务目录（按 `sourceId` 幂等） |
+| GET | `/api/services` | 搜索服务：`universityId`（必填）、`q`、`category`、`sort` |
+| GET | `/api/services/:id` | 单个服务 |
+
+数据纪律：**`prisma/schema.prisma` 是 schema 的唯一真源**，所有变更都走 `pnpm db:migrate`
+生成 migration，禁止手工改数据库（§0.6）。Prisma 7 起连接串配置在 `apps/api/prisma.config.ts`，
+运行时通过 `@prisma/adapter-pg` 提供的 driver adapter 连接。
 
 ---
 
 ## 当前进度 / current status
 
-**Phase 0（项目骨架）进行中**。已完成 / done:
+**Phase 0（项目骨架）约完成 85%。** 已完成 / done:
 
-- 工具链安装完成并验证（PostgreSQL / Flutter / Android SDK / gh）
-- 仓库骨架：pnpm workspaces + Turborepo + 统一 tsconfig
+- 工具链安装并验证（PostgreSQL 16.10 / Flutter 3.47.5 / Android SDK 36 / gh 2.101.0）
+- 仓库骨架：pnpm workspaces + Turborepo + 统一 tsconfig，5 个包 `tsc` 构建通过
 - 类型契约：`@campus/launcher`、`@campus/models`、`@campus/university-adapter`、
-  `@campus/adapter-ecnu` —— 四个包编译通过，18 项冒烟检查全部通过
+  `@campus/adapter-ecnu`，18 项冒烟检查全部通过
+- 数据库：`University` / `User` / `CampusService` 模型 + 首个 migration + 幂等 seed
+- 后端：7 个 REST 接口 + OpenAPI，错误处理（400/404）与同步幂等性均已端到端验证
 
-进行中 / in progress：`apps/api`、`apps/mobile`、`apps/admin`、`docs/` 细分文档。
+进行中 / in progress：`packages/core`、`apps/mobile`（Flutter）、`apps/admin`、`docs/` 细分文档。
 
-详细进展与决策记录见 [`DEVELOP_LOG.md`](DEVELOP_LOG.md)。
+详细进展、决策记录与踩坑见 [`DEVELOP_LOG.md`](DEVELOP_LOG.md)。
 
 ---
 

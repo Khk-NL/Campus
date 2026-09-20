@@ -25,23 +25,43 @@ because DeepSeek API peak pricing begins.
 | 本轮范围 | 严格按 §13 Phase 0 全量 |
 | 语言约定 | 注释/文档中英双语；软件内 i18n 中英双语；代码标识符英文 |
 
-### 1. 环境勘察结论（重要，影响后续所有操作）
+### 1. 环境勘察结论（含一处重要自我更正）
 
-这台机器的环境与常规开发机差异很大，必须记录：
+> ⚠️ **更正 / correction**
+>
+> 本节最初写下的结论是"本机 .NET TLS 栈损坏 / 各网络栈可用性不统一"，**该结论是错的，
+> 已作废**。会话开始时确实观察到 PowerShell `Invoke-WebRequest`、`curl.exe`、`choco`
+> 全部握手失败；但在文件沙箱策略由 `workspace-write` 改为 `danger-full-access` 之后重测，
+> **它们全部恢复正常**：
+>
+> | 网络栈 | 会话开始时 | 重测（full-access） |
+> | --- | --- | --- |
+> | Node（自带 OpenSSL） | ✅ | ✅ 200 |
+> | git（`http.sslBackend=openssl`） | ✅ | ✅ 推送成功 |
+> | Java JSSE（JDK 25） | 未测 | ✅ 成功下载约 1.5 GB Android SDK 包 |
+> | `curl.exe`（Schannel） | ❌ `http=000` | ✅ `http=302` |
+> | PowerShell / .NET | ❌ 握手失败 | ✅ 200（`registry.npmjs.org` / `github.com`） |
+> | `choco`（.NET） | ❌ 源不可用 | ✅ 返回社区源搜索结果 |
+> | `winget` | ❌ exit `-1978335231` | ❌ **仍然损坏**，并以访问违例 `3221225477` 直接让作业运行器崩溃 |
+>
+> **教训**：不要在会话早期把一次失败固化成"环境结论"。当时的失败最可能源于受限沙箱模式
+> 对部分网络栈的干扰，但这只是**推测、并未证实**；本机代理（IE 代理指向 `127.0.0.1:7890`
+> 的 Clash 类代理，WinHTTP 为直连）当时是否处于过渡状态，也无法回溯确认。
+
+**仍然成立的事实 / what actually holds:**
 
 | 项 | 结论 |
 | --- | --- |
-| Node / npm | ✅ v24.21.0 / 11.19.0，`registry.npmjs.org` 可达（~550ms） |
-| git | ✅ 可用，`https://github.com/Khk-NL/Campus.git` 可达（远程仅 1 个 commit + `README.md`） |
-| **Windows HTTPS 链路** | ⚠️ **系统 HTTPS / 证书 / 代理链路异常，不同网络栈表现不一致**：PowerShell `Invoke-WebRequest`、`curl.exe`、`choco` 握手失败，`winget` 自身也损坏（exit `-1978335231`）；但 Node 的 `fetch` / npm / git 全部正常。**注意：`curl.exe` 失败不足以证明问题局限于 .NET**，只说明各网络栈可用性不统一 |
-| **winget** | ❌ **已损坏**，`winget --version` 返回 exit `-1978335231`，无任何输出 |
-| **可用下载通道** | ✅ Node 的 HTTPS（`fetch` / npm）与 git 稳定可用，因此下载脚本用 Node 写 |
-| 本机代理 | `127.0.0.1:7890` 有监听（Clash 类），但 npm/git 直连可用，未强制走代理 |
-| JDK | ✅ `D:\Code\JDK`，版本 **25.0.2**（AGP 对 JDK 25 支持存疑，见"风险"） |
-| 先前 pnpm | ⚠️ PATH 上 `D:\Code\dsh\...\.bin\pnpm.CMD` 是**坏的**（指向不存在的 `D:\pnpm-store\v11\...`）；已改用 `D:\npm-global\pnpm.cmd`（真实 pnpm 12.5.1） |
+| Node / npm | ✅ v24.21.0 / 11.19.0 |
+| git | ✅ 可用；`origin` = `Khk-NL/Campus`，`http.sslBackend=openssl` |
+| **winget** | ❌ **唯一确认不可用的工具**：`--version` 无输出、退出码 `-1978335231`，且会以访问违例 `3221225477` 使作业运行器崩溃。**不要使用。** |
+| JDK | ✅ `D:\Code\JDK` **25.0.2**。按用户要求**不动全局 JDK**，仅当 `flutter doctor` / Gradle 真的报兼容错误时才为 Campus 单独装 JDK 17 |
+| 代理 | IE 代理 `127.0.0.1:7890`（Clash 类），WinHTTP 直连；两者当前都可用 |
+| 先前 pnpm | ⚠️ PATH 上 `D:\Code\dsh\...\.bin\pnpm.CMD` 是坏的（指向不存在的 `D:\pnpm-store\v11\...`）；请用 `D:\npm-global\pnpm.cmd`（pnpm 12.5.1） |
 
-> ⚠️ **结论**：本机各网络栈的可用性不统一，团队统一走
-> `scripts/toolchain/fetch-tools.mjs`（Node）这条已验证的通道，避免反复试错。
+**工具链脚本的定位也随之调整**：`scripts/toolchain/*` 不再以"别的通道都坏了"为理由，而是
+**可复现地锁定精确版本**（PostgreSQL 16.10 / Flutter 3.47.5 / cmdline-tools 13114758 /
+gh 2.101.0），且完全不依赖已损坏的 winget。
 
 ### 2. 本轮已完成 / done
 
@@ -236,4 +256,113 @@ $env:PGPASSWORD = '<见 apps/api/.env 中的连接串>'
 $env:JAVA_HOME = 'D:\Code\JDK'
 & D:\Android\sdk\cmdline-tools\latest\bin\sdkmanager.bat --sdk_root=D:\Android\sdk `
     "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+```
+
+---
+
+## 2026-09-20 · Phase 0 续：后端与数据库 / Phase 0 continued — backend and database
+
+**状态 / status**：Phase 0 完成约 85%。四个类型包 + `apps/api` 全部可用并已端到端验证。
+
+### 6. 本轮完成 / done this round
+
+**6.1 推送链路打通（§0.2）**
+
+- `gh auth login` 走浏览器 device flow 授权成功，账号 `Khk-NL`，scopes: `gist, read:org, repo`
+- 远程 `main` 原本是一个孤立的 `first commit`（只有一行 `# Campus`），与本地无共同祖先。
+  **没有用 `--force`**（会毁掉远程历史），而是用 `git reset --soft origin/main` 把工作重放到
+  该 stub 之上，得到线性历史：`315f36a`(stub) → `ce0c0b3`(Phase 0)，已推送并建立跟踪关系
+
+**6.2 Android SDK（同时作为 Java HTTPS 链路验证）**
+
+`sdkmanager` 基于 JDK 25 成功下载安装，**证明 Java 的 HTTPS 链路完全正常**：
+
+| 包 | 版本 |
+| --- | --- |
+| platform-tools | 37.0.1 |
+| platforms;android-36 | 2 |
+| build-tools;36.0.0 | 36.0.0 |
+
+**按用户要求未改动全局 JDK 25**；只有 `flutter doctor` / Gradle 真的报兼容错误时才为 Campus 单独装 JDK 17。
+
+**6.3 apps/api（NestJS 12 + Prisma 7 + PostgreSQL 16）**
+
+- `prisma/schema.prisma`：`University` / `User` / `CampusService` 三个模型 + 8 个枚举
+- **首个 migration 已生成并应用**：`20260920103139_init_university_user_campus_service`
+- `prisma/seed.ts`：写入 ECNU 高校、演示用户、7 条服务目录（幂等 upsert）
+- REST 接口（全部有 OpenAPI 类型定义，§0.7）：
+
+| 方法 | 路径 | 说明 |
+| --- | --- | --- |
+| GET | `/api/health` | 检查数据库连通性，而非只返回 200 |
+| GET | `/api/universities` | 已接入高校 |
+| GET | `/api/universities/:id` | 单所高校 |
+| GET | `/api/universities/:id/capabilities` | 对比适配器上报能力 vs 数据库声明能力 |
+| POST | `/api/universities/:id/services/sync` | 从适配器同步服务目录（幂等） |
+| GET | `/api/services?universityId=&q=&category=&sort=` | §11 第一阶段搜索 |
+| GET | `/api/services/:id` | 单个服务 |
+| GET | `/api/docs` | OpenAPI UI |
+
+**6.4 端到端验证结果**
+
+- 7 条服务目录正确返回，分类 / 类型 / 启动目标均正确（`随师办` 是小程序类型，因此没有 URL）
+- §11 搜索：`q=羽毛球` **通过标签**命中「体育场馆预约」；`q=图书馆` 命中「图书馆」；`category=academic` 命中「教务处」
+- 校验：缺少 `universityId` → 400；非法 `category` → 400；未注册高校 → 404；不存在服务 → 404
+- **同步幂等**：连续两次 `POST …/services/sync` 均为 `{created: 0, updated: 7}`，条目数稳定 7
+- OpenAPI 正常，列出 7 条路径
+- 5/5 包 `tsc` 构建通过 —— **包括 NestJS 装饰器在 TypeScript 7 下**，消掉了上一轮标记的一个风险
+
+### 7. 本轮踩的坑 / pitfalls this round
+
+9. **PowerShell 脚本必须带 UTF-8 BOM。** 这个 harness 的 "pwsh" 实际是 **Windows PowerShell 5.1
+   （Desktop）**，不是 PowerShell 7。5.1 对**无 BOM** 的 `.ps1` 按 ANSI/GBK 解码，因此含中文的
+   字符串字面量会被打乱并**破坏代码结构**（表现为脚本只执行一部分、还把源码当输出打印）。
+   修法是读原始字节后前置 BOM，避免二次解码：
+   ```powershell
+   $b = [System.IO.File]::ReadAllBytes($p)
+   [System.IO.File]::WriteAllBytes($p, [byte[]](0xEF,0xBB,0xBF) + $b)
+   ```
+   附带发现：`Invoke-WebRequest -NoProxy` 在 5.1 下不存在（那是 7 的参数），正是它导致了我之前
+   那次"参数找不到"的失败，与网络无关。
+10. **Prisma 7 有重大破坏性变更**，三处必须一起改：`schema.prisma` 里不能再写 `datasource.url`
+    （报 P1012），改到 `prisma.config.ts`；运行时 Client 必须显式传 driver adapter，故引入
+    `@prisma/adapter-pg`（已内置 `pg`，无需单独装）；`prisma.config.ts` 与 `seed.ts` 都要自己
+    `import 'dotenv/config'`（seed 不经过 Prisma CLI）。
+11. **pnpm 12 用 `allowBuilds` 而不是 `onlyBuiltDependencies`**，且必须写在 `pnpm-workspace.yaml`
+    （写在 `.npmrc` 里会被忽略）。不放行 `@prisma/engines` 的话查询引擎二进制不会下载，Prisma
+    Client 根本跑不起来。pnpm 会自动往 workspace 文件插入占位块提示填写。
+12. **`LaunchColumns.type` 的语义错位**（被编译器抓到）：该接口描述的是**数据库行**，`type` 必须
+    是 Prisma 的蛇形枚举（`wechat_mini_program`），而不是领域侧的短横线取值
+    （`wechat-mini-program`）—— 因为 `fromLaunchTarget()` 的返回值会直接展开进 Prisma 的
+    create/update，混入领域取值会写出非法数据。这正是当初写穷举检查要拦的错误。
+13. **postgres 会被外部崩溃带走。** 一次 `winget.exe` 以访问违例 `3221225477` 崩掉作业运行器时，
+    游离的 postgres 也一起死了（日志显示"数据库系统没有正确的关闭"）。已加
+    `scripts/toolchain/postgres.ps1`，用 WMI 游离进程拉起，提供 `status/start/stop/restart/ensure`。
+
+### 8. 待办 / next
+
+1. `packages/core`：CampusLauncher 实现 + 服务聚合 / 搜索（§7 / §11）
+2. `apps/mobile`：Flutter 5 Tab 导航 + ECNU 配色（`rgb(143,16,40)` / `rgb(255,255,255)`）+ 中英 i18n
+3. `apps/admin`：React + Vite 骨架
+4. `docs/`：`ARCHITECTURE.md` / `DATA_MODEL.md` / `ECNU_ADAPTER.md` / `PLUGIN_SPEC.md` / `ROADMAP.md`
+5. `packages/campus-sdk` 与 `packages/plugin-runtime`：Phase 4 的 Manifest / Permission / SDK 契约
+6. §11 的"最近使用"目前只是按 `lastVerifiedAt` 排序的占位，需要真正的使用记录
+7. 标签搜索目前是数组精确匹配（`has`），"羽毛"匹配不到标签"羽毛球"；需改为子串或全文索引
+8. `packages/models` 的 `ruleAppliesInWeek` 等纯函数还没有真正的单元测试框架（目前只有冒烟脚本）
+
+### 9. 本轮命令备忘 / commands added this round
+
+```powershell
+# PostgreSQL 控制（推荐，优于直接 pg_ctl）
+& scripts\toolchain\postgres.ps1 ensure     # 未运行则拉起
+& scripts\toolchain\postgres.ps1 status
+
+# 迁移与种子（仓库根目录）
+D:\npm-global\pnpm.cmd db:migrate
+D:\npm-global\pnpm.cmd --filter @campus/api run build
+D:\npm-global\pnpm.cmd db:seed              # 必须先 build
+
+# 启动后端
+cd apps\api; node dist\src\main.js          # http://127.0.0.1:3000/api
+                                            # OpenAPI: /api/docs
 ```

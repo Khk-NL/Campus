@@ -1,4 +1,4 @@
-# Campus 工具链安装器 / Campus toolchain installer
+﻿# Campus 工具链安装器 / Campus toolchain installer
 #
 # 读取 .tools/download-manifest.json（由 fetch-tools.mjs 生成），把各压缩包解压到
 # 常规安装位置。幂等：目标目录已存在则跳过。

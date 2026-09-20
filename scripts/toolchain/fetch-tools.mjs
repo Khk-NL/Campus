@@ -1,17 +1,16 @@
 /**
  * Campus 工具链下载器 / Campus toolchain downloader
  *
- * 为什么用 Node 而不是 winget / choco / curl / Invoke-WebRequest：
- * 本机 Windows 的 HTTPS / 证书 / 代理链路异常，且不同网络栈表现不一致 ——
- * PowerShell `Invoke-WebRequest`、`curl.exe`、`choco` 均握手失败，winget 自身损坏
- * （exit -1978335231）；而 Node 的 fetch / npm / git 正常。
- * 注意：curl.exe 失败不足以证明问题局限于 .NET，只说明各通道可用性不统一。
+ * 为什么用 Node 而不是 winget：
+ * winget 在本机已损坏（`--version` 无输出、退出码 -1978335231，且会以访问违例
+ * 3221225477 使作业运行器崩溃）。用 Node 是为了**锁定精确版本并可复现**，
+ * 而不是因为其它下载通道不可用 —— 见 DEVELOP_LOG.md 第 1 节的一处更正。
  *
- * Why Node instead of winget / choco / curl / Invoke-WebRequest:
- * this machine's Windows HTTPS / certificate / proxy chain is misbehaving and
- * different network stacks disagree — Invoke-WebRequest, curl.exe and choco all fail
- * the handshake while Node's fetch, npm and git work. A failing curl.exe does not
- * prove the fault is .NET-specific; it only shows the channels are inconsistent.
+ * Why Node rather than winget:
+ * winget is broken on this machine (no output, exit -1978335231, and it crashes the job
+ * runner with an access violation). Node is used to **pin exact versions reproducibly**,
+ * not because other download channels are unavailable — see the correction in
+ * DEVELOP_LOG.md section 1.
  *
  * 产物落在系统临时目录（工作区之外唯一可写的位置），并写一份 manifest
  * 到工作区，供解压步骤定位。

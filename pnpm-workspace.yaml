@@ -11,6 +11,27 @@ packages:
 # A shared dependency must resolve to one version across the monorepo; otherwise
 # pnpm installs duplicates and client/server types silently diverge. Defined once
 # here, referenced from packages as "catalog:".
+# 构建脚本许可 / build-script allowlist
+#
+# pnpm 12 默认不执行任何生命周期脚本，且用的是 `allowBuilds`（不是较早的
+# `onlyBuiltDependencies`，那是 pnpm 10 的写法，写在 .npmrc 里也会被忽略）。
+#
+# pnpm 12 runs no lifecycle scripts by default and uses `allowBuilds` — not the older
+# `onlyBuiltDependencies`, which it ignores even inside .npmrc.
+#
+# `@prisma/engines` 的 postinstall 会下载查询引擎二进制，不放行的话 Prisma Client
+# 根本跑不起来。
+# `@prisma/engines` downloads the query engine binaries in its postinstall; without it
+# Prisma Client cannot run at all.
+allowBuilds:
+  '@prisma/client': true
+  '@prisma/engines': true
+  prisma: true
+  esbuild: true
+  # scarf 只是匿名使用统计，与构建无关，明确拒绝即可（最小权限，§0.8）。
+  # scarf is anonymous telemetry, unrelated to building; deny it explicitly (§0.8).
+  '@scarf/scarf': false
+
 catalog:
   # 注意 / note: TypeScript 7 是 Go 重写版，若与 NestJS 装饰器生态冲突则回退 5.x。
   # TypeScript 7 is the native rewrite; fall back to 5.x if it breaks NestJS decorators.
@@ -34,3 +55,9 @@ catalog:
   # pinned to match @prisma/client.
   prisma: 7.10.0
   '@prisma/client': 7.10.0
+  # Prisma 7 起运行时必须显式传 driver adapter；该包已内置 pg，无需单独安装。
+  # Since Prisma 7 the runtime needs an explicit driver adapter; this package bundles
+  # pg, so pg is not installed separately.
+  '@prisma/adapter-pg': 7.10.0
+  # prisma.config.ts 用它加载 .env / used by prisma.config.ts to load .env
+  dotenv: ^18.0.1

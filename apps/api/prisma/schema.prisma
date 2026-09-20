@@ -1,0 +1,200 @@
+// Campus 数据模型 / Campus data model
+//
+// 同步纪律 / synchronisation discipline（§0.6）：
+//   本文件是**唯一**的 schema 真源。绝不允许手工改数据库 —— 所有变更都必须经由
+//   `prisma migrate dev` 生成 migration 并提交。因此本文件、migration 目录与
+//   `@campus/models` 里的 TypeScript 类型必须同时更新。
+//
+//   This file is the single source of truth for the schema. Hand-editing the
+//   database is forbidden: every change goes through `prisma migrate dev` and the
+//   generated migration is committed. This file, the migrations directory and the
+//   TypeScript types in `@campus/models` must therefore move together.
+//
+// 命名 / naming：TS 侧 camelCase，DB 侧 snake_case，由 @map 负责映射。
+// TypeScript is camelCase, the database is snake_case, @map bridges the two.
+//
+// 刻意不用 JSON 列 / deliberately no JSON columns（§0.7）：
+//   §6 把 `config` 与 `launch_config` 设计成未约束的 JSON。§0.7 禁止到处传未经约束的
+//   JSON，因此这里把两者都展开成结构化列。代价是列变多，收益是数据库层也能拒绝
+//   "web 类型却没有 url"这种非法组合。
+//
+//   §6 models `config` and `launch_config` as unconstrained JSON. §0.7 forbids that,
+//   so both are expanded into structured columns here. More columns, but the database
+//   can now reject illegal combinations such as "type = web with no url".
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  // 注意 / note: Prisma 7 起，连接串**不能**再写在这里。它现在配置在
+  // `apps/api/prisma.config.ts` 的 `datasource.url`，而运行时的 Client 需要一个
+  // driver adapter（见 src/prisma/prisma-client.factory.ts）。
+  //
+  // As of Prisma 7 the connection URL can no longer live here. It is configured in
+  // `apps/api/prisma.config.ts` under `datasource.url`, and the runtime client needs a
+  // driver adapter — see src/prisma/prisma-client.factory.ts.
+}
+
+// ---------------------------------------------------------------------------
+// 共享枚举 / shared enums
+//
+// 每个枚举的取值都必须与 @campus/models 中同名的联合类型逐一对齐。
+// Every enum value must line up one-to-one with the same-named union in @campus/models.
+// ---------------------------------------------------------------------------
+
+enum RecordStatus {
+  draft
+  active
+  archived
+  disabled
+}
+
+enum Role {
+  user
+  publisher
+  developer
+  moderator
+  admin
+}
+
+enum ServiceCategory {
+  official_hub
+  academic
+  library
+  campus_card
+  venue
+  network
+  map
+  administration
+  other
+}
+
+enum ServiceOrigin {
+  official
+  student_developed
+  external
+  open_source
+}
+
+enum ServiceSourceSystem {
+  manual
+  university_adapter
+  developer_submission
+  official_directory
+}
+
+enum LaunchTargetType {
+  web
+  wechat_mini_program
+  native_app
+  campus_app
+}
+
+enum WeekParity {
+  all
+  odd
+  even
+}
+
+// ---------------------------------------------------------------------------
+// University
+// ---------------------------------------------------------------------------
+
+model University {
+  id        String       @id
+  name      String
+  shortName String       @map("short_name")
+  domain    String
+  logoUrl   String?      @map("logo_url")
+  status    RecordStatus @default(active)
+
+  // UniversityConfig 展开 / UniversityConfig, expanded (§0.7)
+  termWeeks            Int      @map("term_weeks")
+  periodsPerDay        Int      @map("periods_per_day")
+  weekStartsOn         Int      @map("week_starts_on")
+  timezone             String
+  locales              String[] @default(["zh-CN", "en"])
+  capabilities         String[] @default([])
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  users    User[]
+  services CampusService[]
+
+  @@map("universities")
+}
+
+// ---------------------------------------------------------------------------
+// User
+// ---------------------------------------------------------------------------
+
+model User {
+  id             String       @id @default(cuid())
+  universityId   String       @map("university_id")
+  externalUserId String       @map("external_user_id")
+  name           String
+  avatarUrl      String?      @map("avatar_url")
+  roles          Role[]       @default([user])
+  status         RecordStatus @default(active)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  university University @relation(fields: [universityId], references: [id], onDelete: Cascade)
+
+  // 同一所高校内学号唯一；跨校可重复，因此唯一键必须带 universityId。
+  // A student number is unique within a university but not across universities, so
+  // the unique key must include universityId.
+  @@unique([universityId, externalUserId])
+  @@index([universityId])
+  @@map("users")
+}
+
+// ---------------------------------------------------------------------------
+// CampusService
+// ---------------------------------------------------------------------------
+
+model CampusService {
+  id           String       @id @default(cuid())
+  universityId String       @map("university_id")
+  name         String
+  description  String
+  iconUrl      String?      @map("icon_url")
+  category     ServiceCategory
+  type         LaunchTargetType
+
+  // LaunchTarget 展开 / LaunchTarget, expanded (§0.7)。
+  // 每类目标只用到其中一部分列，合法性由 src/services/launch-target.mapper.ts 保证。
+  // Each target kind uses a subset; legality is enforced in launch-target.mapper.ts.
+  launchUrl           String? @map("launch_url")
+  launchPreferredMode String? @map("launch_preferred_mode")
+  launchOriginalId    String? @map("launch_original_id")
+  launchPath          String? @map("launch_path")
+  launchScheme        String? @map("launch_scheme")
+  launchFallbackUrl   String? @map("launch_fallback_url")
+  launchStoreUrl      String? @map("launch_store_url")
+  launchAppId         String? @map("launch_app_id")
+  launchRoute         String? @map("launch_route")
+
+  isOfficial     Boolean             @default(false) @map("is_official")
+  origin         ServiceOrigin
+  sourceSystem   ServiceSourceSystem @map("source_system")
+  sourceId       String?             @map("source_id")
+  tags           String[]            @default([])
+  lastVerifiedAt DateTime?           @map("last_verified_at")
+  status         RecordStatus        @default(active)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  university University @relation(fields: [universityId], references: [id], onDelete: Cascade)
+
+  // Adapter 同步去重键 / the dedupe key used when an adapter re-syncs.
+  @@unique([universityId, sourceId])
+  @@index([universityId, category])
+  @@index([universityId, status])
+  @@map("campus_services")
+}
