@@ -366,3 +366,59 @@ D:\npm-global\pnpm.cmd db:seed              # 必须先 build
 cd apps\api; node dist\src\main.js          # http://127.0.0.1:3000/api
                                             # OpenAPI: /api/docs
 ```
+
+---
+
+## 2026-09-20 · Phase 0 收尾：核心逻辑、插件契约与文档 / closing Phase 0
+
+**状态 / status**：Phase 0 约 90%。类型契约与文档全部就位，仅剩 `apps/mobile`（进行中）。
+
+### 10. 本轮完成 / done this round
+
+**10.1 `@campus/core`（§7 / §11）**
+
+- `resolveLaunchPlan`：纯决策函数。UI 可在点击前告诉用户「将会发生什么」，所有回退路径也能
+  被穷举单测，不必真的拉起微信或跳应用商店
+- `planFallback`：按失败原因决定回退 —— `app-not-installed` 优先去应用商店，
+  `unsupported-transport` 才谈网页
+- `DefaultCampusLauncher`：决策与执行分离，打开动作交给平台注入的 `LaunchTransportHandler`，
+  Core 里没有一行平台代码
+- 三条硬规则：能力缺实现即抛错 / 用户拒绝后立刻停手不回退 / 小程序不支持时绝不退化到 WebView
+- 统一搜索：可解释排序（标题 100 > 标签 60 > 关键词 30 > 分类 20），`description` 不参与匹配，
+  最近使用只在分数相同时打破平局
+
+**10.2 `@campus/plugin-runtime` 与 `@campus/campus-sdk`（§14 / §15 / §16）**
+
+- 清单解析拒绝目录穿越、绝对路径、盘符、协议相对 URL、绝对 URL（§16 隔离要求）
+- `allowNativeCode` 的类型是字面量 `false`：任何试图打开它的代码都过不了编译
+- 桥接方法→权限映射表是「默认拒绝」的落点：表里没有的方法一律不可调用
+- `crashed` 作为一等生命周期状态（§16 Crash 隔离）；回滚限制在同主版本内
+- SDK 接口面与宿主权限表的一致性有断言保护（两份声明各自手写，容易走偏）
+
+**10.3 文档（§23 六份齐备）**
+
+`DEVELOPMENT` / `ARCHITECTURE` / `DATA_MODEL` / `ECNU_ADAPTER` / `PLUGIN_SPEC` / `ROADMAP`
+
+**10.4 验证**
+
+- 全量构建 **8/8** 通过
+- `pnpm smoke` 现为 **4 个脚本、共 69 项**检查，全部通过
+- 已推送五个提交（`ce0c0b3` → `8760aa2`）
+
+### 11. 新踩的坑 / new pitfall
+
+14. **harness 传命令时，ASCII 双引号会破坏 here-string。** 用 `@"..."@` 写 git commit 消息时，
+    消息里的 `"Plugin API"` 被当成外层引号提前闭合，导致提交内容被拆成多个 pathspec，
+    commit 失败（`pathspec ... did not match any file(s)`）。
+    **做法**：commit 消息改用 `write` 工具写进 `.tools/commit-msg.txt`，再用 `git commit -F`。
+    这样彻底绕开 shell 引号问题，长消息也不再受转义影响。中文全角引号 `「」` 不受影响。
+
+### 12. 待办 / next
+
+1. `apps/mobile`：Flutter 5 Tab 导航 + ECNU 配色 + 中英 i18n（子代理进行中）
+2. 引入真正的测试框架替代冒烟脚本，优先覆盖 `ruleAppliesInWeek`、`launch-target.mapper`、
+   `enum.mapper`
+3. 核实 ECNU `term_weeks` / `periods_per_day`（现为 18 / 13，未确认）
+4. 核实服务目录 7 条入口的真实 URL 与小程序 ID（现为 `mock:` 占位值）
+5. 标签搜索改为子串或全文索引；「最近使用」接入真实使用记录
+6. `apps/admin` —— 注意它**不在** §13-Phase 0 的工作项里，属于后续阶段
