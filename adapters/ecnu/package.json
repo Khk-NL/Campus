@@ -1,0 +1,26 @@
+{
+  "name": "@campus/adapter-ecnu",
+  "version": "0.1.0",
+  "private": true,
+  "description": "华东师范大学适配器 / the ECNU adapter —— 唯一允许出现 ECNU 特有逻辑的地方",
+  "license": "UNLICENSED",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\""
+  },
+  "dependencies": {
+    "@campus/launcher": "workspace:*",
+    "@campus/models": "workspace:*",
+    "@campus/university-adapter": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:"
+  }
+}

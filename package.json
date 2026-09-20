@@ -1,0 +1,31 @@
+{
+  "name": "campus",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Campus · 校园数字工作台 / a campus digital workbench — 统一入口 · 事务中心 · 学生开发者生态",
+  "license": "UNLICENSED",
+  "packageManager": "pnpm@12.5.1",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "clean": "turbo run clean",
+    "smoke": "node scripts/smoke/contracts.smoke.cjs",
+    "format": "prettier --write \"**/*.{ts,tsx,js,mjs,json,md,yaml,yml}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,mjs,json,md,yaml,yml}\"",
+    "db:migrate": "pnpm --filter @campus/api run db:migrate",
+    "db:seed": "pnpm --filter @campus/api run db:seed",
+    "db:studio": "pnpm --filter @campus/api run db:studio"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "prettier": "catalog:",
+    "turbo": "catalog:",
+    "typescript": "catalog:"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "name": "@campus/launcher",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Campus Launcher —— 发现 + 判断类型 + 用最合适的方式打开 / discover, classify, open the right way",
+  "license": "UNLICENSED",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\""
+  },
+  "devDependencies": {
+    "typescript": "catalog:"
+  }
+}

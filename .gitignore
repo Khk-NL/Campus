@@ -1,0 +1,54 @@
+# ---------- 依赖 / Dependencies ----------
+node_modules/
+.pnpm-store/
+
+# ---------- 构建产物 / Build output ----------
+dist/
+build/
+out/
+*.tsbuildinfo
+# Turborepo 本地缓存 / turborepo local cache
+.turbo/
+
+# ---------- 本地工具链 / Local toolchain ----------
+# 本机沙箱只允许写工作区内，PostgreSQL / Flutter / Android SDK / pnpm store
+# 都安装在 .tools 下，绝不能进仓库。
+# The machine's sandbox only allows writes inside the workspace, so PostgreSQL,
+# the Flutter SDK, the Android SDK and the pnpm store all live under .tools.
+# They must never be committed.
+.tools/
+
+# ---------- 环境变量 / Environment ----------
+.env
+.env.*
+!.env.example
+
+# ---------- 日志 / Logs ----------
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# ---------- 编辑器 / Editors ----------
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+*.swo
+
+# ---------- Flutter / Dart ----------
+apps/mobile/.dart_tool/
+apps/mobile/build/
+apps/mobile/.flutter-plugins
+apps/mobile/.flutter-plugins-dependencies
+apps/mobile/android/.gradle/
+apps/mobile/android/local.properties
+apps/mobile/android/key.properties
+apps/mobile/ios/Pods/
+apps/mobile/ios/.symlinks/
+apps/mobile/**/*.iml
+**/*.g.dart.lock
+
+# ---------- 操作系统 / OS ----------
+Thumbs.db
+Desktop.ini
+.DS_Store

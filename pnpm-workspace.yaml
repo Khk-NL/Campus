@@ -1,0 +1,36 @@
+packages:
+  - 'apps/*'
+  - 'packages/*'
+  - 'adapters/*'
+
+# 依赖版本目录 / dependency catalog
+#
+# 同一依赖在多个包里必须版本一致，否则 pnpm 会装出多份，客户端与服务端的类型
+# 也会悄悄分叉。集中在这里定义，各包用 "catalog:" 引用。
+#
+# A shared dependency must resolve to one version across the monorepo; otherwise
+# pnpm installs duplicates and client/server types silently diverge. Defined once
+# here, referenced from packages as "catalog:".
+catalog:
+  # 注意 / note: TypeScript 7 是 Go 重写版，若与 NestJS 装饰器生态冲突则回退 5.x。
+  # TypeScript 7 is the native rewrite; fall back to 5.x if it breaks NestJS decorators.
+  typescript: ^7.0.2
+  '@types/node': ^26.6.2
+  prettier: ^3.9.8
+  turbo: ^2.11.2
+
+  # 后端 / backend
+  '@nestjs/common': ^12.0.3
+  '@nestjs/core': ^12.0.3
+  '@nestjs/platform-express': ^12.0.3
+  '@nestjs/config': ^4.0.2
+  '@nestjs/swagger': ^12.0.1
+  class-transformer: ^0.5.1
+  class-validator: ^0.15.1
+  reflect-metadata: ^0.2.2
+  rxjs: ^7.8.2
+  # Prisma CLI 的 latest dist-tag 目前指向 8.0.0-rc，必须锁到与 client 一致的 7.10.0。
+  # The prisma CLI's latest dist-tag currently points at an 8.0.0 RC, so it is
+  # pinned to match @prisma/client.
+  prisma: 7.10.0
+  '@prisma/client': 7.10.0
