@@ -148,6 +148,11 @@ model User {
   // 同一所高校内学号唯一；跨校可重复，因此唯一键必须带 universityId。
   // A student number is unique within a university but not across universities, so
   // the unique key must include universityId.
+  // 应用生态的反向关系 / back-relations for the app ecosystem（Prisma 要求关系双向）
+  submittedApps CampusApp[]     @relation("AppSubmitter")
+  developedApps CampusApp[]     @relation("AppDeveloper")
+  appUsage      CampusAppUsage[]
+
   @@unique([universityId, externalUserId])
   @@index([universityId])
   @@map("users")
@@ -197,4 +202,135 @@ model CampusService {
   @@index([universityId, category])
   @@index([universityId, status])
   @@map("campus_services")
+}
+
+// ---------------------------------------------------------------------------
+// CampusApp —— 学生开发者生态（§13-Phase 3 / §18 / §27.9）
+//
+// 为什么需要这张表：Store 此前完全靠 mock 数据支撑，而投稿—审核、标签、探索、反馈、点赞
+// 全部依赖后端持久化。因此它是这些功能的共同前置，不是"顺带做"。
+//
+// Why this table exists: the Store was backed entirely by mock data, while submission,
+// review, tags, discovery, feedback and likes all need persistence. It is the shared
+// prerequisite, not an afterthought.
+//
+// 设计依据见 docs/CAMPUS_APP_SCHEMA_DESIGN.md
+// ---------------------------------------------------------------------------
+
+enum CampusAppType {
+  web
+  github_pages
+  website
+  wechat_mini_program
+  native_app
+  external_project
+}
+
+/// §18 要求明确区分这四类，不得把学生项目包装成学校官方产品
+enum CampusAppOrigin {
+  official
+  student_developed
+  external
+  open_source
+}
+
+enum ReviewStatus {
+  draft
+  pending_review
+  approved
+  rejected
+  suspended
+}
+
+model CampusApp {
+  id          String          @id @default(cuid())
+  name        String
+  description String
+  iconUrl     String?         @map("icon_url")
+  type        CampusAppType
+  origin      CampusAppOrigin
+
+  // 高校范围：判别联合的列式展开（§0.7 不用未约束 JSON）
+  // UniversityScope, flattened into columns rather than an unconstrained JSON blob.
+  scopeAll            Boolean  @default(false) @map("scope_all")
+  scopeUniversityIds  String[] @default([]) @map("scope_university_ids")
+
+  /// 关联仓库；§18 的「Repository 是否匹配」是审核项之一
+  repositoryUrl String? @map("repository_url")
+
+  /// P0：回到原始投稿（issue / 表单）的证据链接
+  sourceUrl String? @map("source_url")
+
+  /// P0 且不可后补：参考项目的投稿管道没存提交者，历史投稿一旦产生就永久丢失
+  submitterId String? @map("submitter_id")
+
+  /// 与 submitter 可以不同（学生替他人或团队项目投稿）
+  developerId String? @map("developer_id")
+
+  status ReviewStatus @default(draft)
+
+  // LaunchTarget 展开，与 campus_services 同构，复用 launch-target.mapper.ts
+  targetType          LaunchTargetType @map("target_type")
+  launchUrl           String?          @map("launch_url")
+  launchPreferredMode String?          @map("launch_preferred_mode")
+  launchOriginalId    String?          @map("launch_original_id")
+  launchPath          String?          @map("launch_path")
+  launchScheme        String?          @map("launch_scheme")
+  launchFallbackUrl   String?          @map("launch_fallback_url")
+  launchStoreUrl      String?          @map("launch_store_url")
+  launchAppId         String?          @map("launch_app_id")
+  launchRoute         String?          @map("launch_route")
+
+  /// 申请的权限（§15），固定取值由 @campus/models 的 Permission 约束
+  permissions String[] @default([])
+  screenshots String[] @default([])
+  version     String   @default("0.0.0")
+
+  /// 三个计数刻意分开，不合成"热度"——合成之后无法解释排序依据（§27.9）
+  /// install / usage / like counters are kept apart on purpose.
+  installCount Int       @default(0) @map("install_count")
+  lastVerifiedAt DateTime? @map("last_verified_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  submitter User? @relation("AppSubmitter", fields: [submitterId], references: [id], onDelete: SetNull)
+  developer User? @relation("AppDeveloper", fields: [developerId], references: [id], onDelete: SetNull)
+
+  usage CampusAppUsage[]
+
+  @@index([status])
+  @@index([origin])
+  @@index([type])
+  @@map("campus_apps")
+}
+
+// ---------------------------------------------------------------------------
+// 使用记录 / usage records
+//
+// 同时支撑三件事（§27.9）：每用户的「最近使用」（§11 明确要求）、全局使用次数、
+// 以及失效检测的输入（一个入口反复打开失败是好信号）。
+//
+// Serves three purposes: per-user recency, aggregate usage count, and an input to
+// staleness detection.
+// ---------------------------------------------------------------------------
+
+model CampusAppUsage {
+  id     String @id @default(cuid())
+  appId  String @map("app_id")
+  userId String @map("user_id")
+
+  useCount   Int      @default(0) @map("use_count")
+  lastUsedAt DateTime @default(now()) @map("last_used_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  app  CampusApp @relation(fields: [appId], references: [id], onDelete: Cascade)
+  user User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, appId])
+  @@index([appId])
+  @@index([userId, lastUsedAt])
+  @@map("campus_app_usage")
 }
