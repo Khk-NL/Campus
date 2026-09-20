@@ -177,9 +177,9 @@ class OfflineFirstCampusRepository implements CampusRepository {
       );
 
   @override
-  Future<List<CampusApp>> fetchCampusApps() => _withFallback(
-        (CampusRepository repository) => repository.fetchCampusApps(),
-        fallback: () => _fallback.fetchCampusApps(),
+  Future<List<CampusApp>> fetchCampusApps(CampusAppsQuery query) => _withFallback(
+        (CampusRepository repository) => repository.fetchCampusApps(query),
+        fallback: () => _fallback.fetchCampusApps(query),
         source: DataSourceSource.apps,
       );
 

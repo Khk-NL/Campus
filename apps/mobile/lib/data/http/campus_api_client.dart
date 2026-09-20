@@ -145,6 +145,26 @@ class CampusApiClient {
   Future<Object?> fetchService(String serviceId) =>
       _getJson('/services/${Uri.encodeComponent(serviceId)}');
 
+  /// `GET /apps` —— 学生应用目录（§14 Store）。服务端只返回 `approved`。
+  /// `GET /apps`: the student-app catalogue (§14). The server returns `approved` rows only.
+  ///
+  /// `tag` **原样发出**：归一化（全角折半角、大小写、空白、别名归并）在服务端完成，
+  /// 客户端不做第二次实现。因此 `?tag=羽毛球`、`?tag=羽球`、`?tag=ＢＡＤＭＩＮＴＯＮ`
+  /// 命中同一条标签，而客户端一行归一化代码都没有。
+  ///
+  /// `tag` is sent **verbatim**: normalisation (NFKC, case, whitespace, alias merging) happens
+  /// server-side and is never reimplemented here, so `羽毛球`, `羽球` and a full-width spelling
+  /// all hit the same tag while this client contains no normalisation code at all.
+  Future<Object?> fetchApps({
+    CampusAppSortOrder sort = CampusAppSortOrder.latest,
+    String? tag,
+  }) {
+    return _getJson('/apps', <String, String>{
+      'sort': sort.wireValue,
+      if (tag != null && tag.isNotEmpty) 'tag': tag,
+    });
+  }
+
   /// 释放底层连接 / release the underlying connections.
   void dispose() => _http.close();
 
@@ -204,6 +224,32 @@ enum CampusServiceSortOrder {
   recent('recent');
 
   const CampusServiceSortOrder(this.wireValue);
+
+  /// 后端 JSON 中的取值 / the value used on the wire.
+  final String wireValue;
+}
+
+/// `GET /apps` 的排序取值 / the `sort` values accepted by `GET /apps`.
+///
+/// 与后端的 `APP_SORT_KEYS` 逐字对齐，且每个取值都**能用一句话解释**（§27.9 禁止不透明的
+/// 推荐分）。缺省 `latest` 与后端一致：按上架时间倒序。
+///
+/// Mirrors the backend's `APP_SORT_KEYS`, each explainable in one sentence (§27.9 rules out an
+/// opaque recommendation score). The default `latest` matches the backend: newest listing first.
+enum CampusAppSortOrder {
+  /// 最近上架 / newest listings first.
+  latest('latest'),
+
+  /// 最近更新 / most recently updated first.
+  recentlyUpdated('recently-updated'),
+
+  /// 使用最多 / most installed first.
+  mostUsed('most-used'),
+
+  /// 按名称 / by name.
+  name('name');
+
+  const CampusAppSortOrder(this.wireValue);
 
   /// 后端 JSON 中的取值 / the value used on the wire.
   final String wireValue;

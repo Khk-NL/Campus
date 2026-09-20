@@ -432,6 +432,27 @@ class AppLocalizationsZh extends AppLocalizations {
   String get storeOfficialBadge => '官方';
 
   @override
+  String get storeTagFilter => '标签';
+
+  @override
+  String get storeTagAll => '全部';
+
+  @override
+  String get storeTagEmpty => '该标签下暂无应用';
+
+  @override
+  String get storeTagHint => '点标签筛选，筛选在后端完成。';
+
+  @override
+  String get storeDeveloperUnknown => '未公开';
+
+  @override
+  String get dataSourceAppsOnline => '学生应用 · 已连接后端';
+
+  @override
+  String get dataSourceAppsMock => '学生应用 · 演示数据';
+
+  @override
   String get profileTitle => '我的';
 
   @override

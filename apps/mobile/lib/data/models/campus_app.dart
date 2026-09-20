@@ -40,6 +40,30 @@ enum AppUniversityScope {
     }
     return AppUniversityScope.universityOnly;
   }
+
+  /// 解析 `/api/apps` 真正发出的那个形状 / parse the shape `/api/apps` really sends.
+  ///
+  /// 后端把范围发成**判别联合**（§0.7 的列式展开在 JSON 侧的对应物）：
+  /// `{"kind":"all"}` 或 `{"kind":"only","universityIds":[…]}`，而演示数据里写的是短横线
+  /// 字符串。只认字符串会让**每一条真实数据**都落到"仅本校"的兜底上——而演示数据恰好是
+  /// 全高校可见，于是"用 mock 时对、接上后端就错"这种最难发现的偏差就会出现。
+  ///
+  /// The backend sends the scope as a **discriminated union** (`{"kind":"all"}` /
+  /// `{"kind":"only","universityIds":[…]}`), while the demo data writes a kebab-case string.
+  /// Recognising only the string would push **every real row** onto the "own university only"
+  /// fallback while the demo data happens to be all-universities — a discrepancy that looks
+  /// right offline and wrong online, the hardest kind to notice.
+  static AppUniversityScope fromJson(Object? value) {
+    final Map<String, Object?> json = asMap(value);
+    switch (asNonEmptyString(json['kind'])) {
+      case 'all':
+        return AppUniversityScope.allUniversities;
+      case 'only':
+        return AppUniversityScope.universityOnly;
+      default:
+        return AppUniversityScope.fromWire(value);
+    }
+  }
 }
 
 /// 与后端形状一致的 Campus App / a Campus app shaped like the backend's.
@@ -53,6 +77,7 @@ class CampusApp {
     required this.scope,
     required this.launchTarget,
     required this.permissions,
+    this.tags = const <String>[],
     this.iconUrl,
     this.repositoryUrl,
     this.version,
@@ -92,15 +117,37 @@ class CampusApp {
   /// 申请权限（§15）/ requested permissions (§15).
   final List<String> permissions;
 
+  /// 标签的**规范展示名**（服务端归一化后的结果）。
+  ///
+  /// 客户端只拿到规范名，**永远不自己归一化**——归一化规则只有 `packages/models/src/tag.ts`
+  /// 一份实现。客户端再实现一套，就是标签分裂的成因：同一门标签在两边算出不同的键。
+  /// 因此这里的取值原样发给后端做筛选（`?tag=`），而不是在本地重新推导。
+  ///
+  /// The canonical tag display names, already normalised server-side. The client never
+  /// normalises tags itself: the rules live in one place (`packages/models/src/tag.ts`), and a
+  /// second implementation is exactly how tag keys split. Values here are therefore sent back
+  /// verbatim as a `?tag=` filter instead of being re-derived locally.
+  final List<String> tags;
+
   /// 更新时间 / last update time.
   final DateTime? updatedAt;
 
   /// 是否官方（§18）/ whether it is an official app (§18).
   bool get isOfficial => origin == ServiceOrigin.official;
 
+  /// 是否拿到了开发者展示名 / whether a developer display name is known.
+  ///
+  /// 后端目前只发 `developerId`，不发名字。没有名字时必须**不显示**这一栏，
+  /// 而不是显示一个空白徽标——空徽标看起来像"开发者是空的"，等于用界面撒谎。
+  ///
+  /// The backend sends `developerId` only, no name. With no name the field must be hidden
+  /// rather than rendered as an empty badge, which would read as "this app has no developer".
+  bool get hasDeveloperName => developerName.isNotEmpty;
+
   /// 供 §11 本地过滤使用的检索文本 / the haystack for §11's local filtering.
   String get searchHaystack =>
-      '$name $description $developerName ${origin.wireValue} ${permissions.join(' ')}'
+      '$name $description $developerName ${origin.wireValue} ${permissions.join(' ')} '
+              '${tags.join(' ')}'
           .toLowerCase();
 
   /// 从后端 JSON 解析；缺少 `id` 或启动方式时返回 null。
@@ -120,12 +167,13 @@ class CampusApp {
           asNonEmptyString(json['developerName']) ??
           '',
       origin: ServiceOrigin.fromWire(json['origin']),
-      scope: AppUniversityScope.fromWire(json['universityScope']),
+      scope: AppUniversityScope.fromJson(json['universityScope']),
       iconUrl: asNonEmptyString(json['iconUrl']),
       repositoryUrl: asNonEmptyString(json['repositoryUrl']),
       version: asNonEmptyString(json['version']),
       launchTarget: launchTarget,
       permissions: asStringList(json['permissions']),
+      tags: asStringList(json['tags']),
       updatedAt: asDateTime(json['updatedAt']),
     );
   }

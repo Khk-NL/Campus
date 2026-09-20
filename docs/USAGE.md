@@ -16,6 +16,7 @@
 | `flutter` 不在 PATH | 用 `D:\flutter\bin\flutter.bat` |
 | 调 flutter 前必须设环境变量 | `JAVA_HOME=D:\Code\JDK`、`ANDROID_HOME=D:\Android\sdk`、`ANDROID_SDK_ROOT=D:\Android\sdk` |
 | PostgreSQL **不能**用 `pg_ctl start` 直接起 | 命令永不返回并会被超时杀掉（连带杀死数据库）。用仓库脚本（见下） |
+| turbo 需要**真正执行**构建脚本时 | PATH 上那个坏的 pnpm shim 会让 turbo 报 `... pnpm.CMD ... is not recognized`（缓存命中的 8/8 看不出来）。把 `D:\npm-global` 放到 PATH 最前面即可：`$env:PATH='D:\npm-global;'+$env:PATH` |
 | 命令里**不要用 ASCII 双引号** | 会破坏 here-string；长文本先写文件再用 `git commit -F` |
 
 ## 1. 工具链位置
@@ -120,7 +121,7 @@ powershell -File scripts\dev\verify-phase0.ps1
 D:\npm-global\pnpm.cmd smoke     # 5 个契约脚本，共 83 项
 cd apps\mobile
 & D:\flutter\bin\flutter.bat analyze    # 必须零问题
-& D:\flutter\bin\flutter.bat test       # 49 项
+& D:\flutter\bin\flutter.bat test       # 55 项
 ```
 
 **当前基线（本文件撰写时实测）**：
@@ -132,7 +133,7 @@ cd apps\mobile
 | TS 全量构建 | 8/8 |
 | 契约冒烟测试 | 19 + 22 + 24 + 5 + 13 = **83 项** |
 | `flutter analyze` | No issues found |
-| `flutter test` | **49/49** |
+| `flutter test` | **55/55** |
 
 ## 5. 已实现的 API
 
@@ -191,6 +192,11 @@ GET /api/apps?tag=羽球              # 别名
 
 以上三种写法（含大小写与全角变体）**都命中同一个标签**。未知标签返回空列表，而不是忽略筛选条件。
 
+**客户端（「应用」Tab → 学生应用页）已经把筛选接到这个接口上**：标签芯片的取值就是后端
+返回的规范名，点一下就把该标签**原样**发成 `?tag=`。客户端**不实现归一化**——规则只有
+`packages/models/src/tag.ts` 一份，客户端再来一套就会重新制造标签分裂。后端不可达时，
+离线回退只做**精确**匹配（点芯片仍然命中，手输别名则不会），并如实标注"演示数据"。
+
 示例输出：
 
 ```json
@@ -207,7 +213,7 @@ GET /api/apps?tag=羽球              # 别名
 | 功能 | 状态 |
 | --- | --- |
 | 节次↔时刻映射 | 🔶 数据库列与 TS 类型已就位；**客户端尚未接线**，首页时间仍是估算 |
-| 标签 | 🔶 表 / 归一化纯函数 / API 筛选已完成；**客户端筛选 UI 未做** |
+| 标签 | 🔶 表 / 归一化纯函数 / API 筛选 / **客户端筛选 UI 已完成**；投稿时新建标签待审未做 |
 | 投稿—审核 | ❌ 未开始（表结构与设计已在 `CAMPUS_APP_SCHEMA_DESIGN.md`） |
 | 探索（人工精选 / 失效检测） | ❌ 未开始 |
 | 反馈 / 点赞 / 私有备注 | ❌ 未开始 |
@@ -221,6 +227,8 @@ GET /api/apps?tag=羽球              # 别名
 
 - 服务目录 7 条入口的 URL 与小程序 ID **全是 `mock:` 占位值**
 - 演示应用的 URL 同样是占位值
+- `/api/apps` **不发开发者显示名**（只有 `developerId`），因此学生应用页与后端接通后
+  不显示开发者徽标、详情里写"未公开"——要显示真名需要后端补一个字段或用户接口
 - `term_weeks` / `periods_per_day` / `first_period_start` / `period_minutes` **未核实**
 - `periodsPerDay` 后端为 13、Dart mock 为 12，**尚未统一**
 

@@ -116,18 +116,55 @@ class DataSourceBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final AppState state = AppScope.of(context);
     final AppLocalizations l10n = AppLocalizations.of(context);
-    switch (state.sourceMode(DataSourceSource.services)) {
+    return SourceModeBadge(
+      source: DataSourceSource.services,
+      onlineLabel: l10n.dataSourceServicesOnline,
+      mockLabel: l10n.dataSourceServicesMock,
+    );
+  }
+}
+
+/// 任意一个数据来源的徽标，**两种状态都说**（已连接后端 / 演示数据）。
+///
+/// [DataSourceBadge] 只服务于服务目录；学生应用也必须能说同样的话——否则"这个应用的
+/// 列表到底是不是后端的"只能靠猜。两个状态各自有文案，缺一个就会出现"只在离线时有提示、
+/// 在线时什么都不说"的沉默，而沉默恰恰是最容易被当成"反正没问题"的那种。
+///
+/// A badge for any one source, stating **both** states. [DataSourceBadge] serves the catalogue
+/// alone; the student-app list must be able to say the same thing, or whether it is real can
+/// only be guessed. Both states carry their own copy: with only the mock state, being online
+/// is silent, and silence is what gets read as "it must be fine".
+class SourceModeBadge extends StatelessWidget {
+  const SourceModeBadge({
+    required this.source,
+    required this.onlineLabel,
+    required this.mockLabel,
+    super.key,
+  });
+
+  /// 这一块是哪种数据 / which kind of data this badge describes.
+  final DataSourceSource source;
+
+  /// 在线时的文案 / the copy shown when the source is live.
+  final String onlineLabel;
+
+  /// 演示数据时的文案 / the copy shown when the source fell back to demo data.
+  final String mockLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppState state = AppScope.of(context);
+    switch (state.sourceMode(source)) {
       case DataSourceMode.remote:
         return TinyBadge(
-          label: l10n.dataSourceServicesOnline,
+          label: onlineLabel,
           icon: Icons.cloud_done_outlined,
           color: Theme.of(context).statusColors.success,
         );
       case DataSourceMode.mock:
         return TinyBadge(
-          label: l10n.dataSourceServicesMock,
+          label: mockLabel,
           icon: Icons.science_outlined,
           color: Theme.of(context).statusColors.warning,
         );

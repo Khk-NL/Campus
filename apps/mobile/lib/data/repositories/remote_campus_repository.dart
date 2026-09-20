@@ -1,12 +1,12 @@
 /// 远端实现：走后端 REST 接口 / the remote implementation, talking to the backend.
 ///
-/// 说明一件重要的事：后端目前只发布了 health / universities / services 七个接口，
+/// 说明一件重要的事：后端目前只发布了 health / universities / services / apps 这几组接口，
 /// 课程与事务（Course / Announcement / Event / Task）**还没有后端实现**。因此这里
 /// 对未实现的资源返回空列表，而不是编造数据——UI 会显示空状态，将来接口上线即可
 /// 直接接上，不需要改 UI。
 ///
-/// One important note: the backend currently exposes only health, universities and
-/// services. Courses and transactions have **no backend yet**, so these methods return
+/// One important note: the backend currently exposes health, universities, services and apps
+/// only. Courses and transactions have **no backend yet**, so these methods return
 /// empty lists rather than inventing data. The UI shows an empty state, and the day the
 /// endpoints land the UI needs no change.
 library;
@@ -106,7 +106,16 @@ class RemoteCampusRepository implements CampusRepository {
   Future<List<CampusTask>> fetchTasks() => _unimplemented('/tasks');
 
   @override
-  Future<List<CampusApp>> fetchCampusApps() => _unimplemented('/apps');
+  Future<List<CampusApp>> fetchCampusApps(CampusAppsQuery query) async {
+    final List<CampusApp> apps = CampusApp.listFromJson(
+      await _api.fetchApps(sort: query.sort, tag: query.tag),
+    );
+    final int? limit = query.limit;
+    if (limit != null && apps.length > limit) {
+      return apps.sublist(0, limit);
+    }
+    return apps;
+  }
 
   /// 明确抛出"接口尚未发布"，而不是偷偷返回空列表。
   ///

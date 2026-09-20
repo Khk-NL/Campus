@@ -73,7 +73,9 @@ class _SearchPageState extends State<SearchPage> {
     final List<CampusService> services = await repository.listServices(
       CampusServicesQuery(universityId: universityId),
     );
-    final List<CampusApp> apps = await repository.fetchCampusApps();
+    final List<CampusApp> apps = await repository.fetchCampusApps(
+      const CampusAppsQuery(),
+    );
     final List<Course> courses = await repository.fetchCourses();
     final List<Announcement> announcements = await repository.fetchAnnouncements();
     final List<CampusEvent> events = await repository.fetchEvents();

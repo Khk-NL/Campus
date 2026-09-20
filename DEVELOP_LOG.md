@@ -588,3 +588,156 @@ $env:JAVA_HOME='D:\Code\JDK'; $env:ANDROID_HOME='D:\Android\sdk'; $env:ANDROID_S
 3. Stage 2 收尾：seed 演示应用 + 客户端 Store 从 mock 切到真实数据
 4. Stage 3：标签**含归一化**（`trim → NFKC → 折叠空白 → 小写 → 别名归并`），
    且归一化必须与标签功能一起交付，不可拆开
+
+---
+
+## 2026-09-20 · Stage 2 收尾：客户端接到真实 `/api/apps` + 标签筛选 UI
+
+**状态 / status**：Stage 2 收尾完成。学生应用页的数据来自后端，标签筛选走 `?tag=`，
+离线回退与来源标注都实测过。
+
+### 23. 本轮做了什么
+
+**23.1 数据层：`CampusAppsQuery` 与三条实现（commit 见下）**
+
+| 位置 | 改动 |
+| --- | --- |
+| `data/http/campus_api_client.dart` | 新增 `fetchApps(sort, tag)` → `GET /apps?sort=&tag=`；新增 `CampusAppSortOrder`（与后端 `APP_SORT_KEYS` 逐字对齐） |
+| `data/repositories/campus_repository.dart` | 新增 `CampusAppsQuery(tag, sort, limit)`；`fetchCampusApps` 改为收查询条件 |
+| `remote_campus_repository.dart` | 原来的 `_unimplemented('/apps')` 换成真调用 |
+| `offline_first_campus_repository.dart` | 查询条件透传，回退仍按 `DataSourceSource.apps` 单独记账 |
+| `in_memory_campus_repository.dart` | 本地过滤 + 排序，语义与后端对齐（差异写在注释里） |
+| `data/models/campus_app.dart` | 补 `tags`；`AppUniversityScope.fromJson` 认后端真正发的判别联合；`hasDeveloperName` |
+| `data/repositories/mock_campus_data.dart` | 演示应用补标签，取值与 `prisma/seed-apps.ts` 对齐 |
+
+`fetchCampusApps` 只能返回 `approved`——但**客户端不重复判断状态**：审核在服务端做，
+在客户端再判一次，等于给自己多一次显示未审核条目的机会。
+
+**23.2 学生应用页（「应用」Tab → 学生应用）**
+
+- **标签筛选芯片**：取值就是后端返回的**规范名**，点一下把该标签**原样**发成 `?tag=`。
+  客户端零归一化代码——归一化规则只有 `packages/models/src/tag.ts` 一份，客户端再来一套
+  就会重新制造标签分裂（GSM 的条目正是这样从分类结果里静默消失的）。
+- 芯片表**只建一次，且建在未筛选的列表上**。每次筛选都重建的话，选中一个标签之后其余标签
+  会从界面上消失，用户再也换不回去——那是最容易被当成"筛选坏了"的交互。
+- **来源徽标两种状态都说话**：新增 `SourceModeBadge`（在线说"已连接后端"，回退说"演示数据"），
+  `DataSourceBadge` 改成它的一个特例。只标注离线那一半是不行的：在线的沉默会被读成"应该没问题"。
+- **两种"空"分开说**：目录为空 vs 该标签没有命中。合成一句会让用户以为整个生态是空的。
+- **不做编辑入口**（§11.4）。编辑属于 Developer Center，而且改动实质性字段必须让审核失效；
+  把那个表单放进手机，就等于再次把"审核过的"和"用户点开的"拆成两个东西。
+- 详情弹层补标签；开发者名缺失时详情里写"未公开"。
+
+**23.3 离线仍然可用，并且照样诚实**
+
+后端不可达 → 同一界面用演示数据顶上，徽标改口成"演示数据"，首页照旧出现离线横幅。
+本地标签匹配是**精确**匹配，**刻意不归一化**：离线时输入别名「羽球」命不中「羽毛球」。
+这是明确的降级，而不是假装命中；界面上点得到的标签都来自 (回退数据的) 规范名，所以点芯片
+在两条路径上都命中。演示数据的条目与标签也和后端 seed 对齐，否则会出现"在线一个样、
+离线另一个样"。
+
+**23.4 测试 49 → 56**
+
+新增 `test/store_filter_test.dart`：用继承内存仓库的**记录型仓库**断言客户端**实际发出的查询**
+（而不是"界面上碰巧剩下几条"，后者在筛选写错时也可能碰巧成立）。
+
+1. 芯片来自服务端规范名，首屏不带任何筛选；
+2. 点标签 → 仓库收到 `tag=羽毛球`；点「全部」→ `tag=null`；芯片始终都在；
+3. 来源徽标在线/离线两种状态各说各的话；
+4. 筛选无结果与目录为空是两句文案；
+5. 纯解析：后端判别联合 `{kind:'all'|'only'}` 与 `tags` 能解析，未知形状保守降到"仅本校"，
+   开发者名缺失不假装有名字。
+
+### 24. 踩的坑 / pitfalls
+
+21. **后端 `universityScope` 是判别联合，不是字符串。** 模型里原本写的是
+    `AppUniversityScope.fromWire(json['universityScope'])`，真实数据发的是
+    `{"kind":"all"}` / `{"kind":"only","universityIds":[…]}`，于是**每一条真实数据**都会落到
+    "仅本校"的兜底上。而演示数据恰好是全高校可见——**离线对、在线错**，最难发现的那种偏差。
+    已改为 `fromJson`，两种形状都认。
+22. **后端不发开发者显示名，卡片上就会出现一个空徽标。** payload 里只有 `developerId`，
+    `developerName` 解析成空串，徽标渲染出来是"一片空白"。空白看起来像"这个应用没有开发者"，
+    是用界面撒谎。改成：卡片上缺名**不显示**，详情里写"未公开"。
+23. **`adb shell input tap` 的坐标不等于我在预览图里数的坐标。** 截图是 1920×1080，而模型
+    看到的预览被缩到 1708 宽，前两次点击**全部落空**（截图哈希一模一样才发现根本没动）。
+    按 `1920/1708` 换算后才命中。另外离线横幅一出现，整页下移约 100px，同一个坐标又失手了
+    ——**每次都重新看截图再点**。
+24. **PowerShell 5.1 下 `flutter build apk` 明明打印了 `√ Built …app-debug.apk`，作业退出码
+    却是 1。** 原因是 JDK 的 native-access WARNING 走了 stderr，被当成
+    `NativeCommandError`。这道闸门要看**构建结果那一行**，不是退出码。
+25. **取证不要靠"从代码推断"。** 为了证明标签筛选真的走了后端，把
+    `adb reverse tcp:3000 tcp:3001` 指到一个**日志代理**（打印请求行后原样转发给真后端），
+    于是能读到客户端实际发出的 URL：
+
+    ```text
+    REQ GET /api/health
+    REQ GET /api/apps?sort=latest
+    REQ GET /api/apps?sort=latest&tag=%E7%BE%BD%E6%AF%9B%E7%90%83
+    ```
+
+    服务端一条命令也能自证归一化：
+
+    ```text
+    tag=[羽毛球]        -> 羽毛球约球
+    tag=[羽球]          -> 羽毛球约球
+    tag=[ＢＡＤＭＩＮＴＯＮ] -> 羽毛球约球
+    tag=[  羽球  ]      -> 羽毛球约球
+    tag=[不存在的标签]   -> （空，而不是返回全部）
+    ```
+
+26. **缓存命中的 `8/8` 可能什么都没编译，而一旦真编译就会炸在工具链上。**
+    `pnpm turbo run build` 报 `8 successful, 8 total / Cached: 8 cached`——全部命中缓存，
+    一个 `tsc` 都没跑。加 `--force` 之后立刻失败：
+
+    ```text
+    @campus/launcher:build: '"D:\pnpm-store\v11\links\@\pnpm\12.5.1\…\bin\\..\node_modules\pnpm\pnpm"'
+      is not recognized as an internal or external command,
+    @campus/launcher#build:  ERROR  command (…) D:\Code\dsh\…\node_modules\.bin\pnpm.CMD run build exited (1)
+    ```
+
+    原因是 turbo 要 spawn 包管理器脚本时，从 PATH 上找到的是**那个坏掉的 pnpm shim**
+    （它指向一个含 `@` 的 store 路径，`cmd` 解析不了）。修法：
+
+    ```powershell
+    $env:PATH = 'D:\npm-global;' + $env:PATH   # 让 turbo 找到可用的 pnpm
+    & D:\npm-global\pnpm.cmd turbo run build --force
+    # → Tasks: 8 successful, 8 total   Cached: 0 cached, 8 total
+    ```
+
+    **教训**：`Cached: N cached` 不是构建证据。要证明能编译，就得 `--force` 跑一次，
+    而且要看 `Cached: 0 cached`。
+
+### 25. 验证 / verification
+
+| 检查 | 结果 |
+| --- | --- |
+| `pnpm turbo run build --force` | **8/8，`Cached: 0 cached`**（强制不走缓存） |
+| `pnpm smoke` | 19 + 22 + 24 + 5 + 13 = **83 项全过** |
+| `flutter analyze` | No issues found |
+| `flutter test` | **56/56**（49 → 56） |
+| MuMu 实测 | 应用 Tab 「校园服务 · 已连接后端」；学生应用页「学生应用 · 已连接后端」+ 3 条后端数据 + 4 个标签芯片；点「羽毛球」只剩羽毛球约球；断网后徽标改口「演示数据」并换回演示数据；点「重试」恢复在线 |
+
+截图（`.tools/`，按顺序）：
+
+| 文件 | 说明 |
+| --- | --- |
+| `stage2-apps-01-apps-tab-online.png` | 应用 Tab：顶部「校园服务 · 已连接后端」 |
+| `stage2-apps-02-store-online.png` | 学生应用页：来源徽标 + 标签芯片 + 后端 3 条数据 |
+| `stage2-apps-03-tagfilter-badminton.png` | 点标签「羽毛球」后只剩羽毛球约球，芯片全部还在 |
+| `stage2-apps-04-tagfilter-via-logging-proxy.png` | 同上，但请求经由日志代理，配合上面的 `REQ` 行 |
+| `stage2-apps-05-offline-home.png` | 断网：离线横幅 + 功能仍可用 |
+| `stage2-apps-06-offline-store-demo-data.png` | 断网：徽标改口「演示数据」，内容换成演示数据（v0.3.1 / 有"演示同学"） |
+| `stage2-apps-07-reconnected.png` | 点「重试」后回到「已连接后端」 |
+
+> 「在线」与「离线」两张截图的**内容本身就是证据**：在线是 seed 的 v2.1.0 且没有开发者徽标，
+> 离线是本地演示数据的 v0.3.1 且有"演示同学"。
+
+### 26. 下一步 / next
+
+1. **后端补开发者显示名**：现在只发 `developerId`，客户端只能不显示。要么 `/api/apps` 带
+   `developer.name`，要么有用户接口。
+2. **标签词表接口**：芯片目前靠"再要一次未筛选列表"推导。条目分页之后这个办法就不成立了，
+   需要一个 `GET /api/app-tags` 之类的接口（词表本来就该由服务端拥有）。
+3. `offline_first` 的标签精确匹配是刻意的降级，但**没有告诉用户**"离线时别名搜不到"。
+   要么接受，要么在离线时给一条提示。
+4. Stage 4 投稿—审核（§3）、Stage 6 点赞/反馈/私有备注；编辑走 Developer Center（§11）。
+5. 仍未定案的老问题：`periodsPerDay` 后端 13 / Dart 12；服务目录 7 条入口的真实 URL。

@@ -10,6 +10,7 @@ library;
 
 import 'package:campus_mobile/core/i18n/app_i18n.dart';
 import 'package:campus_mobile/core/launcher/campus_launcher.dart';
+import 'package:campus_mobile/core/theme/campus_theme.dart';
 import 'package:campus_mobile/data/models/campus_app.dart';
 import 'package:campus_mobile/features/shared/widgets/state_views.dart';
 import 'package:campus_mobile/l10n/app_localizations.dart';
@@ -64,7 +65,28 @@ class _AppDetailsSheet extends StatelessWidget {
                 Text(app.description, style: theme.textTheme.bodyMedium),
               ],
               const SizedBox(height: 12),
-              _row(context, l10n.storeDeveloperLabel, app.developerName),
+              // 标签只作展示：这一页不提供筛选入口，筛选在列表页由后端完成。
+              // Tags are display-only here; filtering happens on the list page, server-side.
+              if (app.tags.isNotEmpty) ...<Widget>[
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: <Widget>[
+                    for (final String tag in app.tags)
+                      TinyBadge(label: tag, color: theme.statusColors.neutral),
+                  ],
+                ),
+                const SizedBox(height: 12),
+              ],
+              _row(
+                context,
+                l10n.storeDeveloperLabel,
+                // 后端只发 developerId、不发名字时说"未公开"，而不是留空——
+                // 留空看起来像"开发者是空的"，那是在用界面撒谎。
+                // With no name from the backend, say so rather than leaving a blank, which
+                // would read as "this app has no developer".
+                app.hasDeveloperName ? app.developerName : l10n.storeDeveloperUnknown,
+              ),
               if (app.repositoryUrl != null)
                 _row(context, l10n.storeRepository, app.repositoryUrl!),
               _row(context, l10n.storeTypeLabel, l10n.launchType(app.launchTarget.type)),

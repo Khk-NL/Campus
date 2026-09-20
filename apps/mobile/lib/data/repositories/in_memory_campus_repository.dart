@@ -10,6 +10,7 @@
 library;
 
 import 'package:campus_mobile/core/text/localized_text.dart';
+import 'package:campus_mobile/data/http/campus_api_client.dart';
 import 'package:campus_mobile/data/models/app_user.dart';
 import 'package:campus_mobile/data/models/campus_app.dart';
 import 'package:campus_mobile/data/models/campus_service.dart';
@@ -105,7 +106,27 @@ class InMemoryCampusRepository implements CampusRepository {
   Future<List<CampusTask>> fetchTasks() async => _tasks;
 
   @override
-  Future<List<CampusApp>> fetchCampusApps() async => _apps;
+  Future<List<CampusApp>> fetchCampusApps(CampusAppsQuery query) async {
+    Iterable<CampusApp> result = _apps;
+    final String? tag = query.tag;
+    if (tag != null && tag.isNotEmpty) {
+      // 本地只做**精确**匹配，刻意不归一化：归一化规则只有服务端一份（`tag.ts`），
+      // 客户端再写一套就会重新制造标签分裂。因此离线时输入「羽球」命不中「羽毛球」——
+      // 这是明确的降级，而不是假装命中。界面上能点到的标签都来自服务端返回的规范名，
+      // 所以从芯片点进来的筛选在两条路径上都会命中。
+      //
+      // Local matching is **exact** and deliberately not normalised: the rules exist once,
+      // server-side, and a second copy is how tag keys split. So offline, the alias 「羽球」
+      // misses 「羽毛球」 — an explicit degradation rather than a pretend match. Every tag the
+      // UI offers comes from the server's canonical names, so a chip always hits on both paths.
+      result = result.where((CampusApp app) => app.tags.contains(tag));
+    }
+    final List<CampusApp> list = result.toList();
+    _sortApps(list, query.sort);
+    final int? limit = query.limit;
+    if (limit != null && list.length > limit) return list.sublist(0, limit);
+    return list;
+  }
 
   /// 演示数据所属的高校 id。测试用它来构造查询，从而不必硬编码任何校名——
   /// 通用层与测试都不该知道这所高校叫什么。
@@ -118,6 +139,36 @@ class InMemoryCampusRepository implements CampusRepository {
     _mode.dispose();
     _sourceNotifier.dispose();
   }
+
+  /// 与远端 `sort=latest|recently-updated|most-used|name` 等价的本地排序。
+  ///
+  /// 演示数据没有 `createdAt`（后端有，`latest` 按它倒序），因此 `latest` 在这里退化为
+  /// 按更新时间倒序。这一点写在注释里而不是悄悄糊过去：离线与在线在**同一天上架多条**
+  /// 时顺序可能不同，用户看到的是"顺序不太一样"，而不是"数据不对"。
+  ///
+  /// The demo dataset has no `createdAt` (the backend's `latest` orders by it), so `latest`
+  /// degrades to ordering by update time here. Stated rather than glossed over: offline and
+  /// online may differ when several entries share a listing day, which reads as a different
+  /// order, not as wrong data.
+  static void _sortApps(List<CampusApp> apps, CampusAppSortOrder sort) {
+    int byUpdatedDesc(CampusApp a, CampusApp b) => (b.updatedAt ?? _epoch)
+        .compareTo(a.updatedAt ?? _epoch);
+    switch (sort) {
+      case CampusAppSortOrder.name:
+        apps.sort((CampusApp a, CampusApp b) => a.name.compareTo(b.name));
+      case CampusAppSortOrder.latest:
+      case CampusAppSortOrder.recentlyUpdated:
+        apps.sort(byUpdatedDesc);
+      case CampusAppSortOrder.mostUsed:
+        // 演示数据不带使用次数，因此与 `latest` 一致；后端的 `most-used` 取 installCount。
+        // The demo data carries no usage counts, so this matches `latest`; the backend's
+        // `most-used` orders by installCount.
+        apps.sort(byUpdatedDesc);
+    }
+  }
+
+  /// 缺失时间时的比较基准 / the reference instant when a timestamp is missing.
+  static final DateTime _epoch = DateTime.fromMillisecondsSinceEpoch(0);
 
   /// 与远端 `sort=name|recent` 等价的本地排序。
   /// The local equivalent of the remote `sort=name|recent`.

@@ -446,6 +446,28 @@ class AppLocalizationsEn extends AppLocalizations {
   String get storeOfficialBadge => 'Official';
 
   @override
+  String get storeTagFilter => 'Tags';
+
+  @override
+  String get storeTagAll => 'All';
+
+  @override
+  String get storeTagEmpty => 'No apps carry this tag';
+
+  @override
+  String get storeTagHint =>
+      'Tap a tag to filter; the filter runs on the backend.';
+
+  @override
+  String get storeDeveloperUnknown => 'Not published';
+
+  @override
+  String get dataSourceAppsOnline => 'Student apps · connected to the backend';
+
+  @override
+  String get dataSourceAppsMock => 'Student apps · demo data';
+
+  @override
   String get profileTitle => 'Profile';
 
   @override

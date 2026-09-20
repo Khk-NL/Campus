@@ -328,6 +328,13 @@ List<CampusTask> buildMockTasks() {
 ///
 /// §14：Store 只解决"发现"，因此条目里没有安装状态。
 /// §14: the Store only solves discovery, so entries carry no install state.
+///
+/// 条目与标签刻意与后端的 `prisma/seed-apps.ts` 对齐：后端不可达时这三分数据要能
+/// 顶上同一个界面，标签芯片也得照样出现。标签写的是**规范名**，与后端归一化后的结果一致。
+///
+/// The entries and their tags deliberately mirror `prisma/seed-apps.ts`, so that when the
+/// backend is unreachable the same screen is still populated and the tag chips still appear.
+/// The tag values are the **canonical names**, matching the server's normalised result.
 List<CampusApp> buildMockCampusApps() {
   return <CampusApp>[
     CampusApp(
@@ -345,6 +352,7 @@ List<CampusApp> buildMockCampusApps() {
         preferredMode: WebLaunchMode.webview,
       ),
       permissions: const <String>['user.basic', 'calendar.write'],
+      tags: const <String>['组队', '羽毛球'],
       updatedAt: _inDays(-5, 12),
     ),
     CampusApp(
@@ -361,6 +369,7 @@ List<CampusApp> buildMockCampusApps() {
         preferredMode: WebLaunchMode.webview,
       ),
       permissions: const <String>['course.read'],
+      tags: const <String>['课程'],
       updatedAt: _inDays(-20, 12),
     ),
     CampusApp(
@@ -377,6 +386,7 @@ List<CampusApp> buildMockCampusApps() {
         preferredMode: WebLaunchMode.external,
       ),
       permissions: const <String>['course.read', 'notification.request'],
+      tags: const <String>['课程'],
       updatedAt: _inDays(-40, 12),
     ),
   ];

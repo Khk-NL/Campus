@@ -60,6 +60,36 @@ class CampusServicesQuery {
 /// The `sort` values; equivalent to the identically named enum in the HTTP layer.
 typedef ServiceSortOrder = CampusServiceSortOrder;
 
+/// `listApps` 的查询条件 / the query for `fetchCampusApps`.
+///
+/// 远端实现把它翻成 `GET /api/apps?sort=&tag=`；内存实现用同一组条件在本地过滤。
+/// **标签筛选刻意不在本地归一化**：归一化规则只有服务端一份，客户端再写一套就会重新
+/// 制造标签分裂（同一门标签在两边算出不同的键）。因此这里把用户选中的标签**原样**发出，
+/// 由服务端解析别名与全角/大小写变体。
+///
+/// The remote implementation turns this into `GET /api/apps?sort=&tag=`; the in-memory one
+/// filters locally with the same conditions. **Tag filtering is deliberately not normalised
+/// locally**: the rules exist once, server-side, and a second implementation is how tag keys
+/// split. The selected tag is therefore sent **verbatim** and the server resolves aliases and
+/// full-width/case variants.
+class CampusAppsQuery {
+  const CampusAppsQuery({
+    this.tag,
+    this.sort = CampusAppSortOrder.latest,
+    this.limit,
+  });
+
+  /// 标签筛选，取值为服务端返回的**规范名**；null 表示不筛选。
+  /// A tag filter, using a canonical name the server returned; null filters nothing.
+  final String? tag;
+
+  /// 排序口径 / the ordering key.
+  final CampusAppSortOrder sort;
+
+  /// 最多返回多少条，null 表示不限 / a cap, null for no cap.
+  final int? limit;
+}
+
 /// 应用仓库 / the app repository.
 abstract class CampusRepository {
   /// 当前数据源模式 / the current data source mode.
@@ -113,7 +143,13 @@ abstract class CampusRepository {
   Future<List<CampusTask>> fetchTasks();
 
   /// 学生应用列表（§13 / §14 Store）/ student apps for the Store.
-  Future<List<CampusApp>> fetchCampusApps();
+  ///
+  /// 只有 `approved` 的条目会出现：审核是在服务端做的，客户端**不重复判断状态**——
+  /// 在客户端再判一次等于给了自己一个显示未审核条目的机会。
+  ///
+  /// Only `approved` entries appear: moderation happens server-side and the client does **not**
+  /// re-check the status, because a second check is a second chance to show unmoderated rows.
+  Future<List<CampusApp>> fetchCampusApps(CampusAppsQuery query);
 
   /// 释放资源 / release resources.
   void dispose() {}

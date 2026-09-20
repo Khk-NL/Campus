@@ -878,6 +878,48 @@ abstract class AppLocalizations {
   /// **'官方'**
   String get storeOfficialBadge;
 
+  /// 标签筛选区的标题 / the heading of the tag filter area
+  ///
+  /// In zh, this message translates to:
+  /// **'标签'**
+  String get storeTagFilter;
+
+  /// 不筛选标签的那个芯片 / the chip that clears the tag filter
+  ///
+  /// In zh, this message translates to:
+  /// **'全部'**
+  String get storeTagAll;
+
+  /// 某个标签下没有应用（不是没有数据，而是该筛选无结果）/ no app carries the selected tag
+  ///
+  /// In zh, this message translates to:
+  /// **'该标签下暂无应用'**
+  String get storeTagEmpty;
+
+  /// 说明筛选由后端完成 / notes that filtering happens server-side
+  ///
+  /// In zh, this message translates to:
+  /// **'点标签筛选，筛选在后端完成。'**
+  String get storeTagHint;
+
+  /// 后端只发 developerId、不发名字时的诚实说法 / what to say when the backend sends no developer name
+  ///
+  /// In zh, this message translates to:
+  /// **'未公开'**
+  String get storeDeveloperUnknown;
+
+  /// 学生应用来自后端 / the student-app list comes from the backend
+  ///
+  /// In zh, this message translates to:
+  /// **'学生应用 · 已连接后端'**
+  String get dataSourceAppsOnline;
+
+  /// 学生应用回退到演示数据 / the student-app list fell back to demo data
+  ///
+  /// In zh, this message translates to:
+  /// **'学生应用 · 演示数据'**
+  String get dataSourceAppsMock;
+
   /// No description provided for @profileTitle.
   ///
   /// In zh, this message translates to:
