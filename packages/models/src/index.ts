@@ -14,3 +14,4 @@ export * from './identity';
 export * from './service';
 export * from './transaction';
 export * from './campus-app';
+export * from './tag';
