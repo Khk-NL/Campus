@@ -118,6 +118,18 @@ model University {
   locales              String[] @default(["zh-CN", "en"])
   capabilities         String[] @default([])
 
+  // 节次 → 时刻 / period to wall-clock mapping
+  //
+  // 两个字段而不是 JSON 列（§0.7）：真实课表的节次通常等长且连续，两字段覆盖绝大多数情况。
+  // 已知局限：官方作息表里节间休息并不等长，因此第 2 节之后的时刻是近似值；
+  // 客户端把这件事收在可替换的 PeriodSchedule 抽象后面，将来换成显式时刻表不必改调用方。
+  //
+  // Two columns rather than a JSON blob (§0.7). Known limitation: official schedules insert
+  // uneven breaks, so periods after the first are approximate; the client hides this behind a
+  // replaceable PeriodSchedule abstraction.
+  firstPeriodStart String @default("08:00") @map("first_period_start")
+  periodMinutes    Int    @default(45) @map("period_minutes")
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 

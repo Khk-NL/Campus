@@ -30,6 +30,8 @@ export function toUniversity(row: UniversityRow): University {
       // 数据库里是 string[]，领域侧是受限联合；越界值在这里才会暴露。
       // Stored as string[]; narrowed to the capability union here, where bad values surface.
       capabilities: row.capabilities as University['config']['capabilities'],
+      firstPeriodStart: row.firstPeriodStart,
+      periodMinutes: row.periodMinutes,
     },
     status: mapEnum(RECORD_STATUS.toDomain, row.status, 'RecordStatus'),
     createdAt: row.createdAt,
