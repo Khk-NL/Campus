@@ -76,7 +76,7 @@ export interface CampusApp extends Timestamps {
  */
 export type ReviewChecklistItem =
   /** 应用能否正常启动 / does it actually launch */
-  | ' launches-correctly'
+  | 'launches-correctly'
   /** 权限是否合理 / are the requested permissions justified */
   | 'permissions-justified'
   /** 是否存在明显恶意行为 / is there obvious malicious behaviour */
@@ -89,7 +89,7 @@ export type ReviewChecklistItem =
   | 'not-impersonating-official';
 
 export const REVIEW_CHECKLIST: readonly ReviewChecklistItem[] = [
-  ' launches-correctly',
+  'launches-correctly',
   'permissions-justified',
   'no-malicious-behaviour',
   'description-accurate',
