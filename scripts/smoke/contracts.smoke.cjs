@@ -72,6 +72,35 @@ async function main() {
     assert.equal(models.ruleAppliesInWeek(rule, 19), false);
   });
 
+  // 学期日历：周号换算必须**不夹取**，否则"已经结课"会显示成"最后一周还在上"。
+  // The term calendar: week conversion must not clamp, or a finished course reads as
+  // "still meeting in the last week".
+  const term = { firstMonday: '2026-09-07', weeks: 18 };
+
+  check('学期日历：第几教学周按周一锚点换算', () => {
+    assert.equal(models.termWeekOf(term, new Date(2026, 8, 7)), 1);
+    assert.equal(models.termWeekOf(term, new Date(2026, 8, 13)), 1);
+    assert.equal(models.termWeekOf(term, new Date(2026, 8, 14)), 2);
+    assert.equal(models.termWeekOf(term, new Date(2027, 0, 10)), 18);
+  });
+
+  check('学期日历：学期之外不夹取', () => {
+    assert.equal(models.termWeekOf(term, new Date(2026, 8, 6)), 0);
+    assert.equal(models.isInsideTerm(term, 0), false);
+    assert.equal(models.termWeekOf(term, new Date(2027, 0, 11)), 19);
+    assert.equal(models.isInsideTerm(term, 19), false);
+  });
+
+  check('学期日历：不是周一的锚点向下对齐', () => {
+    // 配置里写错一天不该让整张课表整体平移。
+    const aligned = { firstMonday: '2026-09-09', weeks: 18 };
+    assert.equal(
+      models.mondayOfWeek(aligned, 1).getTime(),
+      new Date(2026, 8, 7).getTime(),
+    );
+    assert.equal(models.termWeekOf(aligned, new Date(2026, 8, 9)), 1);
+  });
+
   check('§9 weeks 与 parity 互斥：同时给出视为非法输入', () => {
     // 参考项目的 `"1-8周 单周"` 会产出这个组合。在 Campus 的 weeks 覆盖语义下它会
     // 静默反转成 1~8 周每周都上，所以校验层必须拒绝，解析器负责规范化。

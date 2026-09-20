@@ -27,6 +27,17 @@ const UniversityConfig ecnuConfig = UniversityConfig(
   shortName: 'ECNU',
   supportedLocales: <String>['zh', 'en'],
   capabilities: <String>['services'],
+  // 教学周总数：**未核实**（与后端 seed 的 term_weeks 是同一个待核实项）。
+  // Teaching-week count, unverified — the same open item as the backend seed's `term_weeks`.
+  termWeeks: 18,
+  // 学期第一周的周一：**未核实**，因此留 null。客户端会退回演示锚点并在界面上标注
+  // "起止未核实"，而不是编一个日期——编错会让整张课表的周号一起错，而且看不出错。
+  // 真实值应来自教务校历（Phase 6）。
+  //
+  // The first Monday of the term is unverified, so it stays null: the client falls back to the
+  // demo anchor and labels the boundaries as unverified. Inventing a date would shift every week
+  // number in the timetable, invisibly. The real value comes from the registrar's calendar.
+  termFirstMonday: null,
   // 归属标识（校徽）的**唯一**出处：横版组合标（校徽 + 中英文校名），单 path 无内嵌位图。
   // §18 限定它只能作为"归属"出现，不用作 Campus 自身的图标或闪屏。
   //

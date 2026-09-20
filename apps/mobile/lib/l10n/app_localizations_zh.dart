@@ -219,6 +219,19 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String timetableWeekDates(String start, String end) {
+    return '$start – $end';
+  }
+
+  @override
+  String timetableTermWeeks(int weeks) {
+    return '本学期共 $weeks 教学周';
+  }
+
+  @override
+  String get timetableTermUnverified => '学期起止未核实';
+
+  @override
   String get timetableCurrentWeek => '本周';
 
   @override

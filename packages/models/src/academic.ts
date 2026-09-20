@@ -348,3 +348,64 @@ export function ruleAppliesInWeek(rule: CourseScheduleRule, week: number): boole
   if (rule.parity === 'even') return week % 2 === 0;
   return true;
 }
+
+/**
+ * 学期日历 / the term calendar.
+ *
+ * 课表要回答的第一步是"现在是第几教学周"，而这需要一个**锚点**：第一教学周的周一，加上学期
+ * 总周数。契约放在这里（TS 是唯一真源，Dart 侧镜像），因为服务端将来要把教务的校历发下来。
+ *
+ * A timetable's first question is "which teaching week is it", and answering it needs an anchor:
+ * the Monday of week 1 plus the term's week count. The contract lives here — TS is the single
+ * source and Dart mirrors it — because the server will eventually deliver the registrar's
+ * calendar.
+ *
+ * ⚠️ `firstMonday` 必须是**已核实**的日期。未核实时不要编一个：整张课表的周号会一起错，
+ * 而且看不出来。客户端在此之前用演示锚点，并**在界面上标注起止未核实**。
+ *
+ * ⚠️ `firstMonday` must be a **verified** date. When it is not known, do not invent one: every
+ * week number in the timetable would be wrong, invisibly. Clients use a demo anchor until then
+ * and label the boundaries as unverified.
+ */
+export interface TermCalendar {
+  /** 第一教学周的周一，`YYYY-MM-DD` / the Monday of teaching week 1, as `YYYY-MM-DD`. */
+  readonly firstMonday: string;
+  /** 教学周总数 / how many teaching weeks the term has. */
+  readonly weeks: number;
+}
+
+/** 向下对齐到所在周的周一（只用日期部分）/ align down to that week's Monday. */
+export function mondayOnOrBefore(date: Date): Date {
+  const day = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  // getDay(): 0 = Sunday; the ISO weekday is 1 = Monday … 7 = Sunday.
+  const isoWeekday = day.getDay() === 0 ? 7 : day.getDay();
+  day.setDate(day.getDate() - (isoWeekday - 1));
+  return day;
+}
+
+/**
+ * `date` 落在第几教学周（1 起算，**不夹取**）。
+ *
+ * 1-based teaching week, never clamped: a date before the term yields ≤ 0 and one after it
+ * yields > `weeks`, so callers can tell "outside the term" from a real week. Clamping would show
+ * a finished course as "still meeting in the last week".
+ */
+export function termWeekOf(calendar: TermCalendar, date: Date): number {
+  const start = mondayOnOrBefore(new Date(`${calendar.firstMonday}T00:00:00`));
+  const target = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const days = Math.round((target.getTime() - start.getTime()) / 86_400_000);
+  return Math.floor(days / 7) + 1;
+}
+
+/** 第 `week` 教学周的周一 / the Monday of teaching week `week`. */
+export function mondayOfWeek(calendar: TermCalendar, week: number): Date {
+  const start = mondayOnOrBefore(new Date(`${calendar.firstMonday}T00:00:00`));
+  const day = new Date(start.getTime());
+  day.setDate(day.getDate() + 7 * (week - 1));
+  return day;
+}
+
+/** 第 `week` 是否在学期内 / whether `week` is inside the term. */
+export function isInsideTerm(calendar: TermCalendar, week: number): boolean {
+  return week >= 1 && week <= calendar.weeks;
+}

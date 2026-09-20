@@ -16,12 +16,12 @@ library;
 
 import 'package:campus_mobile/core/app_scope_repository.dart';
 import 'package:campus_mobile/core/app_state.dart';
+import 'package:campus_mobile/core/config/university_config.dart';
 import 'package:campus_mobile/data/models/campus_service.dart';
 import 'package:campus_mobile/data/models/course.dart';
 import 'package:campus_mobile/data/models/transaction.dart';
 import 'package:campus_mobile/data/repositories/campus_repository.dart';
 import 'package:campus_mobile/data/repositories/data_source_mode.dart';
-import 'package:campus_mobile/data/repositories/mock_campus_data.dart';
 import 'package:campus_mobile/features/home/home_view_model.dart';
 import 'package:campus_mobile/features/home/widgets/quick_access_grid.dart';
 import 'package:campus_mobile/features/home/widgets/task_tile.dart';
@@ -150,7 +150,13 @@ class _HomePageState extends State<HomePage> {
       emptyMessage: l10n.homeNoTodayItems,
       builder: (BuildContext context, ({List<Course> courses, List<CampusEvent> events}) data) {
         final DateTime now = DateTime.now();
-        final int week = DemoTerm.weekOf(now);
+        // 教学周从**同一个**学期日历取，首页与课表不再各算一份（此前两份实现都在用
+        // `DemoTerm` 的滚动锚点，同一天可能给出不同的周号）。
+        // The teaching week comes from the **same** term calendar as the timetable; the two no
+        // longer each compute their own from a rolling anchor, which could disagree on the same
+        // day.
+        final int week =
+            UniversityConfigs.defaultConfig.termCalendar(now).currentWeekOf(now) ?? 1;
         final List<HomeTodayItem> items = <HomeTodayItem>[
           // §12 的 Today 是"今天的课"：只有真在今天上、且本周确实结课的课程才算数，
           // 否则首页会把整学期的课都摊在"今日"里。

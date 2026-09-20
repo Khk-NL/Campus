@@ -167,9 +167,39 @@ void main() {
     // 顶部栏标题随 Tab 变化。
     // The top-bar title follows the active tab.
     expect(find.text(l10n.timetableTitle), findsWidgets);
-    // 演示数据里的课程应当出现在网格里（Day 1..7 中至少一门）。
-    // At least one demo course must land on the grid.
+    // 学期起止未核实，界面必须标注出来（演示锚点不能被当成真实学期）。
+    // The term's boundaries are unverified and the UI must say so: a demo anchor must never be
+    // presented as a real term.
+    expect(find.text(l10n.timetableTermUnverified), findsOneWidget);
+
+    // 演示锚点把"今天"放在第 4 教学周（双周），于是：
+    //   * 双周课「大学英语」在网格上；
+    //   * 单周课「移动应用开发」不在。
+    // 这两条一起才证明**单双周真的在起作用**——只断言"有一门课出现了"的话，
+    // parity 完全失效时它照样通过（这正是本仓库踩过的"断言碰巧成立"）。
+    //
+    // The demo anchor places today in teaching week 4 (even), so the even-week course is on the
+    // grid and the odd-week one is not. Both assertions together are what proves parity works; a
+    // single "some course is there" check would also pass with parity disabled.
+    expect(find.text('大学英语'), findsWidgets);
+    expect(find.text('移动应用开发'), findsNothing);
+
+    // 退到第 3 周（单周）：两门课互换。
+    // Back to week 3 (odd): the two courses swap.
+    await tester.tap(find.byTooltip(l10n.timetablePreviousWeek));
+    await tester.pumpAndSettle();
     expect(find.text('移动应用开发'), findsWidgets);
+    expect(find.text('大学英语'), findsNothing);
+
+    // 自定义周同样生效：「现代软件工程」在第 1-6 周上课，第 3 周在，第 7 周不在。
+    // Custom weeks work too: 现代软件工程 meets in weeks 1-6, so it is present in week 3 and
+    // absent in week 7.
+    expect(find.text('现代软件工程'), findsWidgets);
+    for (int i = 0; i < 4; i++) {
+      await tester.tap(find.byTooltip(l10n.timetableNextWeek));
+      await tester.pumpAndSettle();
+    }
+    expect(find.text('现代软件工程'), findsNothing);
 
     state.dispose();
   });

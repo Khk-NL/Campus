@@ -227,6 +227,19 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String timetableWeekDates(String start, String end) {
+    return '$start – $end';
+  }
+
+  @override
+  String timetableTermWeeks(int weeks) {
+    return '$weeks teaching weeks this term';
+  }
+
+  @override
+  String get timetableTermUnverified => 'Term dates unverified';
+
+  @override
   String get timetableCurrentWeek => 'This week';
 
   @override

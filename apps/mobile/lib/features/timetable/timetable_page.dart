@@ -13,13 +13,14 @@
 library;
 
 import 'package:campus_mobile/core/app_scope_repository.dart';
+import 'package:campus_mobile/core/config/university_config.dart';
 import 'package:campus_mobile/core/i18n/app_i18n.dart';
 import 'package:campus_mobile/core/theme/campus_theme.dart';
 import 'package:campus_mobile/data/models/course.dart';
+import 'package:campus_mobile/data/models/term_calendar.dart';
 import 'package:campus_mobile/data/models/transaction.dart';
 import 'package:campus_mobile/data/repositories/campus_repository.dart';
 import 'package:campus_mobile/data/repositories/data_source_mode.dart';
-import 'package:campus_mobile/data/repositories/mock_campus_data.dart';
 import 'package:campus_mobile/features/home/widgets/task_tile.dart';
 import 'package:campus_mobile/features/inbox/widgets/transaction_details_sheet.dart';
 import 'package:campus_mobile/features/shared/widgets/course_details_sheet.dart';
@@ -46,11 +47,21 @@ class _TimetablePageState extends State<TimetablePage> {
   Future<List<CampusTransaction>> _notices =
       Future<List<CampusTransaction>>.value(const <CampusTransaction>[]);
 
-  /// 首次加载已经排过队了吗。/ whether the first load has already been queued.
-  bool _loadQueued = false;
+  /// 本次运行使用的学期日历（**唯一**决定"第几教学周"的地方）。
+  ///
+  /// 它在 `didChangeDependencies` 里建好，因此首帧之前一定已经存在。锚点未核实时
+  /// （`isVerified == false`）界面会标注出来，而不是把演示值当成真实学期显示。
+  ///
+  /// The term calendar this run uses — the only place that decides "which teaching week it is".
+  /// Built in `didChangeDependencies`, so it exists before the first frame; when the anchor is
+  /// unverified the UI says so instead of presenting a demo value as fact.
+  late TermCalendar _term;
 
   /// 正在展示的教学周 / the teaching week currently shown.
-  int _week = DemoTerm.weekOf(DateTime.now());
+  int _week = 1;
+
+  /// 首次加载已经排过队了吗。/ whether the first load has already been queued.
+  bool _loadQueued = false;
 
   @override
   void didChangeDependencies() {
@@ -60,6 +71,11 @@ class _TimetablePageState extends State<TimetablePage> {
     // initState trips an assertion.
     if (_loadQueued) return;
     _loadQueued = true;
+    // 学期锚点来自高校配置：通用层不认识任何学期，页面也不该自己算一个。
+    // The term anchor comes from the university config: the generic layer knows no term, and a
+    // page must not invent one either.
+    _term = UniversityConfigs.defaultConfig.termCalendar(DateTime.now());
+    _week = _term.currentWeekOf(DateTime.now()) ?? 1;
     _load();
   }
 
@@ -138,7 +154,9 @@ class _TimetablePageState extends State<TimetablePage> {
   /// 正在看本周时高亮今天那一列，其余周不高亮。
   /// Today's column is highlighted only while the current week is on screen.
   int? _highlightWeekday() {
-    if (_week != DemoTerm.weekOf(DateTime.now())) return null;
+    // "今天"的判定与"本周"标记同源：都用那一个学期日历，不再各算一份。
+    // The "today" test shares one source with the "this week" badge: the same term calendar.
+    if (_term.currentWeekOf(DateTime.now()) != _week) return null;
     return DateTime.now().weekday;
   }
 
@@ -225,7 +243,12 @@ class _TimetablePageState extends State<TimetablePage> {
 
   /// 教学周切换条 / the teaching-week switcher.
   Widget _weekSwitcher(BuildContext context, AppLocalizations l10n, ThemeData theme) {
-    final bool isCurrentWeek = _week == DemoTerm.weekOf(DateTime.now());
+    // "本周"只在**确实落在学期内**时才显示：锚点未核实、或今天在学期之外时，把某一周
+    // 标成"本周"就是在编。
+    // "This week" only when today really falls inside the term: with an unverified anchor, or a
+    // date outside the term, marking a week as current would be an invention.
+    final bool isCurrentWeek = _term.currentWeekOf(DateTime.now()) == _week;
+    final MaterialLocalizations material = MaterialLocalizations.of(context);
     return Card(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
@@ -246,12 +269,35 @@ class _TimetablePageState extends State<TimetablePage> {
                         ?.copyWith(fontWeight: FontWeight.w700),
                   ),
                   const SizedBox(height: 2),
+                  // 具体日期区间：只有"第几周"的话，用户没法把它和真实日期对上。
+                  // The actual date range: a bare week number cannot be matched to a real date.
                   Text(
-                    l10n.timetableWeekRange(1, DemoTerm.totalWeeks),
+                    l10n.timetableWeekDates(
+                      material.formatMediumDate(_term.mondayOfWeek(_week)),
+                      material.formatMediumDate(_term.sundayOfWeek(_week)),
+                    ),
                     textAlign: TextAlign.center,
                     style: theme.textTheme.bodySmall
                         ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                   ),
+                  const SizedBox(height: 2),
+                  Text(
+                    l10n.timetableTermWeeks(_term.weeks),
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodySmall
+                        ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                  ),
+                  if (!_term.isVerified) ...<Widget>[
+                    const SizedBox(height: 6),
+                    // 诚实标注：学期起止尚未核实，周号只能当参考。
+                    // Labelled honestly: the term's boundaries are unverified, so the week
+                    // number is indicative only.
+                    TinyBadge(
+                      label: l10n.timetableTermUnverified,
+                      icon: Icons.science_outlined,
+                      color: theme.statusColors.warning,
+                    ),
+                  ],
                   if (isCurrentWeek) ...<Widget>[
                     const SizedBox(height: 6),
                     // 主色只作小面积强调：一枚"本周"标记。
@@ -265,7 +311,7 @@ class _TimetablePageState extends State<TimetablePage> {
               ),
             ),
             IconButton(
-              onPressed: _week < DemoTerm.totalWeeks ? _goToNextWeek : null,
+              onPressed: _week < _term.weeks ? _goToNextWeek : null,
               icon: const Icon(Icons.chevron_right),
               tooltip: l10n.timetableNextWeek,
             ),
@@ -283,7 +329,7 @@ class _TimetablePageState extends State<TimetablePage> {
   }
 
   void _goToNextWeek() {
-    if (_week >= DemoTerm.totalWeeks) return;
+    if (_week >= _term.weeks) return;
     setState(() {
       _week += 1;
     });

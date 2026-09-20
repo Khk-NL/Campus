@@ -85,39 +85,20 @@ AppUser buildMockUser() {
   );
 }
 
-/// 演示学期 / the demo term.
+/// 演示学期已删除 / the demo term is gone.
 ///
-/// 课程表（§9）必须能回答"现在是第几教学周"。真实教学周来自教务系统（Phase 6），
-/// 因此这里给出一个相对当下的演示学期起点：不让任何演示数据因为时间流逝而永远过期。
+/// 这里原本有一个 `DemoTerm`：它把"今天"往前推 3 周当学期起点，并且自带一个写死的
+/// `totalWeeks = 18`。两个问题：
+///   1. **周号每天都在漂**——同一个 9 月 20 日，昨天算第 4 周、今天可能算第 3 周；
+///   2. 它与 `home_page` / `timetable_page` 各存一份，两处可以给出不同的周号。
 ///
-/// The timetable (§9) must answer "which teaching week is it". The real week comes from
-/// the academic system (Phase 6), so this is a demo term start relative to now, which
-/// keeps the demo data from going stale.
-class DemoTerm {
-  const DemoTerm._();
-
-  /// 演示学期共多少教学周 / how many teaching weeks the demo term has.
-  static const int totalWeeks = 18;
-
-  /// 演示学期的第一天（周一）/ the demo term's first day, a Monday.
-  static DateTime start() {
-    final DateTime today = _today();
-    // 把"今天"落在第 4 教学周附近：往前推 3 周再对齐到周一。
-    // Places "today" around teaching week 4: back three weeks, aligned to Monday.
-    final DateTime monday = today.subtract(Duration(days: today.weekday - DateTime.monday));
-    return monday.subtract(const Duration(days: 21));
-  }
-
-  /// [now] 落在第几教学周（从 1 开始）/ which teaching week [now] falls in, 1-based.
-  static int weekOf(DateTime now) {
-    final DateTime termStart = start();
-    final int days = DateTime(now.year, now.month, now.day).difference(termStart).inDays;
-    final int week = days ~/ 7 + 1;
-    if (week < 1) return 1;
-    if (week > totalWeeks) return totalWeeks;
-    return week;
-  }
-}
+/// 现在由 `UniversityConfig.termCalendar(now)` 统一回答，且**如实标注**学期起止尚未核实
+/// （见 `data/models/term_calendar.dart`）。
+///
+/// A `DemoTerm` used to live here: it treated "three weeks before today" as the term start and
+/// carried a hardcoded `totalWeeks = 18`. Two problems: the week number drifted every day, and it
+/// had a twin in each of Home and the timetable that could disagree. The answer now comes from
+/// `UniversityConfig.termCalendar(now)`, which labels the boundaries as unverified.
 
 /// 演示课程（§9 的 Course）/ demo courses.
 ///
@@ -125,6 +106,17 @@ class DemoTerm {
 /// 定位，不必从 `scheduleRule` 这句人话里反解。
 /// Every entry carries structured scheduling (`weekday` plus periods) that the timetable
 /// grid positions with directly, instead of parsing it back out of `scheduleRule`.
+///
+/// **其中三门带结构化 `scheduleRules`**，用来真正开动 §9 的周次求值：单周、双周、自定义周。
+/// 在此之前单双周的机器造好了却没有任何数据喂给它——功能等于从没被验证过。
+/// **Three of them carry structured `scheduleRules`** so §9's week evaluation is actually
+/// exercised: odd weeks, even weeks and a custom week list. Before this, the machinery existed
+/// but no data ever drove it, which is the same as never having verified it.
+///
+/// `scheduleRule`（人话）与 `scheduleRules`（结构化）**必须一致**：一个是展示、一个是求值，
+/// 两者不符时界面会理直气壮地写着一句与网格相反的话。
+/// The prose and the structured rules must agree: one is displayed, the other evaluated, and a
+/// mismatch makes the UI state something the grid contradicts.
 List<Course> buildMockCourses() {
   return <Course>[
     Course(
@@ -136,6 +128,19 @@ List<Course> buildMockCourses() {
       startWeek: 1,
       endWeek: 16,
       scheduleRule: '周一 3-4 节',
+      // 单周课：1、3、5……周上课。`odd` 是"额外约束"，仍然受区间限制。
+      // An odd-week course: weeks 1, 3, 5 … Parity is an extra constraint on top of the range.
+      scheduleRules: const <CourseScheduleRule>[
+        CourseScheduleRule(
+          startWeek: 1,
+          endWeek: 16,
+          parity: WeekParity.odd,
+          dayOfWeek: DateTime.monday,
+          periodStart: 3,
+          periodEnd: 4,
+          location: '理科大楼 B201',
+        ),
+      ],
       weekday: DateTime.monday,
       startPeriod: 3,
       endPeriod: 4,
@@ -149,7 +154,20 @@ List<Course> buildMockCourses() {
       location: '文史楼 201',
       startWeek: 1,
       endWeek: 16,
-      scheduleRule: '周二 7-8 节',
+      scheduleRule: '周二 7-8 节（自定义周：1-6、9-12 周）',
+      // 自定义周：显式周列表**覆盖**区间与 parity。
+      // A custom week list overrides both the range and parity.
+      scheduleRules: const <CourseScheduleRule>[
+        CourseScheduleRule(
+          startWeek: 1,
+          endWeek: 16,
+          weeks: <int>[1, 2, 3, 4, 5, 6, 9, 10, 11, 12],
+          dayOfWeek: DateTime.tuesday,
+          periodStart: 7,
+          periodEnd: 8,
+          location: '文史楼 201',
+        ),
+      ],
       weekday: DateTime.tuesday,
       startPeriod: 7,
       endPeriod: 8,
@@ -177,7 +195,22 @@ List<Course> buildMockCourses() {
       location: '外语楼 108',
       startWeek: 1,
       endWeek: 16,
-      scheduleRule: '周三 5-6 节',
+      scheduleRule: '周三 5-6 节（双周）',
+      // 双周课：2、4、6……周上课——与「移动应用开发」互为补集，因此任意一周的课表都能
+      // 看出单双周**确实**在起作用。
+      // An even-week course, the complement of the odd-week one, so any given week's grid shows
+      // that parity really is in effect.
+      scheduleRules: const <CourseScheduleRule>[
+        CourseScheduleRule(
+          startWeek: 1,
+          endWeek: 16,
+          parity: WeekParity.even,
+          dayOfWeek: DateTime.wednesday,
+          periodStart: 5,
+          periodEnd: 6,
+          location: '外语楼 108',
+        ),
+      ],
       weekday: DateTime.wednesday,
       startPeriod: 5,
       endPeriod: 6,

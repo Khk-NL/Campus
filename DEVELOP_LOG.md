@@ -986,4 +986,109 @@ $env:JAVA_HOME='D:\Code\JDK'; $env:ANDROID_HOME='D:\Android\sdk'; $env:ANDROID_S
 2. 小程序可用的前置：§37 的 5 步（外部动作）。
 3. `docs/USAGE.md` 补一段"真机连后端 + 小程序构建参数"的配置说明。
 
+---
+
+## 2026-09-21 · 课表复刻（一）：学期锚点与"真的开动"周次求值
+
+**状态 / status**：§12.4 的第 0、2、3、5 步落地。单双周与自定义周从"实现了但没有任何数据
+喂它"变成"界面上能看见它在起作用"。
+
+### 39. 动手前的核对（避免重复劳动）
+
+先读了代码而不是照 §12.4 从头做，发现两件事：
+
+1. **第 3、4 步其实已经做完了**：`CourseScheduleRule`（含 `parity` / `weeks`）在 TS 与 Dart
+   两侧都有，`ruleAppliesInWeek` 也已在 Dart 侧实现，并且
+   `test/course_schedule_rule_test.dart` 已有 **17 项**边界测试（含"`weeks` 与 `parity` 互斥"
+   这个语义陷阱）。因此这两步不需要重做。
+2. **真正缺的是两处**：
+   * `DemoTerm` —— 一个**滚动**锚点（把今天往前推 3 周当学期起点），且 `totalWeeks = 18`
+     写死；`home_page` 与 `timetable_page` **各存一份**，同一天可以给出不同周号；
+   * **没有任何演示课程带 `scheduleRules`** —— 于是单双周/自定义周的求值链虽然写好了、
+     也测过了，却**从来没有被数据驱动过**。功能"存在"与"有效"是两件事。
+
+### 40. 做了什么
+
+**40.1 `TermCalendar`（新，纯净模型）**
+
+`apps/mobile/lib/data/models/term_calendar.dart`：`firstMonday` + `weeks`，两个来源：
+
+| 工厂 | 含义 |
+| --- | --- |
+| `TermCalendar.verified(firstMonday, weeks)` | 学期起止**已核实**（将来来自教务校历） |
+| `TermCalendar.demo(now, weeks)` | 演示锚点，把今天放在第 4 教学周附近，**`isVerified == false`** |
+
+两条纪律：
+* **不夹取**：`weekOf` 对学期之外的日期返回 ≤ 0 或 > `weeks`；`currentWeekOf` 翻译成 `null`。
+  夹取会把"这门课已经结课"显示成"最后一周还在上"——一个看起来完全正常的错误。
+* **不是周一的锚点向下对齐**到那一周的周一：配置里写错一天不该让整张课表整体平移。
+  （`~/` 对负数向零取整，所以地板除必须显式写，否则"学期前一天"会被算成第 1 周。）
+
+TS 侧同步加了契约与纯函数（`packages/models/src/academic.ts` 的 `TermCalendar` /
+`termWeekOf` / `mondayOfWeek` / `isInsideTerm`），并在 `contracts.smoke.cjs` 加了 3 项检查
+（19 → 22），保证这份契约只有一处定义。
+
+**40.2 一个出处：`UniversityConfig.termCalendar(now)`**
+
+配置新增 `termWeeks` 与 `termFirstMonday`（**ECNU 设为 `null`，因为未核实**）。
+首页与课表现在都从这一处取周号，页面不再自己算。`DemoTerm` **整个删掉**——留着一个滚动锚点，
+下一个人还会去用。
+
+**40.3 界面上看得见的改动**
+
+课表周切换条现在显示：`第 4 周` / `9月21日 – 9月27日`（日期走 `MaterialLocalizations`）/
+`本学期共 18 教学周` / 未核实时多一枚 **`⚠ 学期起止未核实`**；`本周` 标记只在今天**确实**
+落在学期内时出现。
+
+**40.4 让求值链真的被驱动（第 5 步）**
+
+演示课程里三门带上了结构化规则，且**人话与结构化规则一致**（不一致时界面会理直气壮地
+写着一句与网格相反的话）：
+
+| 课程 | 规则 | 用于验证 |
+| --- | --- | --- |
+| 移动应用开发 | 周一 3-4 节，**单周** | 单周生效 |
+| 大学英语 | 周三 5-6 节，**双周** | 双周生效（与上一门互为补集） |
+| 现代软件工程 | 周二 7-8 节，**自定义周 1-6、9-12** | weeks 覆盖区间 |
+
+**一条既有测试因此失败，而这是好事**：`widget_test` 原本断言「移动应用开发」在默认周出现，
+而它现在是单周课、默认周是第 4 周（双周）——**功能生效了，断言的前提失效了**。
+已把它改成显式断言单双周与自定义周：
+
+```dart
+// 第 4 周（双周）
+expect(find.text('大学英语'), findsWidgets);
+expect(find.text('移动应用开发'), findsNothing);
+// 退到第 3 周（单周）：两门互换
+expect(find.text('移动应用开发'), findsWidgets);
+expect(find.text('大学英语'), findsNothing);
+// 自定义周：第 3 周在，第 7 周不在
+```
+
+> 这一条比"至少有一门课出现了"强得多：后者在 parity 完全失效时照样通过——本仓库已经栽过一次
+> "断言碰巧成立"。
+
+### 41. 验证 / verification
+
+| 检查 | 结果 |
+| --- | --- |
+| `pnpm turbo run build --force` | 8/8（`Cached: 0 cached`） |
+| `pnpm smoke` | 22 + 23 + 24 + 5 + 13 = **87 项全过**（contracts 19 → 22） |
+| `flutter analyze` | No issues found |
+| `flutter test` | **73/73**（65 → 73：新增 8 项 TermCalendar 测试 + 课表断言加厚） |
+| 真机 | `stage5-timetable-01-week.png`（第 4 周 + 日期区间 + 学期起止未核实）、`stage5-timetable-02-odd-week.png`（第 3 周出现单周课「移动应用开发」） |
+
+### 42. 下一步 / next（课表复刻未完成的部分）
+
+1. **§12.4 第 0 步的剩余契约漂移**：`CampusEvent` 的教学槽位（`isScheduleChange` /
+   `teachingWeek` / `dayOfWeek` / `periodStart` / `periodEnd`）在 Dart 侧**完全没有**；
+   `TaskStatus` 是 `'done'` vs `'completed'`；`AnnouncementPriority` 缺 `'urgent'`。
+   这三处都是"TS 有、Dart 没有"，属于静默失配。
+2. **第 1 步的 `periodsPerDay` 定案**：后端 seed 13 / Dart 12，仍未核实；`PeriodSchedule`
+   抽象已就位，但**具体数字要有真实作息表才能定**。
+3. **第 6 步起**：`Course` / `CourseScheduleRule` 建表 + `/api/courses` + `fetchCourses`
+   从 `_unimplemented` 换成真调用（课表目前 100% 来自演示数据）。
+4. 第 7 步之后：导入、去重、冲突检测、调课/停课、ICS 导出。
+
+
 

@@ -476,6 +476,24 @@ abstract class AppLocalizations {
   /// **'第 {start}–{end} 周'**
   String timetableWeekRange(int start, int end);
 
+  /// 当前教学周的具体日期区间（日期已由 MaterialLocalizations 本地化）/ the concrete date range of the week on screen
+  ///
+  /// In zh, this message translates to:
+  /// **'{start} – {end}'**
+  String timetableWeekDates(String start, String end);
+
+  /// 学期总周数（未核实）/ the term's total week count (unverified)
+  ///
+  /// In zh, this message translates to:
+  /// **'本学期共 {weeks} 教学周'**
+  String timetableTermWeeks(int weeks);
+
+  /// 学期锚点是演示值，周号仅供参考 / the term anchor is a demo value, so the week number is indicative only
+  ///
+  /// In zh, this message translates to:
+  /// **'学期起止未核实'**
+  String get timetableTermUnverified;
+
   /// No description provided for @timetableCurrentWeek.
   ///
   /// In zh, this message translates to:
