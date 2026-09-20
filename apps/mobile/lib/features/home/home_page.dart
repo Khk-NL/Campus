@@ -19,6 +19,7 @@ import 'package:campus_mobile/core/app_state.dart';
 import 'package:campus_mobile/core/config/university_config.dart';
 import 'package:campus_mobile/data/models/campus_service.dart';
 import 'package:campus_mobile/data/models/course.dart';
+import 'package:campus_mobile/data/models/period_schedule.dart';
 import 'package:campus_mobile/data/models/transaction.dart';
 import 'package:campus_mobile/data/repositories/campus_repository.dart';
 import 'package:campus_mobile/data/repositories/data_source_mode.dart';
@@ -157,6 +158,12 @@ class _HomePageState extends State<HomePage> {
         // day.
         final int week =
             UniversityConfigs.defaultConfig.termCalendar(now).currentWeekOf(now) ?? 1;
+        // 节次 → 时刻同理：从配置/后端来的作息表回答，首页不再自带一套"08:00 + 45 分钟"。
+        // Period → clock time likewise comes from the configured schedule; Home no longer carries
+        // its own "08:00 plus 45 minutes".
+        final PeriodSchedule schedule = AppScope.of(context).university?.config
+                .periodSchedule ??
+            UniversityConfigs.defaultConfig.periodSchedule;
         final List<HomeTodayItem> items = <HomeTodayItem>[
           // §12 的 Today 是"今天的课"：只有真在今天上、且本周确实结课的课程才算数，
           // 否则首页会把整学期的课都摊在"今日"里。
@@ -165,7 +172,7 @@ class _HomePageState extends State<HomePage> {
           // "Today".
           for (final Course course in data.courses)
             if (course.weekday == now.weekday && course.meetsInWeek(week))
-              fromCourse(course),
+              fromCourse(course, schedule: schedule),
           for (final CampusEvent event in data.events)
             if (event.occursOn(now))
               fromEvent(event, timeLabel: formatClock(event.startAt)),

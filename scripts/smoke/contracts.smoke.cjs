@@ -101,6 +101,43 @@ async function main() {
     assert.equal(models.termWeekOf(aligned, new Date(2026, 8, 9)), 1);
   });
 
+  // 节次 ↔ 时刻：契约里最关键的一条是"不可用时不猜"。回退一个 08:00 会把全校课表的每一节
+  // 整体挪到一个看似正常的错误时刻上。
+  // Period to clock time: the key rule is "guess nothing when unusable". A fallback to 08:00
+  // would shift every period onto a plausible but wrong grid.
+  check('作息表：第 1 节与末节时刻正确', () => {
+    const schedule = models.createEvenPeriodSchedule({
+      firstPeriodStart: '08:00',
+      periodMinutes: 45,
+      periodsPerDay: 13,
+    });
+    assert.equal(schedule.isUsable, true);
+    assert.equal(schedule.startMinutesOf(1), 8 * 60);
+    assert.equal(schedule.endMinutesOf(1), 8 * 60 + 45);
+    assert.equal(schedule.startMinutesOf(13), 17 * 60);
+    // 越界既不猜也不夹取。
+    assert.equal(schedule.startMinutesOf(0), null);
+    assert.equal(schedule.startMinutesOf(14), null);
+  });
+
+  check('作息表：首节时刻或时长不可用时整表不可用，不兜底', () => {
+    const badStart = models.createEvenPeriodSchedule({
+      firstPeriodStart: '上午八点',
+      periodMinutes: 45,
+      periodsPerDay: 13,
+    });
+    assert.equal(badStart.isUsable, false);
+    assert.equal(badStart.startMinutesOf(1), null);
+
+    const badLength = models.createEvenPeriodSchedule({
+      firstPeriodStart: '08:00',
+      periodMinutes: 0,
+      periodsPerDay: 13,
+    });
+    assert.equal(badLength.isUsable, false);
+    assert.equal(badLength.startMinutesOf(1), null);
+  });
+
   check('§9 weeks 与 parity 互斥：同时给出视为非法输入', () => {
     // 参考项目的 `"1-8周 单周"` 会产出这个组合。在 Campus 的 weeks 覆盖语义下它会
     // 静默反转成 1~8 周每周都上，所以校验层必须拒绝，解析器负责规范化。

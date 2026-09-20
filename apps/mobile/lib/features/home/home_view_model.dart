@@ -11,6 +11,7 @@
 library;
 
 import 'package:campus_mobile/data/models/course.dart';
+import 'package:campus_mobile/data/models/period_schedule.dart';
 import 'package:campus_mobile/data/models/transaction.dart';
 import 'package:flutter/material.dart';
 
@@ -57,38 +58,40 @@ class HomeTodayItem {
   bool get isAllDay => minutesFromMidnight < 0;
 }
 
-/// 第 [period] 节课开始的分钟数（按第一节 08:00 估算）。
-/// The minute a period starts, estimating the first period at 08:00.
-///
-/// 这是一个刻意简化的估算：真实节次时间来自 `University.config`，属于后续阶段。
-/// A deliberately simplified estimate; the real period times come from
-/// `University.config` in a later phase.
-int _periodStartMinutes(int period) {
-  const int firstPeriodHour = 8;
-  const int minutesPerPeriod = 45;
-  final int index = period <= 0 ? 1 : period;
-  return firstPeriodHour * 60 + (index - 1) * minutesPerPeriod;
-}
-
 /// 从课程生成今天的条目 / build today's entries from a course.
 ///
 /// 节次直接读结构化字段 [Course.startPeriod] / [Course.endPeriod]，**不再**从
 /// `scheduleRule` 这句人话里反解——正则解析多语言文本既脆弱又没有契约依据。
-/// 读不到节次时退化为"全天"，并把 `scheduleRule` 原文当标签，而不是编造一个时间。
 ///
-/// Periods come straight from the structured [Course.startPeriod] / [Course.endPeriod]
-/// fields; the old regex over the human-readable `scheduleRule` is gone, since parsing
-/// prose regex-wise is brittle and contract-free. Without periods the entry degrades to
-/// "all day" and shows the prose as its label, rather than inventing a time.
-HomeTodayItem fromCourse(Course course) {
+/// 节次 → 时刻走 [PeriodSchedule]，也就是**唯一**回答这个问题的位置：此前这里是
+/// "08:00 + 每节 45 分钟"的写死估算，于是高校的作息表改了、或者节间休息不等长，
+/// 首页的排序都不会跟着变——而且看不出来。
+///
+/// Periods come from the structured fields, and period → clock time goes through
+/// [PeriodSchedule], the one place allowed to answer that. This used to be a hardcoded
+/// "08:00 plus 45 minutes per period", so a changed school timetable — or unequal breaks —
+/// silently left Home's ordering untouched.
+///
+/// 越界节次（`< 1` 或超过当天节数）由 [PeriodSchedule] 返回 `null`，这里**退化**为"全天"并把
+/// 原始文本当标签，而不是夹取到第 1 节或最后一节：夹取会显示出一个看似合理却错的时间。
+///
+/// An out-of-range period yields `null` from the schedule and degrades to "all day" here, rather
+/// than being clamped to the first or last period — clamping would show a plausible wrong time.
+HomeTodayItem fromCourse(Course course, {required PeriodSchedule schedule}) {
   final int? startPeriod = course.startPeriod;
   final int? endPeriod = course.endPeriod;
   final String prose = course.scheduleRule ?? '';
 
-  final int minutes = startPeriod == null ? -1 : _periodStartMinutes(startPeriod);
+  final int? startMinutes =
+      startPeriod == null ? null : schedule.startMinutesOf(startPeriod);
+  final int minutes = startMinutes ?? -1;
   final String timeLabel = (startPeriod == null || endPeriod == null)
       ? (prose.isEmpty ? '—' : prose)
-      : '$startPeriod-$endPeriod 节';
+      : (startMinutes == null
+          // 节次存在但超出作息表：如实说不确定，而不是给一个假时刻。
+          // The period exists but is outside the schedule: say so instead of inventing a time.
+          ? (prose.isEmpty ? '$startPeriod-$endPeriod 节' : prose)
+          : '$startPeriod-$endPeriod 节 · ${PeriodSchedule.formatMinutes(startMinutes)}');
 
   return HomeTodayItem(
     id: 'course-${course.id}',

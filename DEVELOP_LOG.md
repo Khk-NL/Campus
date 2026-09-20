@@ -1154,6 +1154,75 @@ Dart 侧补上 `isScheduleChange` / `teachingWeek` / `dayOfWeek` / `periodStart`
    从 `_unimplemented` 换成真调用。
 4. 之后：导入、去重、冲突检测、ICS 导出。
 
+---
+
+## 2026-09-21 · 课表复刻（三）：节次↔时刻终于被接上（§12.4 第 1 步）
+
+**状态 / status**：第 1 步落地。`PeriodSchedule` 这层抽象此前**只有定义、没有任何调用方**，
+现在它是全客户端唯一回答"第几节是几点"的地方。
+
+### 47. 缺口：抽象建好了，但从没人用它
+
+`data/models/period_schedule.dart` 里的 `PeriodSchedule` / `EvenPeriodSchedule` 早就写好了，
+`University` 的后端表也有 `first_period_start` / `period_minutes` / `periods_per_day` 三列——
+但：
+
+* Dart 的 `UniversityConfigData` **不解析**后两列，于是后端的值一进客户端就丢；
+* 首页 `home_view_model` 用的是写死的 `08:00 + 每节 45 分钟` 估算。
+
+抽象与数据都在，中间那根线没接。
+
+### 48. 做了什么
+
+**48.1 接上数据**：`UniversityConfigData` 与 `UniversityConfig` 都解析 `firstPeriodStart` /
+`periodMinutes`，并各自暴露 `periodSchedule`。首页从
+`AppScope.of(context).university?.config.periodSchedule ?? 默认配置` 取——**一个出处**。
+
+**48.2 首页用真实时刻**：`fromCourse(course, schedule:)` 走 `schedule.startMinutesOf(period)`；
+标签也从 `3-4 节` 变成 `3-4 节 · 09:30`（见截图）。越界节次由接口返回 `null`，这里退化
+为"全天"并把 `scheduleRule` 原文当标签，**不夹取**。
+
+**48.3 砍掉三处"看起来正常的兜底"**（本节最实质的改动）：
+
+| 位置 | 原来 | 现在 |
+| --- | --- | --- |
+| 首节时刻解析不了 | `?? 8*60` → 全校课表整体挪到 08:00 起算 | `isUsable=false`，查询返回 `null` |
+| 单节时长 ≤ 0 | `? : 45` | 同上，不拿 45 顶上 |
+| TS 侧 `createEvenPeriodSchedule` | 同样两处兜底 | 与 Dart 对齐，并补 `isUsable` |
+
+最后一行是**本轮自己制造的漂移**：我只改了 Dart，TS 还留着兜底，两边会对同一个坏配置给出
+不同答案。契约只有一份，所以顺手把 TS 侧也改成"不猜"，并加 2 项 smoke 检查。
+
+**48.4 `periodsPerDay` 的 12 vs 13**：演示配置与 ECNU 配置都改成 **13**，与后端 seed 一致。
+⚠️ **13 本身仍未核实**——但"离线说 12、在线说 13"是能被用户看见的错误，而"两边都是 13、
+将来一起改成真实值"只是待办。数字对不对要等作息表，**两边是否一致**是我们现在就能负责的。
+
+### 49. 截图暴露了我自己造的一个错
+
+第一版截图里，"**第 5 周**调课"出现在首页的「今日」——因为我把这条事件的 `startAt` 写成了
+"今天 07:00"。调课的时间坐标是（周次, 星期, 节次），墙上时刻只是它的换算结果；随手写一个
+时刻，等于把坐标当装饰。已改成用演示学期锚点 + 作息表**算出**第 5 周周二 7-8 节的真实时刻，
+截图里它不再出现在今天。
+
+### 50. 验证 / verification
+
+| 检查 | 结果 |
+| --- | --- |
+| `pnpm turbo run build --force` | 8/8（`Cached: 0 cached`） |
+| `pnpm smoke` | 24 + 23 + 24 + 5 + 13 = **89 项全过**（contracts 22 → 24） |
+| `flutter analyze` | No issues found |
+| `flutter test` | **88/88**（79 → 88：新增 9 项作息表测试） |
+| 真机 | `stage6-home-period-times.png`：「今日」的课程显示 `1-2 节 · 08:00`，且第 5 周调课不再出现在今天 |
+
+### 51. 下一步 / next
+
+1. **§12.4 第 9 步**：让调课事件**按周**出现在课表。`concernsWeek(week)` 有了，但课表通知区
+   仍是加载时算一次的 `Future`；要改成按当前周计算。首页 Today 也应加同一道过滤（今天这次
+   是靠把数据修对才没露出来）。
+2. **`periodsPerDay` / 作息数字的核实**（等真实作息表）。
+3. **§12.4 第 6 步起**：`Course` / `CourseScheduleRule` 建表 + `/api/courses`。
+
+
 
 
 

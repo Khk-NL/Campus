@@ -8,6 +8,7 @@
 library;
 
 import 'package:campus_mobile/data/models/json_utils.dart';
+import 'package:campus_mobile/data/models/period_schedule.dart';
 import 'package:campus_mobile/data/models/service_enums.dart';
 
 /// 一周从哪天开始 / which day a week starts on.
@@ -40,6 +41,8 @@ class UniversityConfigData {
     required this.timezone,
     required this.locales,
     required this.capabilities,
+    this.firstPeriodStart = '08:00',
+    this.periodMinutes = 45,
   });
 
   /// 一学期教学周数 / teaching weeks per term.
@@ -60,17 +63,51 @@ class UniversityConfigData {
   /// 已声明能力（§3.2 Provider 概念）/ declared capabilities (§3.2).
   final List<String> capabilities;
 
+  /// 第一节课的墙上时刻，`HH:mm` / the wall-clock start of period 1.
+  ///
+  /// 默认值 `08:00` 与后端 `university.first_period_start` 的列默认值一致——客户端**不该**有
+  /// 自己的作息意见，这里只是在后端没发这个字段时保持与它相同的兜底。
+  ///
+  /// The `08:00` default matches the backend column's default: the client holds no opinion about
+  /// a school's timetable, it merely falls back to the same value when the field is absent.
+  final String firstPeriodStart;
+
+  /// 单节时长（分钟）/ the length of one period in minutes.
+  final int periodMinutes;
+
+  /// 节次 ↔ 时刻的查询对象 / the period-to-clock-time query object.
+  ///
+  /// 首页 Today、日历、上课提醒、ICS 导出都通过它拿时间，因此**换口径只改这一处**：
+  /// 将来有真实作息表（大节/小节、不等长课间）时换掉实现即可，调用方一行不改。
+  ///
+  /// Home's Today, the calendar, reminders and ICS export all read times through this, so a
+  /// change of reading touches **this one place**: when a real timetable with unequal breaks
+  /// arrives, swapping the implementation changes no caller.
+  PeriodSchedule get periodSchedule => EvenPeriodSchedule(
+        firstPeriodStart: firstPeriodStart,
+        periodMinutes: periodMinutes,
+        periodsPerDay: periodsPerDay,
+      );
+
   /// 从后端 JSON 解析，缺失字段用保守默认值。
   /// Parse from the backend JSON, using conservative defaults for missing fields.
   static UniversityConfigData fromJson(Object? value) {
     final Map<String, Object?> json = asMap(value);
     return UniversityConfigData(
       termWeeks: asIntOr(json['termWeeks'], 18),
-      periodsPerDay: asIntOr(json['periodsPerDay'], 12),
+      // 缺省值必须与后端列默认值一致（`periods_per_day` 目前是 13），否则离线与在线会在
+      // "一天有几节"上给出不同答案，而课表网格的行数正好由它决定。
+      //
+      // The fallback must match the backend column default (`periods_per_day` is 13 today), or
+      // offline and online disagree about how many periods a day has — which is exactly what
+      // decides how many rows the grid draws.
+      periodsPerDay: asIntOr(json['periodsPerDay'], 13),
       weekStartsOn: WeekStart.fromWire(json['weekStartsOn']),
       timezone: asNonEmptyString(json['timezone']) ?? 'Asia/Shanghai',
       locales: asStringList(json['locales']),
       capabilities: asStringList(json['capabilities']),
+      firstPeriodStart: asNonEmptyString(json['firstPeriodStart']) ?? '08:00',
+      periodMinutes: asIntOr(json['periodMinutes'], 45),
     );
   }
 }

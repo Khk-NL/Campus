@@ -16,6 +16,7 @@
 /// registering it in [UniversityConfigs.installed]; no generic code changes.
 library;
 
+import 'package:campus_mobile/data/models/period_schedule.dart';
 import 'package:campus_mobile/data/models/term_calendar.dart';
 import 'universities/ecnu.dart';
 
@@ -27,7 +28,10 @@ class UniversityConfig {
     required this.supportedLocales,
     required this.capabilities,
     required this.termWeeks,
+    required this.periodsPerDay,
     this.termFirstMonday,
+    this.firstPeriodStart = '08:00',
+    this.periodMinutes = 45,
     this.brandMarkAsset,
     this.contactGroupNumbers = const <String, String>{},
   });
@@ -55,6 +59,33 @@ class UniversityConfig {
   /// ⚠️ Unverified — the same open item as the backend seed's `term_weeks`. It lives in the
   /// config rather than inside a page so that it has exactly one source.
   final int termWeeks;
+
+  /// 一天有几节 / how many periods a day has.
+  ///
+  /// ⚠️ 未核实，且必须与后端 `university.periods_per_day` 一致（后端目前是 13）。课表网格的
+  /// 行数由它决定，两边不一致时离线与在线会画出不同的网格。
+  ///
+  /// ⚠️ Unverified, and it must agree with the backend's `periods_per_day` (13 today). It decides
+  /// how many rows the grid draws, so a mismatch makes offline and online draw different grids.
+  final int periodsPerDay;
+
+  /// 第一节课的墙上时刻 `HH:mm` / the wall-clock start of period 1.
+  final String firstPeriodStart;
+
+  /// 单节时长（分钟）/ the length of one period in minutes.
+  final int periodMinutes;
+
+  /// 节次 ↔ 时刻的查询对象 / the period-to-clock-time query object.
+  ///
+  /// 与 [UniversityConfigData.periodSchedule] 是同一个落点：首页、日历、提醒、ICS 都从这里
+  /// 取时间，换口径只改这一处。
+  /// The same landing point as [UniversityConfigData.periodSchedule]: Home, the calendar,
+  /// reminders and ICS all read times from here, so a change of reading touches one place.
+  PeriodSchedule get periodSchedule => EvenPeriodSchedule(
+        firstPeriodStart: firstPeriodStart,
+        periodMinutes: periodMinutes,
+        periodsPerDay: periodsPerDay,
+      );
 
   /// 学期第一周的周一；**null 表示未核实**。
   ///

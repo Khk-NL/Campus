@@ -15,13 +15,16 @@
 library;
 
 import 'package:campus_mobile/core/config/universities/ecnu.dart';
+import 'package:campus_mobile/core/config/university_config.dart';
 import 'package:campus_mobile/core/text/localized_text.dart';
 import 'package:campus_mobile/data/models/app_user.dart';
 import 'package:campus_mobile/data/models/campus_app.dart';
 import 'package:campus_mobile/data/models/campus_service.dart';
 import 'package:campus_mobile/data/models/course.dart';
 import 'package:campus_mobile/data/models/launch_target.dart';
+import 'package:campus_mobile/data/models/period_schedule.dart';
 import 'package:campus_mobile/data/models/service_enums.dart';
+import 'package:campus_mobile/data/models/term_calendar.dart';
 import 'package:campus_mobile/data/models/transaction.dart';
 import 'package:campus_mobile/data/models/university.dart';
 
@@ -45,11 +48,21 @@ University buildMockUniversity() {
     domain: 'ecnu.edu.cn',
     config: const UniversityConfigData(
       termWeeks: 18,
-      periodsPerDay: 12,
+      // 与后端 seed 的 `periods_per_day` 保持一致（13）。演示数据自己说 12 会让离线与在线
+      // 在"一天有几节"上给出不同答案，而课表网格的行数正好由它决定。
+      //
+      // Matches the backend seed's `periods_per_day` (13). A demo value of 12 would make offline
+      // and online disagree about how many periods a day has, and that number decides the grid's
+      // row count. ⚠️ 13 本身仍未核实。
+      periodsPerDay: 13,
       weekStartsOn: WeekStart.monday,
       timezone: 'Asia/Shanghai',
       locales: <String>['zh', 'en'],
       capabilities: <String>['services'],
+      // 节次 ↔ 时刻：与后端 `university` 表的列默认值一致（08:00 / 45）。
+      // 具体数字同样**未核实**（后端的列注释里写着第 2 节之后可能都是近似值）。
+      firstPeriodStart: '08:00',
+      periodMinutes: 45,
     ),
     status: RecordStatus.active,
     createdAt: DateTime.utc(2026, 9, 20),
@@ -332,8 +345,15 @@ List<CampusEvent> buildMockEvents() {
     CampusEvent(
       id: 'event-schedule-change-se-w5',
       title: '现代软件工程第 5 周调课',
-      startAt: _inDays(0, 7),
-      endAt: _inDays(0, 9),
+      // ⚠️ 墙上时刻必须**由教学坐标算出来**（第 5 周周二 7-8 节的真实时刻）。
+      // 随手写"今天 07:00"会让一条影响一周之后的调课立刻出现在首页的"今日"里——
+      // 那是把调课的时间坐标（周次, 星期, 节次）当成了可有可无的装饰。
+      //
+      // The wall-clock time is **derived from the academic coordinates**. Typing "today 07:00"
+      // would drop a change that affects next week into today's list, treating (week, weekday,
+      // period) as decoration.
+      startAt: _teachingSlotStart(week: 5, dayOfWeek: DateTime.tuesday, period: 7),
+      endAt: _teachingSlotEnd(week: 5, dayOfWeek: DateTime.tuesday, period: 8),
       location: '文史楼 305',
       relatedCourseId: 'course-modern-se',
       sourceName: '现代软件工程',
@@ -344,6 +364,45 @@ List<CampusEvent> buildMockEvents() {
       periodEnd: 8,
     ),
   ];
+}
+
+/// 演示学期（与运行时同一套换算）/ the demo term, using the same conversion as the app.
+TermCalendar _demoTerm() => UniversityConfigs.defaultConfig.termCalendar(DateTime.now());
+
+/// 演示作息表 / the demo period schedule.
+PeriodSchedule _demoPeriodSchedule() =>
+    UniversityConfigs.defaultConfig.periodSchedule;
+
+/// 某个教学时段开始的真实时刻 / the real instant one teaching slot starts.
+///
+/// 把（周次, 星期, 节次）换算成墙上时刻。调课事件需要一个时刻才能落在事件列表里，而那个
+/// 时刻应当是**算出来的**，不是手写的。
+/// Turns (week, weekday, period) into a wall-clock instant: a schedule-change event needs a time
+/// to sit in an event list, and that time must be derived rather than typed in.
+DateTime _teachingSlotStart({
+  required int week,
+  required int dayOfWeek,
+  required int period,
+}) {
+  final int minutes = _demoPeriodSchedule().startMinutesOf(period) ?? 0;
+  return _teachingSlotDay(week, dayOfWeek).add(Duration(minutes: minutes));
+}
+
+/// 某个教学时段结束的真实时刻 / the real instant one teaching slot ends.
+DateTime _teachingSlotEnd({
+  required int week,
+  required int dayOfWeek,
+  required int period,
+}) {
+  final int minutes = _demoPeriodSchedule().endMinutesOf(period) ?? 0;
+  return _teachingSlotDay(week, dayOfWeek).add(Duration(minutes: minutes));
+}
+
+/// 某个教学周的某一天（当地零点）/ one day of one teaching week, at local midnight.
+DateTime _teachingSlotDay(int week, int dayOfWeek) {
+  final DateTime monday = _demoTerm().mondayOfWeek(week);
+  final DateTime day = monday.add(Duration(days: dayOfWeek - DateTime.monday));
+  return DateTime(day.year, day.month, day.day);
 }
 
 /// 演示待办 / demo tasks.

@@ -30,6 +30,17 @@ const UniversityConfig ecnuConfig = UniversityConfig(
   // 教学周总数：**未核实**（与后端 seed 的 term_weeks 是同一个待核实项）。
   // Teaching-week count, unverified — the same open item as the backend seed's `term_weeks`.
   termWeeks: 18,
+  // 一天节次数：与后端 `university.periods_per_day` 一致（13），**数字本身仍未核实**。
+  // 课表网格的行数由它决定，两边不一致会画出不同的网格。
+  // Periods per day, matching the backend's `periods_per_day` (13); the number itself is still
+  // unverified. It decides the grid's row count, so a mismatch draws a different grid.
+  periodsPerDay: 13,
+  // 节次 ↔ 时刻：与后端 `university` 表的列默认值一致（08:00 / 45 分钟）。
+  // ⚠️ 同样未核实：后端列注释里写明"第 2 节之后可能都是近似值"，等真实作息表到位再换。
+  // Period-to-clock mapping, matching the backend columns' defaults. Unverified too: the backend
+  // column comment says every period after the first may be approximate.
+  firstPeriodStart: '08:00',
+  periodMinutes: 45,
   // 学期第一周的周一：**未核实**，因此留 null。客户端会退回演示锚点并在界面上标注
   // "起止未核实"，而不是编一个日期——编错会让整张课表的周号一起错，而且看不出错。
   // 真实值应来自教务校历（Phase 6）。

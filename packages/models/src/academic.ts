@@ -96,6 +96,20 @@ export interface PeriodSchedule {
   readonly periodsPerDay: number;
 
   /**
+   * 这份作息表是否**真的能回答**节次时刻。
+   *
+   * `false` 时 `startMinutesOf` 一律返回 `null`：首节时刻解析不了、节数非正、或单节时长为 0
+   * 都算不可用。**不可用时绝不兜底**——兜底会把全校课表的每一节整体挪到一个看似正常、
+   * 实际错误的时刻上，而界面上看不出任何异常。
+   *
+   * Whether this schedule can answer anything at all. When false, `startMinutesOf` always returns
+   * `null`: an unparsable start time, a non-positive period count, or a zero length all count as
+   * unusable, and nothing is guessed — a fallback would shift every period onto a plausible but
+   * wrong grid with nothing on screen looking wrong.
+   */
+  readonly isUsable: boolean;
+
+  /**
    * 第 `periodIndex` 节（从 1 开始，含）开始时刻距当地午夜的分钟数。
    * 越界（`< 1` 或 `> periodsPerDay`）返回 `null` —— 接口不猜、也不夹取，
    * 由调用方决定降级方式（首页据此退化为"全天"）。
@@ -132,27 +146,34 @@ export function parseClockMinutes(text: string): number | null {
 /**
  * 基于「首节时刻 + 等长单节时长」的 [PeriodSchedule] 实现——当前的默认口径。
  *
- * [firstPeriodStart] 无法解析时回退到 `08:00`（保守默认，与模型里其它兜底一致）。
- * 局限见 [PeriodSchedule]。
+ * **不做任何兜底**：首节时刻解析不了、节数非正、单节时长非正时，`isUsable` 为 `false` 且
+ * 所有查询返回 `null`。此前这里回退 `08:00` / 45 分钟，与 Dart 侧"不猜"的实现**已经不一致**——
+ * 契约只有一份，两边必须给出同一个答案。
  *
- * The default [PeriodSchedule]: period 1 at [firstPeriodStart], then equal-length periods.
- * An unparsable [firstPeriodStart] falls back to `08:00`. See [PeriodSchedule] for the
- * caveat.
+ * The default [PeriodSchedule]. It guesses nothing: an unparsable start, a non-positive period
+ * count or a non-positive length makes `isUsable` false and every query return `null`. It used to
+ * fall back to 08:00 / 45 minutes, which had already diverged from the Dart implementation's
+ * refusal to guess — one contract, one answer.
  */
 export function createEvenPeriodSchedule(
   config: Pick<UniversityConfig, 'firstPeriodStart' | 'periodMinutes' | 'periodsPerDay'>,
 ): PeriodSchedule {
-  const firstMinutes = parseClockMinutes(config.firstPeriodStart) ?? 8 * 60;
-  const length = config.periodMinutes > 0 ? config.periodMinutes : 45;
+  const firstMinutes = parseClockMinutes(config.firstPeriodStart);
+  const length = config.periodMinutes;
   const periodsPerDay = config.periodsPerDay;
+  const isUsable = firstMinutes !== null && periodsPerDay > 0 && length > 0;
+
   const startOf = (periodIndex: number): number | null => {
+    if (!isUsable || firstMinutes === null) return null;
     if (!Number.isInteger(periodIndex) || periodIndex < 1 || periodIndex > periodsPerDay) {
       return null;
     }
     return firstMinutes + (periodIndex - 1) * length;
   };
+
   return {
     periodsPerDay,
+    isUsable,
     startMinutesOf: startOf,
     endMinutesOf: (periodIndex: number): number | null => {
       const start = startOf(periodIndex);
