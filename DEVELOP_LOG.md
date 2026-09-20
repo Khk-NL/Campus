@@ -422,3 +422,97 @@ cd apps\api; node dist\src\main.js          # http://127.0.0.1:3000/api
 4. 核实服务目录 7 条入口的真实 URL 与小程序 ID（现为 `mock:` 占位值）
 5. 标签搜索改为子串或全文索引；「最近使用」接入真实使用记录
 6. `apps/admin` —— 注意它**不在** §13-Phase 0 的工作项里，属于后续阶段
+
+---
+
+## 2026-09-20 · 界面重构与 ECNU 官方视觉规范 / UI rework and ECNU's official visual spec
+
+**状态 / status**：Phase 0 客户端界面达到用户要求；后端与类型契约不变。
+
+### 13. 用户提出的界面要求（已全部满足）
+
+| 要求 | 落地 |
+| --- | --- |
+| 底部栏**有且仅有** 4 个 | 首页 / 应用 / 课程表 / 我的（原为 5 个，`搜索` 与 `事务` 已移出） |
+| 顶部栏放**通知**和**搜索** | AppBar 两个入口，由 shell 统一持有，四个 Tab 上完全一致；点开为带返回键的推入页 |
+| 首页要有**今日待办** | 今日显示今天真在上的课/日程；待办 4 条带截止时间与状态 |
+| **课程表**页 | 节次 × 周一至周日网格，上/下周切换与"本周"标记，下方含课程待办与通知 |
+| **我的**含登录与设置 | 未登录身份 + 登录主按钮 + 设置（语言/外观/数据源）+ 关于 |
+| 参考华东师范大学配色 | 改用官方**标准色**，见下 |
+
+### 14. 配色：从官方规范取到的权威色值（不是猜的）
+
+用户要求「自己搜索华东师范大学的相关网站、提取相关元素」。从官方
+[《标准色使用规范》](https://www.ecnu.edu.cn/wzcd/xxgk/xxbs/bsxz/jcbf/bzssygf.htm) 取到原文：
+
+> **ECNU标准色为：PANTONE 201C（C0M100Y63K29 / R164G31B53）**
+
+即 **`#A41F35`**，且规范明确"标准化后**不得任意更改**"。官网 logo SVG 中读到 `#A32135`，
+与之吻合（差异来自 SVG 导出取整）。
+
+⚠️ **与 §0.3 原文的冲突**：用户最初写的 `rgb(143,16,40)` = `#8F1028` **不是**官方标准色，
+而是同色族中更深的一个。处理方式：主色用官方标准色，`#8F1028` 保留为深色/按下态变体，
+并在 §0.3 中写明差异，避免文档自相矛盾。
+
+另外取到两样有实际指导价值的东西：
+
+1. **官方六档减网色**（85% `#B24153` / 70% `#BF6272` / 55% `#CD8490` / 40% `#DBA5AE` /
+   25% `#E8C7CD` / 10% `#F6E9EB`），规范要求只能与标准色同时使用 —— 正好是 UI 需要的色阶。
+2. **官方"反白应用"规范**：标准色作**实色块**承载白色标志，白底时才用红色标志；并禁止
+   形态 A、B 以轮廓线出现。这直接决定顶部栏应为**红底白字**而非白底红字。
+
+新增 `docs/DESIGN.md` 固化上述内容与从官网提取的布局语言（白底卡片 + 红色页眉带、
+小圆角、发丝线、留白充足、红色只作强调）。新增 `scripts/dev/ecnu-brand-probe.mjs`
+使取色可复现 —— 校方若修订规范，可用同一条命令重新推导。
+
+### 15. 本轮踩的坑 / pitfalls this round
+
+15. **`flutter analyze` 全绿不等于运行时不崩。** 子代理产出的客户端 analyze 零问题，但一跑
+    widget 测试就抛出 10 个异常。两类问题 analyze 查不出来：
+    - 在 `initState` 里调用 `InheritedWidget.of(context)`（Flutter 禁止
+      `dependOnInheritedWidgetOfExactType` 在 initState 中执行）
+    - `setState(() => _x = future)` —— 箭头函数把**赋值结果**（一个 Future）作为返回值交给
+      setState，触发 "setState() callback argument returned a Future"
+    **教训**：把"跑测试"当作验收门槛，而不是"analyze 通过"。
+16. **XML 注释里不能出现连续两个连字符。** `AndroidManifest.xml` 的注释里写了
+    `--dart-define=...`，导致 Android 的 manifest merger 直接报 "Error parsing
+    AndroidManifest.xml"，APK 完全构建不出来。这个错误信息不会告诉你是注释的问题。
+17. **Kotlin 增量缓存会在本机崩。** 插件模块的 Kotlin 任务持续以
+    "Could not close incremental caches ... caches-jvm/jvm/kotlin" 失败，堆栈落在 IntelliJ
+    `PersistentHashMap` 写缓存那一步（增量缓存层，不是编译器本身）。在
+    `android/gradle.properties` 关闭 `kotlin.incremental` 后构建成功。**JDK 25 并未造成
+    兼容问题** —— `flutter doctor` 的 Android toolchain 一直是正常的，之前担心的 AGP/JDK
+    冲突没有出现。
+18. **`@($null).Count` 在 PowerShell 里等于 1。** 验证脚本用
+    `@($body | ConvertFrom-Json).Count` 计数，请求失败时 `$body` 为 `$null`，于是"请求失败"
+    被显示成"有 1 条记录"。已改为显式区分 -1（请求失败）/ 0（空）/ n。
+
+### 16. 本机可用的真机测试链路（重要，以后都用这条）
+
+MuMu 模拟器可用，**不需要关心任何 IP**（公网 IP 与 TUN 虚拟网卡都不影响）：
+
+```powershell
+$adb = 'D:\Android\sdk\platform-tools\adb.exe'; $dev = '127.0.0.1:7555'
+& $adb connect $dev                          # 首次
+& $adb -s $dev reverse tcp:3000 tcp:3000     # 模拟器的 localhost:3000 → 宿主机
+cd apps\mobile
+$env:JAVA_HOME='D:\Code\JDK'; $env:ANDROID_HOME='D:\Android\sdk'; $env:ANDROID_SDK_ROOT='D:\Android\sdk'
+& D:\flutter\bin\flutter.bat run -d $dev
+# 截图（先存设备再 pull，不要用管道重定向，会损坏二进制）
+& $adb -s $dev shell screencap -p /sdcard/t.png
+& $adb -s $dev pull /sdcard/t.png D:\Code\Campus\.tools\ui-x.png
+```
+
+`flutter devices` 必须设置 `ANDROID_HOME` 才能看到 MuMu（否则只列出桌面与浏览器）。
+
+### 17. 待办 / next
+
+1. Phase 1：Campus Launcher 的 Flutter 端实现（内置 WebView / 外部浏览器 / 小程序 / 深链）
+2. 标签搜索改为子串或全文索引；「最近使用」接入真实使用记录
+3. 引入真正的测试框架替代冒烟脚本，优先覆盖 `ruleAppliesInWeek`、`launch-target.mapper`
+4. 核实 ECNU `term_weeks` / `periods_per_day`（现为 18 / 13，未确认）
+5. 核实服务目录 7 条入口的真实 URL 与小程序 ID（现为 `mock:` 占位值）
+6. 课程表网格目前固定宽 408dp、横屏留白较多；演示数据的"当前教学周"是相对当下的，
+   真实教学周需等教务接口
+7. ARB 中 `stateOnline` / `stateMockBadge` 两个旧 key 已无引用，可清理
+8. 登录仍是 Phase 6 前的演示身份（后端无用户接口）
