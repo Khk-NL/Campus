@@ -174,7 +174,11 @@ class _HomePageState extends State<HomePage> {
             if (course.weekday == now.weekday && course.meetsInWeek(week))
               fromCourse(course, schedule: schedule),
           for (final CampusEvent event in data.events)
-            if (event.occursOn(now))
+            // 调课事件只属于它调的那一周（`concernsWeek`）：否则"第 5 周调课"会出现在今天的
+            // 日程里，而它影响的是一周之后的课。
+            // A schedule change belongs to the week it moves: otherwise a week-5 change shows up
+            // in today's list while it actually affects a class a week away.
+            if (event.occursOn(now) && event.concernsWeek(week))
               fromEvent(event, timeLabel: formatClock(event.startAt)),
         ];
         sortTodayItems(items);

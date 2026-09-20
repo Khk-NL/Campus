@@ -1222,6 +1222,63 @@ Dart 侧补上 `isScheduleChange` / `teachingWeek` / `dayOfWeek` / `periodStart`
 2. **`periodsPerDay` / 作息数字的核实**（等真实作息表）。
 3. **§12.4 第 6 步起**：`Course` / `CourseScheduleRule` 建表 + `/api/courses`。
 
+---
+
+## 2026-09-21 · 课表复刻（四）：让契约字段真的被用上（调课按周）
+
+**状态 / status**：上一轮留下的**唯一悬空**收掉了。§12.4 第 0~5 步至此全部落地并有验证。
+
+### 52. 问题：契约字段不接线，等于白加
+
+上一轮给 `CampusEvent` 补了 `teachingWeek` / `isScheduleChange` 与 `concernsWeek(week)`，
+但**没有任何调用方**：课表的"课程通知"是**取数时算死的一次性 `Future`**，周次切换根本不会
+重算，于是 `concernsWeek` 永远没机会执行。这类"加了字段、没人消费"和"没有这个字段"是一回事，
+只是更费解——代码里看起来已经支持调课了。
+
+### 53. 做了什么
+
+* **课表**：`_notices` 拆成 `_NoticeInputs`（公告 / 活动 / 课程三份原始数据，取一次）+ 在
+  `build` 里按 `_week` 现算的 `_courseNotices(..., week:)`。切周次时调课通知跟着进出列表。
+* **首页**：`Today` 的活动同样加 `concernsWeek(week)` 过滤——上一轮是靠"把演示数据的时刻写对"
+  才没露出来，这道过滤才是真正的防线。
+* **测试** `timetable_notices_test.dart`：第 4 周**不该**有第 5 周调课，但要有同一门课的普通
+  活动（**这条是前提**：没有它，"找不到调课"可能只是因为通知区压根没渲染出来，断言会碰巧通过）；
+  第 5 周出现；第 6 周又消失。
+
+### 54. 验证 / verification
+
+| 检查 | 结果 |
+| --- | --- |
+| `pnpm turbo run build --force` | 8/8（`Cached: 0 cached`） |
+| `pnpm smoke` | 24 + 23 + 24 + 5 + 13 = **89 项全过** |
+| `flutter analyze` | No issues found |
+| `flutter test` | **89/89**（88 → 89） |
+| 真机 | `stage7-timetable-week5-notice.png`：第 5 周的「课程通知」里出现「现代软件工程第 5 周调课 · 文史楼 305」 |
+
+### 55. §12.4 第 0~5 步收尾状态
+
+| 步 | 内容 | 状态 |
+| --- | --- | --- |
+| 0 | TS↔Dart 契约收敛 | ✅ 三轮收完（`urgent`、`CampusEvent` 教学槽位、作息表接口不兜底） |
+| 1 | 节次↔时刻（`PeriodSchedule`） | ✅ 已接线；⚠️ 作息**数字**仍未核实 |
+| 2 | `TermCalendar` 学期锚点 | ✅ |
+| 3 | `ruleAppliesInWeek` 语义 + 单测 | ✅ 已在 Stage 1A/1B 完成（17 项） |
+| 4 | 求值链纯函数 | ✅ 同上 |
+| 5 | 客户端单双周/自定义周真正生效 | ✅ 有演示数据驱动 + 界面断言 |
+| （补）| 调课按周（原属第 9 步） | ✅ 本轮 |
+
+### 56. 下一阶段（不在 §12.4 第 0~5 步内）
+
+1. **第 6 步起**：`Course` / `CourseScheduleRule` 建表（`(university_id, external_course_id)`
+   唯一键、`weeks int[]`、复用 `WeekParity` 枚举）+ `/api/courses`，把 `fetchCourses` 从
+   `_unimplemented` 换成真调用——课表目前 **100% 来自演示数据**。
+2. **待核实的数据**：`periodsPerDay`（现两边都是 13）、作息数字、`termWeeks`、学期第一周周一。
+   这些都**不能靠猜**，要等教务的真实校历/作息表。
+3. **第 7~12 步**：导入（CSV/HTML）、去重、冲突检测、ICS 导出、课程事件与调课的完整呈现。
+4. **顺手记下的小问题**：课程通知里的事件用的是「N 天后截止」——活动没有"截止"，
+   那是任务的措辞（截图里「软件工程前沿讲座 · 2 天后截止」）。属于文案层，改起来很小。
+
+
 
 
 

@@ -30,6 +30,24 @@ import 'package:campus_mobile/features/timetable/widgets/timetable_grid.dart';
 import 'package:campus_mobile/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 
+/// 课程通知的原始输入 / the raw inputs behind the course notices.
+///
+/// 打包成一份不可变输入，是为了让"按周过滤"发生在 `build` 里，而不是在取数时算死：
+/// 调课通知必须跟着当前周进出列表。
+/// Bundled so the week filter runs in `build` rather than being frozen at fetch time: a schedule
+/// change must enter and leave the list with the week on screen.
+class _NoticeInputs {
+  const _NoticeInputs({
+    required this.announcements,
+    required this.events,
+    required this.courses,
+  });
+
+  final List<Announcement> announcements;
+  final List<CampusEvent> events;
+  final List<Course> courses;
+}
+
 /// 课程表 / the timetable.
 class TimetablePage extends StatefulWidget {
   const TimetablePage({super.key});
@@ -44,8 +62,16 @@ class _TimetablePageState extends State<TimetablePage> {
   // uninitialised.
   Future<List<Course>> _courses = Future<List<Course>>.value(const <Course>[]);
   Future<List<CampusTask>> _tasks = Future<List<CampusTask>>.value(const <CampusTask>[]);
-  Future<List<CampusTransaction>> _notices =
-      Future<List<CampusTransaction>>.value(const <CampusTransaction>[]);
+
+  /// 通知的原始输入（公告 / 活动 / 课程），合并留给 build 按当前周计算。
+  /// The raw notice inputs; the merge happens in build, filtered by the week on screen.
+  Future<_NoticeInputs> _noticeInputs = Future<_NoticeInputs>.value(
+    const _NoticeInputs(
+      announcements: <Announcement>[],
+      events: <CampusEvent>[],
+      courses: <Course>[],
+    ),
+  );
 
   /// 本次运行使用的学期日历（**唯一**决定"第几教学周"的地方）。
   ///
@@ -91,9 +117,18 @@ class _TimetablePageState extends State<TimetablePage> {
     // 判断公告有没有提到某门课需要课程名，因此等三者都到齐再合并。
     // Matching an announcement against a course needs the course names, so the merge waits
     // until all three have arrived.
-    final Future<List<CampusTransaction>> notices =
+    //
+    // 这里只把**原始数据**备好，合并留给 build：调课事件要按"当前在看第几周"过滤，而周次会随
+    // 切换器变。此前合并结果是一次性的 `Future`，于是 `concernsWeek` 永远没机会生效——
+    // 一个从不被调用的契约字段等于没有。
+    //
+    // Only the raw inputs are prepared here; the merge happens in build, because a schedule change
+    // must be filtered by the week on screen and that changes with the switcher. The merged list
+    // used to be a one-shot `Future`, which left `concernsWeek` with no opportunity to run — an
+    // unused contract field is the same as no field.
+    final Future<_NoticeInputs> noticeInputs =
         Future.wait<Object>(<Future<Object>>[announcements, events, courses]).then(
-      (List<Object> results) => _courseNotices(
+      (List<Object> results) => _NoticeInputs(
         announcements: results[0] as List<Announcement>,
         events: results[1] as List<CampusEvent>,
         courses: results[2] as List<Course>,
@@ -102,7 +137,7 @@ class _TimetablePageState extends State<TimetablePage> {
     if (!mounted) {
       _courses = courses;
       _tasks = tasks;
-      _notices = notices;
+      _noticeInputs = noticeInputs;
       return;
     }
     // 块体而不是箭头体：赋的值是 Future，箭头体会把它当作 setState 回调的返回值。
@@ -111,17 +146,25 @@ class _TimetablePageState extends State<TimetablePage> {
     setState(() {
       _courses = courses;
       _tasks = tasks;
-      _notices = notices;
+      _noticeInputs = noticeInputs;
     });
   }
 
   /// 与课程有关的通知：活动按 `relatedCourseId`，公告按正文是否提到课程名。
   /// Course-related notices: events by `relatedCourseId`, announcements by whether their
   /// text mentions a course name.
+  ///
+  /// 调课事件额外按**周次**过滤：它只属于它调的那一周（`CampusEvent.concernsWeek`）。
+  /// 不看周次的话，"第 5 周调课"会出现在第 3、4、9 周的课表上，用户无从判断它什么时候生效。
+  ///
+  /// A schedule change is additionally filtered by week: it belongs to the week it moves. Without
+  /// that, "week 5 moved to room 305" shows up in weeks 3, 4 and 9 alike, leaving the user unable
+  /// to tell when it applies.
   static List<CampusTransaction> _courseNotices({
     required List<Announcement> announcements,
     required List<CampusEvent> events,
     required List<Course> courses,
+    required int week,
   }) {
     final List<String> names = <String>[
       for (final Course course in courses)
@@ -129,7 +172,8 @@ class _TimetablePageState extends State<TimetablePage> {
     ];
     final List<CampusTransaction> notices = <CampusTransaction>[
       for (final CampusEvent event in events)
-        if (event.relatedCourseId != null) EventTransaction(event),
+        if (event.relatedCourseId != null && event.concernsWeek(week))
+          EventTransaction(event),
       for (final Announcement announcement in announcements)
         if (_mentionsCourse(announcement, names)) AnnouncementTransaction(announcement),
     ];
@@ -393,20 +437,34 @@ class _TimetablePageState extends State<TimetablePage> {
   }
 
   /// 课程相关通知 / the course-related notices.
+  ///
+  /// 输入是加载时取好的原始数据，**合并按当前周现算**：切换周次时，调课通知会跟着进出列表。
+  /// The inputs are fetched once; the merge runs against the week on screen, so a schedule change
+  /// appears and disappears as the user switches weeks.
   Widget _noticesBody(BuildContext context, AppLocalizations l10n) {
-    return FutureBuilder<List<CampusTransaction>>(
-      future: _notices,
+    return FutureBuilder<_NoticeInputs>(
+      future: _noticeInputs,
       builder: (
         BuildContext context,
-        AsyncSnapshot<List<CampusTransaction>> snapshot,
+        AsyncSnapshot<_NoticeInputs> snapshot,
       ) {
         if (snapshot.connectionState != ConnectionState.done) {
           return const _SectionLoading();
         }
         final Object? error = snapshot.error;
         if (error != null) return _SectionError(message: error.toString());
-        final List<CampusTransaction> notices =
-            snapshot.data ?? const <CampusTransaction>[];
+        final _NoticeInputs inputs = snapshot.data ??
+            const _NoticeInputs(
+              announcements: <Announcement>[],
+              events: <CampusEvent>[],
+              courses: <Course>[],
+            );
+        final List<CampusTransaction> notices = _courseNotices(
+          announcements: inputs.announcements,
+          events: inputs.events,
+          courses: inputs.courses,
+          week: _week,
+        );
         if (notices.isEmpty) {
           return _SectionEmpty(message: l10n.timetableNoCourseNotices);
         }
