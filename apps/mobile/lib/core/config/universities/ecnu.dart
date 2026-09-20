@@ -27,7 +27,36 @@ const UniversityConfig ecnuConfig = UniversityConfig(
   shortName: 'ECNU',
   supportedLocales: <String>['zh', 'en'],
   capabilities: <String>['services'],
+  // 归属标识（校徽）的**唯一**出处：横版组合标（校徽 + 中英文校名），单 path 无内嵌位图。
+  // §18 限定它只能作为"归属"出现，不用作 Campus 自身的图标或闪屏。
+  //
+  // The single home of the provenance mark: the horizontal lock-up (crest plus the Chinese
+  // and English names), one path with no embedded bitmap. §18 restricts it to *provenance*
+  // uses; it is never Campus's own icon or splash.
+  brandMarkAsset: 'assets/brand/ecnu-logo.svg',
+  contactGroupNumbers: ecnuContactGroupNumbers,
 );
+
+/// 群号（一次性信息）/ one-off contact group numbers.
+///
+/// ⚠️ 后端 `CampusService` **没有**群号字段（本轮刻意不去偷偷加一个），因此这里只是
+/// **演示数据**的人工补充：键是服务的 `sourceId`，只有 `mock:` 开头的条目才有值。
+/// 群号不是目的地而是要粘到别处的字符串，因此界面只提供"复制"，不做跳转，并且必须带上
+/// 失效提示（§7「入口会失效」）。
+///
+/// ⚠️ Every value here is demo-only: the backend `CampusService` has no group-number field
+/// (deliberately not added this round), so this map is a hand-entered supplement keyed by the
+/// service's `sourceId`, and only `mock:` rows have one. A group number is a string to paste
+/// elsewhere, not a destination, so the UI only offers "copy" and always shows a staleness
+/// note (§7: entries go stale).
+const Map<String, String> ecnuContactGroupNumbers = <String, String>{
+  // 官方工作台（随师办）演示群号。占位值，待核实。
+  // Demo group number for the official workbench entry; a placeholder awaiting verification.
+  'mock:suishiban': '1078634219',
+  // 体育场馆预约演示群号。占位值，待核实。
+  // Demo group number for venue booking; a placeholder awaiting verification.
+  'mock:venues': '604512873',
+};
 
 /// 高校自身的双语文案 / bilingual copy for the university itself.
 const LocalizedText ecnuUniversityName = LocalizedText(

@@ -24,6 +24,13 @@ dependencies:
   # §7 Launcher 的 Phase 0 路径：把 Web / Deep Link 交给系统打开。
   # §7's Phase 0 launcher path: hand web and deep links to the system.
   url_launcher: ^6.3.1
+  # §7：web 目标优先内置 WebView，失败再回退系统浏览器。
+  # §7: web targets prefer the in-app WebView, falling back to the system browser.
+  webview_flutter: ^4.14.1
+  # 高校校徽是矢量 SVG，Flutter 无法原生渲染，因此用成熟的纯 Dart 渲染器。
+  # The university mark is a vector SVG, which Flutter cannot render natively, so this
+  # pure-Dart renderer draws it.
+  flutter_svg: ^2.0.10
 
 dev_dependencies:
   flutter_test:
@@ -38,4 +45,8 @@ flutter:
   # 由 flutter gen-l10n 生成 lib/l10n/app_localizations*.dart
   # generates lib/l10n/app_localizations*.dart via flutter gen-l10n
   generate: true
-  # 本工程暂不使用自定义字体与图片资源。/ no custom fonts or image assets yet.
+  # 高校归属标识（校徽）。资源路径由高校配置提供，通用组件只接收参数。
+  # The university mark used as a provenance label. Its path comes from the university
+  # config; the generic widget only receives it as a parameter.
+  assets:
+    - assets/brand/

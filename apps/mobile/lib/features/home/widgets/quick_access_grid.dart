@@ -62,7 +62,8 @@ class QuickAccessGrid extends StatelessWidget {
             return ServiceCard(
               service: service,
               label: label,
-              onOpen: () => CampusLauncher.of(context).launch(service.launchTarget),
+              onOpen: () =>
+                  CampusLauncher.of(context).launch(context, service.launchTarget),
             );
           },
         );

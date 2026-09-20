@@ -25,6 +25,8 @@ class UniversityConfig {
     required this.shortName,
     required this.supportedLocales,
     required this.capabilities,
+    this.brandMarkAsset,
+    this.contactGroupNumbers = const <String, String>{},
   });
 
   /// 后端 `universityId` 的值，例如 `GET /api/services?universityId=...`。
@@ -41,6 +43,28 @@ class UniversityConfig {
 
   /// 该高校声明的能力（§3.2 的 Provider 概念）/ declared capabilities (§3.2).
   final List<String> capabilities;
+
+  /// 归属标识（校徽）的资源路径；null 表示该校没有提供。
+  ///
+  /// 通用组件（例如 `UniversityBrandMark`）只接收这个值，**不**知道任何校名或路径——
+  /// 校徽是高校专有资源（§3.1），存放位置由配置决定。
+  /// The asset path of the university's mark, null when the school provides none. Generic
+  /// widgets such as `UniversityBrandMark` receive this value and know no school name or
+  /// path themselves: the mark is university-specific (§3.1) and its location is a config
+  /// decision.
+  final String? brandMarkAsset;
+
+  /// 群号等"一次性信息"：键是服务的 `sourceId`，值是群号。
+  ///
+  /// 后端的 `CampusService` **没有**群号字段（`docs/DEVELOPMENT.md` §6 的模型里也没有），
+  /// 因此这里只覆盖演示数据里那些 `sourceId`（形如 `mock:…`）。取值来自人工录入，随时可能
+  /// 失效（§7「入口会失效」），界面必须同时给出"演示数据"标记与失效提示。
+  ///
+  /// One-off "contact group number" values, keyed by a service's `sourceId`. The backend's
+  /// `CampusService` has **no** such field (§6's model does not either), so this only covers
+  /// the demo rows whose `sourceId` looks like `mock:…`. The values are hand-entered and do go
+  /// stale (§7), so the UI must show both a demo-data badge and a staleness note.
+  final Map<String, String> contactGroupNumbers;
 }
 
 /// 已安装的高校配置 / the installed university configurations.

@@ -349,6 +349,65 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get appsTitle => '应用';
+
+  @override
+  String get appsIntro => '校园服务入口：点一下直接打开，长按查看详情。';
+
+  @override
+  String get appsGroupOfficialWorkbench => '官方工作台';
+
+  @override
+  String get appsGroupWeb => 'Web';
+
+  @override
+  String get appsGroupMiniProgram => '小程序';
+
+  @override
+  String get appsGroupEmpty => '该分组暂无入口';
+
+  @override
+  String get appsEmpty => '暂无校园服务';
+
+  @override
+  String get appsMore => '更多';
+
+  @override
+  String get appsFavoriteAdd => '收藏';
+
+  @override
+  String get appsFavoriteRemove => '取消收藏';
+
+  @override
+  String get contactGroupNumberLabel => '群号';
+
+  @override
+  String get contactGroupNumberCopy => '复制群号';
+
+  @override
+  String get contactGroupNumberCopied => '群号已复制到剪贴板';
+
+  @override
+  String get contactGroupNumberStaleHint =>
+      '群号来自演示数据（后端服务目录没有该字段），且群号会失效；如已失效请反馈。';
+
+  @override
+  String get dataSourceLabelContactGroupNumber => '群号';
+
+  @override
+  String get launchOpenInBrowser => '用浏览器打开';
+
+  @override
+  String get launchWebViewFailed => '这个页面在内置浏览器里打不开（可能是网络问题，或该网站不允许被嵌入）。';
+
+  @override
+  String get launchMiniProgramUnsupported =>
+      '微信小程序需要微信客户端拉起，本阶段暂不支持；该入口也没有可用的网页兜底。';
+
+  @override
+  String get launchCampusAppUnsupported => 'Campus 应用需要插件运行时（Phase 4），暂不支持。';
+
+  @override
   String get storeTitle => '学生应用';
 
   @override

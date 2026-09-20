@@ -31,11 +31,11 @@ import 'package:campus_mobile/core/app_scope_repository.dart';
 import 'package:campus_mobile/core/theme/campus_theme.dart';
 import 'package:campus_mobile/data/models/transaction.dart';
 import 'package:campus_mobile/data/repositories/campus_repository.dart';
+import 'package:campus_mobile/features/apps/apps_page.dart';
 import 'package:campus_mobile/features/home/home_page.dart';
 import 'package:campus_mobile/features/profile/profile_page.dart';
 import 'package:campus_mobile/features/shared/widgets/offline_banner.dart';
 import 'package:campus_mobile/features/shell/shell_routes.dart';
-import 'package:campus_mobile/features/store/store_page.dart';
 import 'package:campus_mobile/features/timetable/timetable_page.dart';
 import 'package:campus_mobile/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -117,7 +117,7 @@ class _AppShellState extends State<AppShell> {
               index: _index,
               children: const <Widget>[
                 HomePage(),
-                StorePage(),
+                AppsPage(),
                 TimetablePage(),
                 ProfilePage(),
               ],
@@ -160,7 +160,11 @@ class _AppShellState extends State<AppShell> {
       case 0:
         return l10n.appTitle;
       case 1:
-        return l10n.storeTitle;
+        // 「应用」Tab 现在装的是校园服务入口（分三组），学生应用只是它的一个推入页，
+        // 因此标题不能再用 `storeTitle`。
+        // The Apps tab now holds the grouped campus entries, with the student-app store as a
+        // pushed page, so its title can no longer be `storeTitle`.
+        return l10n.appsTitle;
       case 2:
         return l10n.timetableTitle;
       default:

@@ -241,7 +241,16 @@ class _SearchPageState extends State<SearchPage> {
   Future<void> _openResult(SearchItem item) async {
     final Object payload = item.payload;
     if (payload is CampusService) {
-      await showServiceDetails(context, service: payload);
+      // 群号来自高校配置（后端模型没有该字段），因此这里也按 sourceId 取一次，让搜索
+      // 进入的详情与「应用」Tab 的详情完全一致。
+      // The group number comes from the university config (the backend model has no such
+      // field), looked up by sourceId so details reached from search match the Apps tab.
+      await showServiceDetails(
+        context,
+        service: payload,
+        contactGroupNumber:
+            UniversityConfigs.defaultConfig.contactGroupNumbers[payload.sourceId],
+      );
       return;
     }
     if (payload is CampusApp) {

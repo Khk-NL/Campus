@@ -359,6 +359,68 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get appsTitle => 'Apps';
+
+  @override
+  String get appsIntro =>
+      'Campus entry points. Tap one to open it; long-press for details.';
+
+  @override
+  String get appsGroupOfficialWorkbench => 'Official workbench';
+
+  @override
+  String get appsGroupWeb => 'Web';
+
+  @override
+  String get appsGroupMiniProgram => 'Mini programs';
+
+  @override
+  String get appsGroupEmpty => 'Nothing in this group yet';
+
+  @override
+  String get appsEmpty => 'No campus services yet';
+
+  @override
+  String get appsMore => 'More';
+
+  @override
+  String get appsFavoriteAdd => 'Add to favorites';
+
+  @override
+  String get appsFavoriteRemove => 'Remove from favorites';
+
+  @override
+  String get contactGroupNumberLabel => 'Group number';
+
+  @override
+  String get contactGroupNumberCopy => 'Copy group number';
+
+  @override
+  String get contactGroupNumberCopied => 'Group number copied to the clipboard';
+
+  @override
+  String get contactGroupNumberStaleHint =>
+      'This is demo data: the backend catalogue has no group-number field, and a group number does go stale. Please report it if it no longer works.';
+
+  @override
+  String get dataSourceLabelContactGroupNumber => 'Group number';
+
+  @override
+  String get launchOpenInBrowser => 'Open in browser';
+
+  @override
+  String get launchWebViewFailed =>
+      'This page will not open in the in-app browser (a network problem, or the site blocks embedding).';
+
+  @override
+  String get launchMiniProgramUnsupported =>
+      'A WeChat mini program needs the WeChat client, which this phase does not launch, and this entry has no web fallback.';
+
+  @override
+  String get launchCampusAppUnsupported =>
+      'A Campus app needs the plugin runtime (Phase 4) and cannot run yet.';
+
+  @override
   String get storeTitle => 'Student apps';
 
   @override

@@ -19,24 +19,46 @@ import 'package:campus_mobile/data/repositories/campus_repository.dart';
 import 'package:campus_mobile/features/shared/widgets/state_views.dart';
 import 'package:campus_mobile/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 /// 打开服务详情 / open the service details sheet.
+///
+/// 详情是"点一下直接打开"之外的第二个入口（长按列表项，或列表项右侧的「更多」），因此
+/// 它承载的是**不适合放在列表里**的内容：介绍全文、来源、群号。
+///
+/// Details are the second entry point beside "tap to open" (long-press a row, or the row's
+/// "More" button), so they carry what a list row should not: the full description, the
+/// provenance and the group number.
+///
+/// [contactGroupNumber] 是群号：它**不是目的地**，而是要粘到别处的字符串，因此这里只提供
+/// 「复制」而不做跳转（QQ / 微信都没有可靠的群号深链），并且必然带上失效提示。
+/// [contactGroupNumber] is a group number: **not a destination** but a string to paste
+/// elsewhere, so this only offers "copy" and never a jump (neither QQ nor WeChat has a
+/// reliable group-number deep link), always next to a staleness note.
 Future<void> showServiceDetails(
   BuildContext context, {
   required CampusService service,
+  String? contactGroupNumber,
 }) {
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
     showDragHandle: true,
-    builder: (BuildContext sheetContext) => _ServiceDetailsSheet(service: service),
+    builder: (BuildContext sheetContext) => _ServiceDetailsSheet(
+      service: service,
+      contactGroupNumber: contactGroupNumber,
+    ),
   );
 }
 
 class _ServiceDetailsSheet extends StatelessWidget {
-  const _ServiceDetailsSheet({required this.service});
+  const _ServiceDetailsSheet({required this.service, this.contactGroupNumber});
 
   final CampusService service;
+
+  /// 群号；null 表示这条服务没有（后端模型里也没有这个字段）。
+  /// The group number, null when there is none — the backend model has no such field.
+  final String? contactGroupNumber;
 
   @override
   Widget build(BuildContext context) {
@@ -112,6 +134,10 @@ class _ServiceDetailsSheet extends StatelessWidget {
                       ],
                     ),
                   ],
+                  if (contactGroupNumber != null) ...<Widget>[
+                    const SizedBox(height: 16),
+                    _GroupNumberRow(number: contactGroupNumber!),
+                  ],
                   const SizedBox(height: 16),
                   _targetSummary(context, l10n, service.launchTarget),
                   const SizedBox(height: 16),
@@ -182,6 +208,84 @@ class _ServiceDetailsSheet extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// 群号：可复制的一行 / the group number: one copyable row.
+///
+/// 三个决定都写在这里：
+///   1. **只复制，不跳转**——群号是要粘到 QQ / 微信里去的字符串，不存在可靠的群号深链；
+///   2. **必须挂"演示数据"标记**——后端的 `CampusService` 没有群号字段，这个值来自本地
+///      演示数据，不能让人以为它是后端下发的；
+///   3. **必须带失效提示**——群号会失效（§7「入口会失效」），比照 `lastVerifiedAt`
+///      的处理方式：宁可说明它可能过期，也不要假装它还准。
+///
+/// Three decisions live here: copy without any jump (a group number is a string to paste, and
+/// no reliable deep link exists); an explicit demo-data badge (the backend has no such field,
+/// so this value is local demo data and must not look server-issued); and a staleness note,
+/// mirroring how `lastVerifiedAt` is treated — better to say it may be stale than to imply it
+/// is still good.
+class _GroupNumberRow extends StatelessWidget {
+  const _GroupNumberRow({required this.number});
+
+  /// 群号 / the group number.
+  final String number;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations l10n = AppLocalizations.of(context);
+    final ThemeData theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Row(
+          children: <Widget>[
+            Text(
+              l10n.contactGroupNumberLabel,
+              style: theme.textTheme.labelLarge
+                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+            ),
+            const SizedBox(width: 8),
+            TinyBadge(
+              label: l10n.demoDataNotice(l10n.dataSourceLabelContactGroupNumber),
+              icon: Icons.science_outlined,
+              color: theme.statusColors.warning,
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Row(
+          children: <Widget>[
+            Expanded(
+              child: SelectableText(
+                number,
+                style: theme.textTheme.titleMedium
+                    ?.copyWith(fontWeight: FontWeight.w700),
+              ),
+            ),
+            TextButton.icon(
+              onPressed: () => _copy(context, l10n),
+              icon: const Icon(Icons.copy_all_outlined, size: 16),
+              label: Text(l10n.contactGroupNumberCopy),
+            ),
+          ],
+        ),
+        Text(
+          l10n.contactGroupNumberStaleHint,
+          style: theme.textTheme.bodySmall
+              ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+        ),
+      ],
+    );
+  }
+
+  /// 复制到剪贴板并提示 / copy to the clipboard and say so.
+  Future<void> _copy(BuildContext context, AppLocalizations l10n) async {
+    final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
+    await Clipboard.setData(ClipboardData(text: number));
+    messenger.showSnackBar(
+      SnackBar(content: Text(l10n.contactGroupNumberCopied)),
     );
   }
 }

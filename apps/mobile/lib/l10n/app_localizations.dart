@@ -716,6 +716,120 @@ abstract class AppLocalizations {
   /// **'第 {start}–{end} 周'**
   String courseWeeksRange(Object end, Object start);
 
+  /// 「应用」Tab 的标题（底部栏叫「应用」，内容是校园服务入口）/ the Apps tab title
+  ///
+  /// In zh, this message translates to:
+  /// **'应用'**
+  String get appsTitle;
+
+  /// 点一下直接打开，长按看详情 / tap opens directly, long-press shows details
+  ///
+  /// In zh, this message translates to:
+  /// **'校园服务入口：点一下直接打开，长按查看详情。'**
+  String get appsIntro;
+
+  /// 学校自己的官方聚合入口分组 / the school's own official hub group
+  ///
+  /// In zh, this message translates to:
+  /// **'官方工作台'**
+  String get appsGroupOfficialWorkbench;
+
+  /// 交给浏览器打开的入口分组 / entries opened in a browser
+  ///
+  /// In zh, this message translates to:
+  /// **'Web'**
+  String get appsGroupWeb;
+
+  /// 需要微信拉起的入口分组 / entries that need WeChat
+  ///
+  /// In zh, this message translates to:
+  /// **'小程序'**
+  String get appsGroupMiniProgram;
+
+  /// 某个分组当前没有条目 / this group has no entries right now
+  ///
+  /// In zh, this message translates to:
+  /// **'该分组暂无入口'**
+  String get appsGroupEmpty;
+
+  /// No description provided for @appsEmpty.
+  ///
+  /// In zh, this message translates to:
+  /// **'暂无校园服务'**
+  String get appsEmpty;
+
+  /// 列表项右侧的「更多」按钮，进入详情 / the More button that opens details
+  ///
+  /// In zh, this message translates to:
+  /// **'更多'**
+  String get appsMore;
+
+  /// 星标未选中时：加入本组收藏（收藏后置顶）/ the star's tooltip when unselected
+  ///
+  /// In zh, this message translates to:
+  /// **'收藏'**
+  String get appsFavoriteAdd;
+
+  /// 星标已选中时：取消本组收藏 / the star's tooltip when selected
+  ///
+  /// In zh, this message translates to:
+  /// **'取消收藏'**
+  String get appsFavoriteRemove;
+
+  /// 群号（要粘到 QQ / 微信里的字符串）/ a group number to paste into QQ or WeChat
+  ///
+  /// In zh, this message translates to:
+  /// **'群号'**
+  String get contactGroupNumberLabel;
+
+  /// No description provided for @contactGroupNumberCopy.
+  ///
+  /// In zh, this message translates to:
+  /// **'复制群号'**
+  String get contactGroupNumberCopy;
+
+  /// No description provided for @contactGroupNumberCopied.
+  ///
+  /// In zh, this message translates to:
+  /// **'群号已复制到剪贴板'**
+  String get contactGroupNumberCopied;
+
+  /// 群号的失效提示（§7 入口会失效）+ 说明它来自演示数据 / the staleness note plus a demo-data disclosure
+  ///
+  /// In zh, this message translates to:
+  /// **'群号来自演示数据（后端服务目录没有该字段），且群号会失效；如已失效请反馈。'**
+  String get contactGroupNumberStaleHint;
+
+  /// 配合 demoDataNotice 用：群号 · 演示数据 / pairs with demoDataNotice
+  ///
+  /// In zh, this message translates to:
+  /// **'群号'**
+  String get dataSourceLabelContactGroupNumber;
+
+  /// §7 的回退分支：改用系统浏览器 / §7's fallback to the system browser
+  ///
+  /// In zh, this message translates to:
+  /// **'用浏览器打开'**
+  String get launchOpenInBrowser;
+
+  /// No description provided for @launchWebViewFailed.
+  ///
+  /// In zh, this message translates to:
+  /// **'这个页面在内置浏览器里打不开（可能是网络问题，或该网站不允许被嵌入）。'**
+  String get launchWebViewFailed;
+
+  /// No description provided for @launchMiniProgramUnsupported.
+  ///
+  /// In zh, this message translates to:
+  /// **'微信小程序需要微信客户端拉起，本阶段暂不支持；该入口也没有可用的网页兜底。'**
+  String get launchMiniProgramUnsupported;
+
+  /// No description provided for @launchCampusAppUnsupported.
+  ///
+  /// In zh, this message translates to:
+  /// **'Campus 应用需要插件运行时（Phase 4），暂不支持。'**
+  String get launchCampusAppUnsupported;
+
   /// No description provided for @storeTitle.
   ///
   /// In zh, this message translates to:

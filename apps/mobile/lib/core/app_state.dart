@@ -15,6 +15,7 @@ library;
 import 'package:campus_mobile/core/config/app_config.dart';
 import 'package:campus_mobile/core/config/preference_store.dart';
 import 'package:campus_mobile/core/config/university_config.dart';
+import 'package:campus_mobile/core/favorites/favorites_controller.dart';
 import 'package:campus_mobile/data/models/app_user.dart';
 import 'package:campus_mobile/data/models/university.dart';
 import 'package:campus_mobile/data/repositories/campus_repository.dart';
@@ -31,6 +32,7 @@ class AppState extends ChangeNotifier {
     required Locale? initialLocale,
     required ThemeMode initialThemeMode,
   })  : _preferences = preferences,
+        favorites = FavoritesController(preferences: preferences),
         _locale = initialLocale,
         _themeMode = initialThemeMode {
     // 数据源模式是仓库的内部状态，但界面要跟着它变：后端探测完成或某一类接口被判定
@@ -40,6 +42,11 @@ class AppState extends ChangeNotifier {
     // must appear or vanish at once, so the repository's notifications are forwarded here.
     repository.modeChanges.addListener(_onDataSourceChanged);
     repository.sourceChanges.addListener(_onDataSourceChanged);
+    // 收藏同样要转发：AppScope 订阅的是 AppState，而不是 FavoritesController，
+    // 因此不转发的话"收藏后立刻重排"不会发生（只有下次进页面才看得到）。
+    // Favorites are forwarded too: AppScope subscribes to AppState, not to the controller, so
+    // without this the list would only reorder the next time the screen is opened.
+    favorites.addListener(_onDataSourceChanged);
   }
 
   /// 数据访问入口。UI 只认这个接口。/ the data entry point the UI depends on.
@@ -48,6 +55,16 @@ class AppState extends ChangeNotifier {
   /// 本次运行使用的配置（后端地址、版本号）。
   /// The configuration this run uses: backend URL and version.
   final AppConfig config;
+
+  /// **按板块隔离**的收藏（「应用」Tab 的三组各一份）。
+  ///
+  /// 放在 AppState 上是因为：它是用户偏好，和语言 / 主题同一类；而 AppState 已经是
+  /// 一个 `InheritedNotifier`，收藏一变整棵树立刻重建，满足"改完马上看到"。
+  ///
+  /// Favorites, **isolated per board** (one list for each of the Apps tab's three groups).
+  /// It lives on AppState because it is a user preference like language and theme, and
+  /// AppState is already an `InheritedNotifier`, so a change rebuilds the tree at once.
+  final FavoritesController favorites;
 
   final PreferenceStore _preferences;
   Locale? _locale;
@@ -181,6 +198,8 @@ class AppState extends ChangeNotifier {
   void dispose() {
     repository.modeChanges.removeListener(_onDataSourceChanged);
     repository.sourceChanges.removeListener(_onDataSourceChanged);
+    favorites.removeListener(_onDataSourceChanged);
+    favorites.dispose();
     repository.dispose();
     super.dispose();
   }
