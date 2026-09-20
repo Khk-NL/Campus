@@ -32,7 +32,7 @@ class TaskTile extends StatelessWidget {
     final int? days = task.daysUntil(now);
 
     final Color accent = switch (task.status) {
-      TaskStatus.completed => status.success,
+      TaskStatus.done => status.success,
       TaskStatus.inProgress => status.info,
       TaskStatus.blocked => theme.colorScheme.error,
       TaskStatus.notStarted => status.neutral,
@@ -48,7 +48,7 @@ class TaskTile extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(top: 3),
               child: Icon(
-                task.status == TaskStatus.completed
+                task.status == TaskStatus.done
                     ? Icons.check_circle_outline
                     : Icons.radio_button_unchecked,
                 size: 18,
@@ -63,7 +63,7 @@ class TaskTile extends StatelessWidget {
                   Text(
                     task.title,
                     style: theme.textTheme.bodyLarge?.copyWith(
-                      decoration: task.status == TaskStatus.completed
+                      decoration: task.status == TaskStatus.done
                           ? TextDecoration.lineThrough
                           : null,
                     ),

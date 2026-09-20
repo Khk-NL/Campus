@@ -79,3 +79,16 @@ DateTime? asDateTime(Object? value) {
 
 /// 读取整数（缺失时用 [fallback]）/ read an int with a fallback.
 int asIntOr(Object? value, int fallback) => asInt(value) ?? fallback;
+
+/// 读取整数数组；数字与数字字符串都接受，无法解析的元素被丢弃。
+/// 缺失时返回空列表（而不是 null），便于调用方用 `isEmpty` 判断"没有值"。
+///
+/// Read an int list; numbers and numeric strings are accepted, unparseable items are
+/// dropped. A missing value yields an empty list rather than null.
+List<int> asIntList(Object? value) {
+  if (value is! List) return const <int>[];
+  return <int>[
+    for (final Object? item in value)
+      if (asInt(item) case final int number) number,
+  ];
+}

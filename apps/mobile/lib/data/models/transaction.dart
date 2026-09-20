@@ -60,7 +60,14 @@ enum AnnouncementPriority {
 enum TaskStatus {
   notStarted('not-started'),
   inProgress('in-progress'),
-  completed('completed'),
+  /// 完成态。后端取值是 `done`（与 `@campus/models` 的 `TaskStatus` 一致），
+  /// **不是** `completed`。
+  ///
+  /// Done. The wire value is `done`, matching `@campus/models`; it is not
+  /// `completed`. The old value here did not match any backend payload, so a
+  /// finished task silently fell back to [notStarted] and rendered as
+  /// "not started" — a data-correctness bug, not a naming preference.
+  done('done'),
   blocked('blocked');
 
   const TaskStatus(this.wireValue);
@@ -239,7 +246,7 @@ class CampusTask {
   final String? sourceName;
 
   /// 是否仍未完成 / whether it is still open.
-  bool get isOpen => status != TaskStatus.completed && status != TaskStatus.blocked;
+  bool get isOpen => status != TaskStatus.done && status != TaskStatus.blocked;
 
   /// 距离 [now] 还有多少天；无截止时间返回 null。
   /// Days until the deadline relative to [now]; null when there is none.

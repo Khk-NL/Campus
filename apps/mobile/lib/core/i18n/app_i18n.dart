@@ -108,7 +108,7 @@ extension TransactionLocalization on AppLocalizations {
         return taskStatusNotStarted;
       case TaskStatus.inProgress:
         return taskStatusInProgress;
-      case TaskStatus.completed:
+      case TaskStatus.done:
         return taskStatusCompleted;
       case TaskStatus.blocked:
         return taskStatusBlocked;

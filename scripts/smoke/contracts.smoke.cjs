@@ -54,21 +54,55 @@ async function main() {
     assert.equal(models.ruleAppliesInWeek(rule, 19), false);
   });
 
-  check('§9 自定义周覆盖 parity 与周区间', () => {
+  check('§9 自定义周覆盖周区间', () => {
     const rule = {
       startWeek: 1,
       endWeek: 18,
-      parity: 'even',
       weeks: [3, 5, 9],
       dayOfWeek: 1,
       periodStart: 1,
       periodEnd: 2,
     };
-    // weeks 非空时，即使 parity=even 且第 3 周是奇数周，也应当生效
+    // weeks 非空时覆盖区间：第 4 周在区间内也必须不生效
     assert.equal(models.ruleAppliesInWeek(rule, 3), true);
     assert.equal(models.ruleAppliesInWeek(rule, 5), true);
+    assert.equal(models.ruleAppliesInWeek(rule, 9), true);
     assert.equal(models.ruleAppliesInWeek(rule, 4), false);
     assert.equal(models.ruleAppliesInWeek(rule, 6), false);
+    assert.equal(models.ruleAppliesInWeek(rule, 19), false);
+  });
+
+  check('§9 weeks 与 parity 互斥：同时给出视为非法输入', () => {
+    // 参考项目的 `"1-8周 单周"` 会产出这个组合。在 Campus 的 weeks 覆盖语义下它会
+    // 静默反转成 1~8 周每周都上，所以校验层必须拒绝，解析器负责规范化。
+    const illegal = {
+      startWeek: 1,
+      endWeek: 8,
+      parity: 'odd',
+      weeks: [1, 2, 3, 4, 5, 6, 7, 8],
+      dayOfWeek: 3,
+      periodStart: 1,
+      periodEnd: 2,
+    };
+    assert.equal(models.isCourseScheduleRule(illegal), false);
+
+    const byRange = {
+      startWeek: 1,
+      endWeek: 8,
+      parity: 'odd',
+      dayOfWeek: 3,
+      periodStart: 1,
+      periodEnd: 2,
+    };
+    assert.equal(models.isCourseScheduleRule(byRange), true);
+
+    const byWeeks = {
+      weeks: [1, 3, 5, 7],
+      dayOfWeek: 3,
+      periodStart: 1,
+      periodEnd: 2,
+    };
+    assert.equal(models.isCourseScheduleRule(byWeeks), true);
   });
 
   // -------------------------------------------------------------------------

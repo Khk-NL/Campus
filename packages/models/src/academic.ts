@@ -58,25 +58,10 @@ export interface University extends Timestamps {
 // ---------------------------------------------------------------------------
 
 /**
- * 一条排课规则。§9 要求支持：教学周 / 单双周 / 自定义周。
- * One scheduling rule. §9 requires teaching weeks, odd/even weeks and custom
- * week lists.
+ * 所有排课规则共有的字段：星期、节次、地点与教师。
+ * Fields every scheduling rule shares: weekday, periods, room and teacher.
  */
-export interface CourseScheduleRule {
-  /** 起始教学周，从 1 开始 / first teaching week, 1-based */
-  readonly startWeek: number;
-  /** 结束教学周，含 / last teaching week, inclusive */
-  readonly endWeek: number;
-  /** 单双周约束 / odd/even constraint applied on top of the week range */
-  readonly parity: WeekParity;
-  /**
-   * 自定义周列表。非空时**覆盖** startWeek/endWeek/parity，用于"第 3、5、9 周上课"
-   * 这类不规则排课。
-   *
-   * An explicit week list. When non-empty it OVERRIDES startWeek/endWeek/parity,
-   * which covers irregular schedules such as "weeks 3, 5 and 9 only".
-   */
-  readonly weeks?: readonly number[];
+export interface CourseScheduleRuleBase {
   /** 星期 / weekday */
   readonly dayOfWeek: DayOfWeek;
   /** 起始节次，含 / first period, inclusive */
@@ -87,6 +72,114 @@ export interface CourseScheduleRule {
   readonly location?: string;
   /** 授课教师，可能为空 / teacher, may be unknown */
   readonly teacher?: string;
+}
+
+/**
+ * 用「周区间 + 单双周」描述的规则。
+ * A rule described by a week range plus an odd/even constraint.
+ */
+export interface CourseScheduleRuleByRange extends CourseScheduleRuleBase {
+  /** 起始教学周，从 1 开始 / first teaching week, 1-based */
+  readonly startWeek: number;
+  /** 结束教学周，含 / last teaching week, inclusive */
+  readonly endWeek: number;
+  /** 单双周约束 / odd/even constraint applied on top of the week range */
+  readonly parity: WeekParity;
+  /**
+   * 与 `parity` **互斥**。显式周列表与单双周同时出现是非法输入，见
+   * [isCourseScheduleRule] 的说明。
+   *
+   * Mutually exclusive with `parity`; combining an explicit week list with a parity is
+   * illegal input — see [isCourseScheduleRule].
+   */
+  readonly weeks?: undefined;
+}
+
+/**
+ * 用显式周列表描述的规则；`weeks` 非空时**覆盖** range 与 parity，用于"第 3、5、9 周
+ * 上课"这类不规则排课。
+ *
+ * A rule described by an explicit week list. When non-empty it OVERRIDES the range and
+ * parity, covering irregular schedules such as "weeks 3, 5 and 9 only".
+ */
+export interface CourseScheduleRuleByWeeks extends CourseScheduleRuleBase {
+  /** 自定义周列表 / the explicit week list */
+  readonly weeks: readonly number[];
+  /** 周列表存在时区间只是历史残留，不再参与求值 / inert once `weeks` is present */
+  readonly startWeek?: number;
+  /** 同上 / as above */
+  readonly endWeek?: number;
+  /** 与 `weeks` **互斥** / mutually exclusive with `weeks` */
+  readonly parity?: undefined;
+}
+
+/**
+ * 一条排课规则。§9 要求支持：教学周 / 单双周 / 自定义周。
+ *
+ * 这是**判别联合**：周次要么写成「区间 + 单双周」，要么写成一份显式周列表，
+ * 不能两者兼有。理由见 [isCourseScheduleRule]。
+ *
+ * One scheduling rule. §9 requires teaching weeks, odd/even weeks and custom week lists.
+ * This is a discriminated union: weeks are either a range plus a parity, or an explicit
+ * list — never both. See [isCourseScheduleRule] for why.
+ */
+export type CourseScheduleRule = CourseScheduleRuleByRange | CourseScheduleRuleByWeeks;
+
+/**
+ * 规则是否携带一份非空的显式周列表。
+ * Whether the rule carries a non-empty explicit week list.
+ */
+export function hasCustomWeeks(rule: CourseScheduleRule): boolean {
+  return rule.weeks !== undefined && rule.weeks.length > 0;
+}
+
+/**
+ * 运行期校验一条规则，拒绝「`weeks` 与 `parity` 同时给出」这类非法输入。
+ *
+ * 类型层面的互斥只能约束仓库内的代码；导入器拿到的是 JSON，必须在运行期再挡一次。
+ * 解析器应当用它做闸门，非法输入**不得**静默求值。
+ *
+ * Runtime validation, rejecting illegal input such as `weeks` combined with `parity`.
+ * The mutually-exclusive union only constrains code inside this repo, while importers read
+ * JSON, so the gate has to exist at runtime too. Parsers must use this as that gate and
+ * must never silently evaluate illegal input.
+ *
+ * 为什么"同时给出"必须非法：参考项目 `sp-study-courses` 会把 `"1-8周 单周"` 规范化成
+ * `weeks=[1..8]` + `parity='odd'`。在它的「先夹区间、再 parity」语义下这是 1/3/5/7 周，
+ * 正确；但搬到 Campus 的「`weeks` 覆盖」语义下，`weeks` 获胜就变成 1~8 周每周都上——
+ * 同一个输入静默反转成完全相反的课表。数据本身无法区分这两种意图，所以拒绝它，
+ * 由解析器负责规范化（产出纯 parity 或纯 weeks）。
+ *
+ * Why the combination is illegal: the reference project `sp-study-courses` normalises
+ * `"weeks 1-8, odd"` into `weeks=[1..8]` plus `parity='odd'`. Under its range-then-parity
+ * semantics that is weeks 1/3/5/7 and correct; under Campus' weeks-override semantics
+ * `weeks` wins and the same input silently becomes "every week 1-8" — the exact opposite
+ * timetable. The data alone cannot express which intent was meant, so it is refused and
+ * normalisation (to pure parity or pure weeks) is the parser's job.
+ */
+export function isCourseScheduleRule(value: unknown): value is CourseScheduleRule {
+  if (typeof value !== 'object' || value === null) return false;
+  const rule = value as Record<string, unknown>;
+
+  const weeks = rule.weeks;
+  const parity = rule.parity;
+  // 互斥：显式周列表与实质 parity 不能共存。
+  if (weeks !== undefined && parity !== undefined && parity !== 'all') return false;
+  if (weeks !== undefined) {
+    if (!Array.isArray(weeks)) return false;
+    if (weeks.length > 0) return true;
+    // 空数组等于没有周列表，此时仍需区间才可求值。
+    return typeof rule.startWeek === 'number' && typeof rule.endWeek === 'number';
+  }
+
+  return (
+    typeof rule.startWeek === 'number' &&
+    typeof rule.endWeek === 'number' &&
+    (parity === 'all' || parity === 'odd' || parity === 'even') &&
+    typeof rule.dayOfWeek === 'number' &&
+    typeof rule.periodStart === 'number' &&
+    typeof rule.periodEnd === 'number'
+  );
 }
 
 /**
@@ -117,9 +210,19 @@ export interface Course extends Timestamps {
  *
  * Does this rule apply in teaching week `week`? All of §9's parity/custom-week
  * semantics live here so they can be exhaustively unit tested.
+ *
+ * 非法组合（`weeks` 与 `parity` 同时给出）**不会**走到这里：调用方应先用
+ * [isCourseScheduleRule] 把它挡掉。若仍有非法数据流进来，这里按 Campus 的既有语义让
+ * `weeks` 覆盖并照常求值——求值函数必须返回布尔值，报错是校验层的职责。
+ *
+ * Illegal combinations (weeks plus parity) are not expected here: callers gate them with
+ * [isCourseScheduleRule]. If such data still arrives, the documented Campus semantics
+ * apply and `weeks` overrides — a predicate has to return a boolean; rejecting input is
+ * the validator's job.
  */
 export function ruleAppliesInWeek(rule: CourseScheduleRule, week: number): boolean {
-  if (rule.weeks && rule.weeks.length > 0) return rule.weeks.includes(week);
+  if (hasCustomWeeks(rule)) return (rule.weeks as readonly number[]).includes(week);
+  if (rule.startWeek === undefined || rule.endWeek === undefined) return false;
   if (week < rule.startWeek || week > rule.endWeek) return false;
   if (rule.parity === 'odd') return week % 2 === 1;
   if (rule.parity === 'even') return week % 2 === 0;

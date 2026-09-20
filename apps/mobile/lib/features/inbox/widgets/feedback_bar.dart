@@ -7,7 +7,7 @@
 /// The core trade-off of §2.1 and §10: Campus has **no** chat and no comment threads.
 /// Feedback is a closed set of values — announcements take read/confirmed/question,
 /// events take join/decline/cannot-attend/maybe, and tasks take
-/// not-started/in-progress/completed/blocked.
+/// not-started/in-progress/done/blocked.
 ///
 /// Phase 0 只在本地记录用户的选择（不联网、不持久化），因此这是一个**可替换的
 /// 界面契约**：接上后端时只需把 [onSelect] 换成一次写请求。
@@ -86,7 +86,14 @@ List<FeedbackOption> feedbackOptionsFor(
           label: inProgress,
           icon: Icons.timelapse_outlined,
         ),
-        FeedbackOption(value: 'completed', label: done, icon: Icons.check_circle_outline),
+        // 取值必须与 `TaskStatus.done` 的线上取值一致，否则后端永远无法把它
+        // 当成"已完成"。这里直接复用枚举的 [TaskStatus.wireValue]，不再手写字面量。
+        // Must match `TaskStatus.done`'s wire value; reusing it keeps the two from drifting.
+        FeedbackOption(
+          value: TaskStatus.done.wireValue,
+          label: done,
+          icon: Icons.check_circle_outline,
+        ),
         FeedbackOption(
           value: 'blocked',
           label: cannotComplete,

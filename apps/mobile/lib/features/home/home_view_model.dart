@@ -72,23 +72,22 @@ int _periodStartMinutes(int period) {
 
 /// 从课程生成今天的条目 / build today's entries from a course.
 ///
-/// 只看课程自带的 `scheduleRule` 文本里能否解析出节次；解析不出来就退化为"全天"，
-/// 而不是编造一个时间。
-/// Only what the course's own `scheduleRule` text exposes is parsed; when nothing can be
-/// parsed the entry degrades to "all day" instead of inventing a time.
+/// 节次直接读结构化字段 [Course.startPeriod] / [Course.endPeriod]，**不再**从
+/// `scheduleRule` 这句人话里反解——正则解析多语言文本既脆弱又没有契约依据。
+/// 读不到节次时退化为"全天"，并把 `scheduleRule` 原文当标签，而不是编造一个时间。
+///
+/// Periods come straight from the structured [Course.startPeriod] / [Course.endPeriod]
+/// fields; the old regex over the human-readable `scheduleRule` is gone, since parsing
+/// prose regex-wise is brittle and contract-free. Without periods the entry degrades to
+/// "all day" and shows the prose as its label, rather than inventing a time.
 HomeTodayItem fromCourse(Course course) {
-  final String rule = course.scheduleRule ?? '';
-  final RegExp periodPattern = RegExp(r'(\d+)\s*[-–]\s*(\d+)');
-  final RegExpMatch? match = periodPattern.firstMatch(rule);
-  final int? startPeriod = match == null ? null : int.tryParse(match.group(1) ?? '');
-  final int? endPeriod = match == null ? null : int.tryParse(match.group(2) ?? '');
+  final int? startPeriod = course.startPeriod;
+  final int? endPeriod = course.endPeriod;
+  final String prose = course.scheduleRule ?? '';
 
-  final int minutes =
-      startPeriod == null ? -1 : _periodStartMinutes(startPeriod);
+  final int minutes = startPeriod == null ? -1 : _periodStartMinutes(startPeriod);
   final String timeLabel = (startPeriod == null || endPeriod == null)
-      ? rule.isEmpty
-          ? '—'
-          : rule
+      ? (prose.isEmpty ? '—' : prose)
       : '$startPeriod-$endPeriod 节';
 
   return HomeTodayItem(

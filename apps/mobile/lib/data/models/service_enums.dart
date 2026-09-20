@@ -112,23 +112,60 @@ enum ServiceSourceSystem {
 }
 
 /// 记录状态（后端 `RecordStatus`）/ the record lifecycle status.
+///
+/// 取值与 Prisma 的 `enum RecordStatus`（`draft | active | archived | disabled`）以及
+/// `packages/models` 的 `RecordStatus` 完全一致。这里曾有一个后端不存在的 `pending`，
+/// 而 `disabled` 只能靠兜底落成 [active]——即被停用的条目在移动端显示成"有效"。
+///
+/// These values match Prisma's `enum RecordStatus` (draft | active | archived |
+/// disabled) and `@campus/models`. This enum used to carry a `pending` the backend
+/// never sends, while `disabled` could only fall back to [active] — so a disabled
+/// record rendered as live.
 enum RecordStatus {
+  draft('draft'),
   active('active'),
-  pending('pending'),
-  archived('archived');
+  archived('archived'),
+  disabled('disabled'),
+
+  /// 未知取值的显式降级哨兵，**不是**线上取值。
+  ///
+  /// An explicit degraded sentinel for unknown wire values; it is never sent by
+  /// the backend itself.
+  ///
+  /// 为什么不让未知值落回 [active]：状态决定"这条数据能不能当作有效数据用"。
+  /// 把没见过的取值当成有效，等于用一个可能的停用/未来状态去覆盖本地数据，
+  /// 出错方向是"让用户看到不该看到的东西"；而当成不可见，出错方向是"少显示
+  /// 一条"，用户可以重试。生命周期枚举将来只会增加取值，兜底必须默认关而不是默认开。
+  ///
+  /// Unknown values must not fall back to [active]: the status gates whether the
+  /// record may be treated as usable data. Treating an unrecognised value as live
+  /// fails open — it can surface a disabled or future-lifecycle record. Treating it
+  /// as invisible fails closed and merely omits a row, which the user can retry.
+  /// Lifecycle enums only ever gain values, so the fallback has to default to off.
+  unknown('unknown');
 
   const RecordStatus(this.wireValue);
 
   /// 后端 JSON 中的取值 / the value used on the wire.
   final String wireValue;
 
-  /// 按后端取值解析，未知取值落到 [active]。
-  /// Parse a wire value, falling back to [active].
+  /// 是否可以作为有效数据展示 / whether it may be shown as live data.
+  ///
+  /// 只有 [active] 是"正常可用"；[draft] 仅创建者可见、[archived] 只读、
+  /// [disabled] 被停用，[unknown] 更是明确降级。调用方要用状态过滤时应当走这里，
+  /// 而不是自己写 `status != RecordStatus.disabled` 之类的白名单。
+  ///
+  /// Only [active] is live; [draft] is author-only, [archived] is read-only,
+  /// [disabled] is switched off and [unknown] is explicitly degraded.
+  bool get isVisible => this == RecordStatus.active;
+
+  /// 按后端取值解析；未知取值落到 [unknown]（保守降级，见该取值的说明）。
+  /// Parse a wire value, falling back to the conservative [unknown].
   static RecordStatus fromWire(Object? value) {
     final String? wire = value is String ? value : null;
     for (final RecordStatus status in values) {
-      if (status.wireValue == wire) return status;
+      if (status != RecordStatus.unknown && status.wireValue == wire) return status;
     }
-    return RecordStatus.active;
+    return RecordStatus.unknown;
   }
 }
