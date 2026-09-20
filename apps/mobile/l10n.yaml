@@ -1,0 +1,10 @@
+# 代码生成配置（flutter gen-l10n）/ code generation config for flutter gen-l10n
+#
+# 生成的 Dart 落在 lib/l10n/ 下并入库，方便离线环境直接 analyze/build。
+# Generated Dart is checked in under lib/l10n/ so an offline machine can still
+# analyze and build without regenerating.
+arb-dir: lib/l10n
+template-arb-file: app_zh.arb
+output-localization-file: app_localizations.dart
+output-dir: lib/l10n
+nullable-getter: false

@@ -1,0 +1,105 @@
+/// 数据访问抽象 / the data access abstraction.
+///
+/// UI 只依赖这个接口，因此「后端 HTTP」「内置演示数据」「将来的本地数据库」三种
+/// 实现可以互换——这正是 §13-Phase 0「客户端与后端解耦」在代码里的样子。
+///
+/// The UI depends on this interface only, so the HTTP backend, the built-in demo
+/// dataset and a future local database are interchangeable. That is what Phase 0's
+/// "client decoupled from the backend" looks like in code.
+///
+/// 注意：接口本身不认识任何高校。`universityId` 一律由调用方（AppState，读取
+/// `core/config/universities/`）传入。
+/// Note: the interface knows no university. Every `universityId` is passed in by the
+/// caller (AppState, reading `core/config/universities/`).
+library;
+
+import 'package:campus_mobile/core/text/localized_text.dart';
+import 'package:campus_mobile/data/http/campus_api_client.dart';
+import 'package:campus_mobile/data/models/app_user.dart';
+import 'package:campus_mobile/data/models/campus_app.dart';
+import 'package:campus_mobile/data/models/campus_service.dart';
+import 'package:campus_mobile/data/models/course.dart';
+import 'package:campus_mobile/data/models/service_enums.dart';
+import 'package:campus_mobile/data/models/transaction.dart';
+import 'package:campus_mobile/data/models/university.dart';
+import 'package:campus_mobile/data/repositories/data_source_mode.dart';
+import 'package:flutter/foundation.dart';
+
+/// `listServices` 的查询条件 / the query for `listServices`.
+///
+/// 远端实现把它翻成 `GET /api/services?universityId=&q=&category=&sort=`；内存实现
+/// 用同一组条件在本地过滤，因此两条路径的语义一致。
+/// The remote implementation turns this into `GET /api/services?...`; the in-memory one
+/// filters locally with the same semantics, so both paths behave alike.
+class CampusServicesQuery {
+  const CampusServicesQuery({
+    required this.universityId,
+    this.text,
+    this.category,
+    this.sort = ServiceSortOrder.name,
+    this.limit,
+  });
+
+  /// 所属高校 / the owning university.
+  final String universityId;
+
+  /// 关键词（§11：标题 / 标签 / 分类）/ the keyword (§11: title, tag, category).
+  final String? text;
+
+  /// 分类过滤 / a category filter.
+  final ServiceCategory? category;
+
+  /// 排序方式 / the sort order.
+  final ServiceSortOrder sort;
+
+  /// 最多返回多少条，null 表示不限 / a cap, null for no cap.
+  final int? limit;
+}
+
+/// `sort` 取值，与 HTTP 层的同名枚举等价。
+/// The `sort` values; equivalent to the identically named enum in the HTTP layer.
+typedef ServiceSortOrder = CampusServiceSortOrder;
+
+/// 应用仓库 / the app repository.
+abstract class CampusRepository {
+  /// 当前数据源模式 / the current data source mode.
+  DataSourceMode get mode;
+
+  /// 模式变化通知（离线横幅据此重建）/ notifies when [mode] changes.
+  Listenable get modeChanges;
+
+  /// 当前登录用户；没有登录态时返回 null。/ the signed-in user, null when absent.
+  Future<AppUser?> fetchCurrentUser();
+
+  /// 已接入高校列表 / the universities the backend knows.
+  Future<List<University>> fetchUniversities();
+
+  /// 按条件列出校园服务 / list campus services matching a query.
+  Future<List<CampusService>> listServices(CampusServicesQuery query);
+
+  /// 服务的双语名称（演示数据自带；远端实现回退到 `name`）。
+  /// Bilingual service names: the demo data carries them; the remote implementation
+  /// falls back to `name`.
+  Future<Map<String, LocalizedText>> fetchServiceNames();
+
+  /// 服务的双语描述 / bilingual service descriptions.
+  Future<Map<String, LocalizedText>> fetchServiceDescriptions();
+
+  /// 课程列表（§9）/ the course list (§9).
+  Future<List<Course>> fetchCourses();
+
+  /// 公告列表 / the announcement list.
+  Future<List<Announcement>> fetchAnnouncements();
+
+  /// 活动列表 / the event list.
+  Future<List<CampusEvent>> fetchEvents();
+
+  /// 待办列表 / the task list.
+  Future<List<CampusTask>> fetchTasks();
+
+  /// 学生应用列表（§13 / §14 Store）/ student apps for the Store.
+  Future<List<CampusApp>> fetchCampusApps();
+
+  /// 释放资源 / release resources.
+  void dispose() {}
+}

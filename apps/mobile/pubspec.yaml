@@ -1,0 +1,41 @@
+name: campus_mobile
+description: "Campus - 校园数字工作台 / Campus, a campus digital workbench"
+# 私有包，禁止误发布 / private package, never published to pub.dev
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.13.4
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # 国际化（§0.8 中英双语）/ i18n: Chinese + English
+  flutter_localizations:
+    sdk: flutter
+
+  # 与后端 REST 接口通信 / talks to the backend REST API
+  http: ^1.2.2
+  # 生成 MaterialLocalizations / supplies MaterialLocalizations
+  intl: any
+  # 本地偏好持久化（语言、主题）/ local preference persistence
+  shared_preferences: ^2.3.2
+  # §7 Launcher 的 Phase 0 路径：把 Web / Deep Link 交给系统打开。
+  # §7's Phase 0 launcher path: hand web and deep links to the system.
+  url_launcher: ^6.3.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  # flutter_lints 是官方推荐规则集。注意它只提供 lint，不做格式化。
+  # The official recommended lint set; lints only, no formatting opinions.
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+  # 由 flutter gen-l10n 生成 lib/l10n/app_localizations*.dart
+  # generates lib/l10n/app_localizations*.dart via flutter gen-l10n
+  generate: true
+  # 本工程暂不使用自定义字体与图片资源。/ no custom fonts or image assets yet.
