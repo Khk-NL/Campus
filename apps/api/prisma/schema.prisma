@@ -299,6 +299,10 @@ model CampusApp {
 
   usage CampusAppUsage[]
 
+  /// 标签通过关联表而不是主表上的 String[]（见 §4 的归一化设计）
+  /// Tags go through a link table rather than a String[] on this row.
+  tagLinks CampusAppTagLink[]
+
   @@index([status])
   @@index([origin])
   @@index([type])
@@ -333,4 +337,81 @@ model CampusAppUsage {
   @@index([appId])
   @@index([userId, lastUsedAt])
   @@map("campus_app_usage")
+}
+
+// ---------------------------------------------------------------------------
+// 标签受控词表（§27.9 / CAMPUS_APP_SCHEMA_DESIGN.md §4）
+//
+// 为什么不是主表上的 String[]：参考项目正因为标签口径分裂而**静默丢失条目**——
+// 大小写敏感的 trim 去重、没有别名、没有词表，同一个概念出现多套匹配口径。
+// 受控词表 + 归一化键 + 别名表是唯一能真正阻止分裂的结构。
+//
+// Why not a String[] on the main row: the reference implementation silently loses entries to
+// tag key splitting. A vocabulary with a normalised key and an alias table is the only
+// structure that actually prevents it.
+//
+// 归一化函数（纯函数、可单测）在 @campus/models 的 normalizeTagName / resolveTag。
+// The pure normalisation functions live in @campus/models.
+// ---------------------------------------------------------------------------
+
+/// 归并而非删除 / merge rather than delete, so history stays traceable
+enum TagStatus {
+  active
+  merged
+  deprecated
+}
+
+model CampusAppTag {
+  id   String @id @default(cuid())
+  name String
+
+  /// 归一化键（trim → NFKC → 折叠空白 → 小写）。唯一索引落在它上面，这是阻止分裂的关键。
+  /// The normalised key; the unique index sits here, which is what prevents splitting.
+  normalizedName String    @unique @map("normalized_name")
+  status         TagStatus @default(active)
+
+  /// status = merged 时指向存活的标签 / the surviving tag when merged
+  mergedIntoId String? @map("merged_into_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  mergedInto CampusAppTag?  @relation("TagMerge", fields: [mergedIntoId], references: [id], onDelete: SetNull)
+  mergedFrom CampusAppTag[] @relation("TagMerge")
+
+  aliases CampusAppTagAlias[]
+  links   CampusAppTagLink[]
+
+  @@index([status])
+  @@map("campus_app_tags")
+}
+
+model CampusAppTagAlias {
+  id String @id @default(cuid())
+
+  /// 别名同样存**归一化后**的形式，否则别名表自己就会分裂
+  /// Aliases are stored normalised too, or the alias table splits in turn.
+  normalizedAlias String @unique @map("normalized_alias")
+  tagId           String @map("tag_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  tag CampusAppTag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@index([tagId])
+  @@map("campus_app_tag_aliases")
+}
+
+model CampusAppTagLink {
+  appId String @map("app_id")
+  tagId String @map("tag_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  app CampusApp   @relation(fields: [appId], references: [id], onDelete: Cascade)
+  tag CampusAppTag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([appId, tagId])
+  @@index([tagId])
+  @@map("campus_app_tag_links")
 }
