@@ -180,11 +180,40 @@ class TimetableGrid extends StatelessWidget {
   /// The short weekday name always comes from [MaterialLocalizations]; no language-specific
   /// literal is written in Dart.
   static String _weekdayLabel(BuildContext context, int weekday) {
-    // narrowWeekdays 长度为 8，索引 0 是空串，因此可以直接按 DateTime.weekday 取。
-    // narrowWeekdays has 8 entries with an empty string at index 0, so it indexes directly
-    // by DateTime.weekday.
-    final List<String> narrow = MaterialLocalizations.of(context).narrowWeekdays;
-    if (weekday > 0 && weekday < narrow.length) return narrow[weekday];
+    // 不能直接写 `narrow[weekday]`。
+    //
+    // `narrowWeekdays` **不是**以星期一开头的：它按该语言的"一周起始日"排列，而 CLDR 里
+    // zh 与 en 的起始日都是**周日**，于是实际内容是
+    //   zh: ['日','一','二','三','四','五','六']
+    //   en: ['S','M','T','W','T','F','S']
+    // 长度是 7，没有前导空串。按 DateTime.weekday（1=周一…7=周日）直接索引的后果是：
+    // 1~6 恰好落在正确的标签上（所以看起来是对的），而 **7 越界返回空串，周日表头是空白**。
+    // 英文下同样如此。
+    //
+    // 因此必须先换算成"以周日为 0"的下标，再按该语言的一周起始日做环形偏移。
+    // 同时兼容"长度 8、索引 0 为空串"的另一种约定，避免依赖 Flutter 版本的实现细节。
+    //
+    // Do not write `narrow[weekday]`. `narrowWeekdays` does not start on Monday: it follows
+    // the locale's first day of the week, and in CLDR both zh and en start on **Sunday**, so
+    // the actual contents are ['日','一',…,'六'] and ['S','M',…,'S'] — length 7 with no leading
+    // empty string. Indexing by `DateTime.weekday` (1=Mon…7=Sun) therefore lands 1–6 on the
+    // right labels by coincidence while **7 falls out of range and renders as an empty
+    // string**, leaving the Sunday header blank. English has the same defect.
+    //
+    // Convert to a Sunday-based index and apply a circular offset by the locale's first day of
+    // week. The eight-entry convention (empty string at index 0) is handled too, so the code
+    // does not depend on a Flutter version's implementation detail.
+    final MaterialLocalizations localizations = MaterialLocalizations.of(context);
+    final List<String> narrow = localizations.narrowWeekdays;
+    if (narrow.isEmpty) return '';
+
+    final bool hasLeadingEmpty = narrow.first.isEmpty;
+    final int offset = hasLeadingEmpty ? 1 : 0;
+    final int sundayBased = weekday % 7; // 周一=1 … 周六=6，周日=0
+    final int firstDay = localizations.firstDayOfWeekIndex; // 0=周日 … 6=周六
+    final int index = (sundayBased - firstDay + 7) % 7 + offset;
+
+    if (index >= 0 && index < narrow.length) return narrow[index];
     return '';
   }
 
