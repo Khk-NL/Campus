@@ -149,6 +149,35 @@ export interface LaunchHistoryEntry {
   readonly launchedAt: Date;
 }
 
+/** 某平台实现的一路传输 / one transport, implemented per platform */
+export interface LaunchTransportHandler {
+  readonly transport: LaunchTransport;
+  /**
+   * 执行一次打开。返回失败时**必须**给出原因，Launcher 依赖它选择回退链
+   * （例如 `app-not-installed` 会触发"去应用商店"）。
+   *
+   * Perform one open. A failure **must** carry a reason: the launcher uses it to pick the
+   * fallback chain (e.g. `app-not-installed` triggers the app-store route).
+   */
+  open(plan: LaunchPlan): Promise<LaunchTransportResult>;
+}
+
+/** 一路传输的执行结果 / the result of one transport attempt */
+export type LaunchTransportResult =
+  | { readonly ok: true }
+  | { readonly ok: false; readonly reason: LaunchFailureReason; readonly message?: string };
+
+/** 决策失败：目标在当前客户端上无法打开 / the target cannot be opened on this client */
+export interface LaunchPlanFailure {
+  readonly reason: LaunchFailureReason;
+  readonly message: string;
+}
+
+/** 决策结果：要么一个方案，要么失败原因 / either a plan or a typed failure */
+export type LaunchPlanResult =
+  | { readonly ok: true; readonly plan: LaunchPlan }
+  | { readonly ok: false; readonly failure: LaunchPlanFailure };
+
 /**
  * Launcher 本体。实现必须保证 `resolve` 无副作用、`launch` 幂等可重试。
  * The launcher itself. Implementations must keep `resolve` side-effect free and
@@ -159,13 +188,22 @@ export interface CampusLauncher {
 
   /**
    * 只做决策，不打开任何东西。UI 可以用它把"将会发生什么"提前告诉用户。
+   *
+   * 返回 `LaunchPlanResult` 而不是裸 `LaunchPlan`：目标可能在当前客户端上根本打不开
+   * （例如 Web 端遇到 Campus App），这是**正常状态**而非异常，用返回值表达比抛异常更
+   * 容易在 UI 里处理。
+   *
    * Decide only; open nothing. UIs use it to tell the user what will happen.
+   *
+   * It returns `LaunchPlanResult` rather than a bare `LaunchPlan`: a target may simply be
+   * unopenable here (a Campus App on a web build, say). That is a normal state, not an
+   * exception, and a return value is far easier to handle in UI code than a throw.
    */
-  resolve(target: LaunchTarget): LaunchPlan;
+  resolve(target: LaunchTarget): LaunchPlanResult;
 
   /** 执行已决策的方案 / perform a previously resolved plan */
   launch(plan: LaunchPlan): Promise<LaunchOutcome>;
 
-  /** 便捷方法：决策 + 执行 / convenience: resolve then launch */
+  /** 便捷方法：决策 + 执行，内部会处理回退链 / convenience: resolve, then launch, with fallbacks */
   open(target: LaunchTarget): Promise<LaunchOutcome>;
 }

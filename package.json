@@ -15,7 +15,7 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "clean": "turbo run clean",
-    "smoke": "node scripts/smoke/contracts.smoke.cjs",
+    "smoke": "node scripts/smoke/contracts.smoke.cjs && node scripts/smoke/launcher-search.smoke.cjs",
     "format": "prettier --write \"**/*.{ts,tsx,js,mjs,json,md,yaml,yml}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,mjs,json,md,yaml,yml}\"",
     "db:migrate": "pnpm --filter @campus/api run db:migrate",

@@ -1,0 +1,25 @@
+{
+  "name": "@campus/core",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Campus 核心逻辑：Launcher 决策与统一搜索 / launcher planning and unified search",
+  "license": "UNLICENSED",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "clean": "node -e \"require('node:fs').rmSync('dist',{recursive:true,force:true})\""
+  },
+  "dependencies": {
+    "@campus/launcher": "workspace:*",
+    "@campus/models": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "catalog:"
+  }
+}
