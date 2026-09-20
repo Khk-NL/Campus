@@ -109,8 +109,19 @@ async function main() {
     assert.equal(r.plan.target.url, 'https://www.ecnu.edu.cn/');
   });
 
-  check('§7 Android：小程序走 wechat-mini-program 传输', () => {
+  check('Android 未接入微信 OpenSDK：小程序不进入 wechat-mini-program 传输，而是明确失败', () => {
+    // 能力预置说的是"这个客户端**已经**接好了吗"，不是"平台有没有这条通道"。
+    // AppID 未到位、原生依赖与回调 Activity 都不存在，因此这里必须规划成失败，
+    // 而不是把用户送上一条走到微信才断的路。
     const { launcher } = launcherWith(android, () => ({ ok: true }));
+    const r = launcher.resolve(MINI_TARGET);
+    assert.equal(r.ok, false);
+    assert.equal(r.failure.reason, 'unsupported-transport');
+  });
+
+  check('接入之后（supportsWeChatMiniProgram=true 且真有 handler）才规划该传输', () => {
+    const wired = { ...android, supportsWeChatMiniProgram: true };
+    const { launcher } = launcherWith(wired, () => ({ ok: true }));
     assert.equal(launcher.resolve(MINI_TARGET).plan.transport, 'wechat-mini-program');
   });
 

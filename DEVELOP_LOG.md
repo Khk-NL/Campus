@@ -871,3 +871,119 @@ $env:JAVA_HOME='D:\Code\JDK'; $env:ANDROID_HOME='D:\Android\sdk'; $env:ANDROID_S
 3. 话题芯片仍靠"再要一次未筛选列表"推导，条目分页后需要服务端的标签词表接口。
 4. `storeIntro` / `storeEmpty` / `storeTagEmpty` 三个 ARB key 随 Store 页一起作废，待清理。
 
+---
+
+## 2026-09-20 · 小程序唤起（路线 A）接入 + 一个必须让用户知道的前提
+
+**状态 / status**：微信 OpenSDK 已按路线 A 接进 Android 客户端并**构建通过**；但用户提供的
+凭据**不是路线 A 需要的那一种**，因此当前在真机上的行为是**如实提示"本版本还没接入"**，
+而不是拉起小程序。要真正可用，还差一个开放平台的「移动应用」AppID。
+
+### 33. 凭据勘验（先验证，再动代码）
+
+用户给了 `AppID=wx60d5…` + `AppSecret=cdbc…`。**没有直接拿来写代码**，先用两条 API 问清楚
+它是什么（原始返回）：
+
+| 调用 | 结果 | 说明 |
+| --- | --- | --- |
+| `GET /cgi-bin/token?grant_type=client_credential&appid=…&secret=…` | `{"expires_in":7200,"access_token":"108_oV5S…"}` | 凭据**有效**，且属于**微信公众平台**（小程序/公众号），不是开放平台的移动应用 |
+| `POST /wxa/generate_urllink`（path=`pages/index/index`） | `{"errcode":85407,"errmsg":"no scheme permission"}` | 该账号**没有 URL Link / Scheme 权限**，所以路线 B（服务端生成链接）对它走不通 |
+
+结论（这也是必须告诉用户的那句话）：
+
+- **路线 A 需要的是微信开放平台里创建的「移动应用」AppID**，并把小程序**关联**到那个开放平台
+  账号；拿小程序的 AppID 去 `registerApp` 会被拒绝。用户现在给的是**小程序的** AppID/Secret。
+- 路线 B 需要小程序自己的 appid+secret（正是这个形状），但**这个账号没有 85407 之外的权限**，
+  所以也用不了。
+- 因此"完成小程序功能"卡在**一个外部动作**上：去 <https://open.weixin.qq.com> 创建一个
+  移动应用，拿到它的 AppID，登记 Android 包名 + 签名指纹（iOS 另加 Universal Links），
+  再把目标小程序关联进来。**代码侧已经全部就位，只差这个 ID。**
+
+### 34. 本轮实现（不依赖那个 ID 的部分全部做完）
+
+**34.1 Dart 侧的接入缝**（`core/launcher/campus_launcher.dart`）
+
+- `MiniProgramTransport`：小程序拉起的**唯一接入点**，`isWired` 表示"是否真的接好了"。
+  默认实现 `UnwiredMiniProgramTransport` 如实返回 false。
+- `DefaultCampusLauncher({miniPrograms, weChatAppId, weChatInstalled})`：`_launchMiniProgram`
+  的顺序是 **先试真拉起 → 再谈网页回退**；接入时把 `originalId`/`path`/`type` 交给 transport。
+- `DefaultCampusLauncher.fromConfig()`：**AppID 是接入的凭据**——配置里没有 AppID 时，即便有人
+  塞了一个"已接入"的 transport，也仍按未接入处理。
+
+**34.2 AppID 即开关**（`core/config/app_config.dart`）
+
+`--dart-define=CAMPUS_WECHAT_APP_ID=wx…` → `AppConfig.weChatAppId`。为空 = 未接入。
+接入时不需要改任何判断，只注入这个值。secret **不进客户端**：它只写在 `apps/api/.env`（不入库），
+未来若要做服务端换链接才用得上。
+
+**34.3 原生侧（路线 A 的本体）**
+
+- `android/app/build.gradle.kts`：加 `com.tencent.mm.opensdk:wechat-sdk-android:6.8.40`
+  （Maven Central 实测可取；**APK 构建通过**证明依赖与 Kotlin 代码都能编）。
+- `MainActivity.kt`：一个 `cn.campus/wechat` 通道，三个方法——`register` / `isInstalled` /
+  `launchMiniProgram`。**每一件都把结果如实返回**：`registerApp` 返回 false 就是没接入。
+  `userName` 传的是小程序的**原始 ID**（不是 AppID）；`miniprogramType` 写字面量 0/1/2
+  （SDK 历史版本里那几个常量名拼写不一致，用错了编不过）。
+- `AndroidManifest.xml` 的 `<queries>` 补 `weixin` scheme 与 `com.tencent.mm`：Android 11+
+  少了它，`canLaunchUrl(weixin://)` 永远 false，现象是"点了没反应"。
+
+**34.4 提示分两种原因，且顺序不能反**
+
+`launchMiniProgramNotWired`（未接入，装了微信也没用）与 `launchMiniProgramNoWeChat`
+（已接入但设备缺微信，用户自己能解决）。**未接入必须排在前面**：顺序反了就会让用户白装一遍微信。
+
+**34.5 真机实测（MuMu，带 AppID 构建）**
+
+`stage4-wechat-03-honest-failure.png` 是结论：点小程序条目后提示
+「本版本还没有接入微信唤起小程序（需要微信开放平台的移动应用 AppID）。装了微信也打不开，
+请等待后续版本。」——**这就是当前应该发生的事**：AppID 被 `registerApp` 拒绝 → `isWired=false`
+→ 如实说，而不是静默失败。等换成移动应用 AppID，同一条路径应当直接拉起小程序。
+
+### 35. 本轮踩的坑 / pitfalls
+
+31. **`testWidgets` 里 await 真实平台通道 = 测试挂死，而且看不出挂在哪。**
+    我在 `unsupportedHint` 里直接调 `url_launcher.canLaunchUrl('weixin://')`，测试跑在**假异步
+    时区**里，这个 Future 永远不完成；`flutter test` 直接挂到超时（600s），
+    **而我用 `| Select-Object -Last N` 把输出缓冲住了，屏幕上什么都没有**——连"卡在哪个文件"
+    都看不到。两处教训：
+    ① 平台探测必须**可注入**（改成 `WeChatInstalledProbe`，测试传真值，真机走默认实现）；
+    ② **不要把 `flutter test` 的输出接进 `Select-Object`**，要重定向到文件再看
+    （`*> 文件`），否则进程被超时杀掉时什么都不会吐出来。
+32. **提示语顺序错了会让人白做一件事。** 最初的实现里"未装微信"排在"未接入"前面，于是
+    未接入的构建会劝用户去装微信——装了也没用。现在**接入状态优先**：没接就说没接。
+
+### 36. 验证 / verification
+
+| 检查 | 结果 |
+| --- | --- |
+| `pnpm turbo run build --force` | 8/8（`Cached: 0 cached`） |
+| `pnpm smoke` | 83 项全过（含改写过的那条：**未接入时小程序被规划成失败**，接入后才规划该传输） |
+| `flutter analyze` | No issues found |
+| `flutter test` | **65/65**（61 → 65：新增小程序接入缝的 4 项） |
+| `flutter build apk --debug --dart-define=CAMPUS_WECHAT_APP_ID=…` | `√ Built …app-debug.apk`（含微信 SDK） |
+| 真机 | 见 `stage4-wechat-03-honest-failure.png` |
+
+### 37. 需要用户做的事（只有一件）
+
+去微信开放平台创建一个**移动应用**，然后：
+
+1. 拿它的 **AppID**（`wx…`，与小程序那个不是同一个）；
+2. 在应用详情里填写 **Android 包名 `cn.campus.campus_mobile` + 签名指纹**
+   （用签名工具取 MD5；`flutter build apk` 用的是 debug 签名，指纹随机器而变，
+   正式包要用正式签名的指纹）；
+3. 把目标小程序**关联**到该开放平台账号（漏了这一步，微信侧不会拉起任何界面）；
+4. 把真实的小程序**原始 ID**（`gh_` 开头）填进条目的 `launchOriginalId`——演示数据里的
+   `gh_placeholder_badminton` 是占位值；
+5. 用 `--dart-define=CAMPUS_WECHAT_APP_ID=<移动应用 AppID>` 构建一次。
+
+拿到之后我这边只需：把 AppID 注入构建、必要时把 `packages/core` 的
+`supportsWeChatMiniProgram` 置回 `true`（TS 侧能力预置今天已如实改成 false），
+然后在真机上截图证明"点一下就拉起小程序"。
+
+### 38. 下一步 / next
+
+1. 课表复刻（§12.4 第 0~5 步）——见 §32。
+2. 小程序可用的前置：§37 的 5 步（外部动作）。
+3. `docs/USAGE.md` 补一段"真机连后端 + 小程序构建参数"的配置说明。
+
+

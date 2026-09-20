@@ -27,12 +27,14 @@ library;
 
 import 'dart:async';
 
+import 'package:campus_mobile/core/config/app_config.dart';
 import 'package:campus_mobile/core/launcher/external_opener.dart';
 import 'package:campus_mobile/core/launcher/web_view_launch_page.dart';
 import 'package:campus_mobile/data/models/launch_target.dart';
 import 'package:campus_mobile/data/models/service_enums.dart';
 import 'package:campus_mobile/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart' as url_launcher;
 import 'package:webview_flutter/webview_flutter.dart' show WebViewPlatform;
 
 /// 一次启动尝试的结果 / the outcome of one launch attempt.
@@ -114,22 +116,151 @@ abstract class CampusLauncher {
 
   /// 给出"为什么打不开"的一句话说明，UI 直接展示。
   /// A one-line explanation of why it cannot open, shown directly by the UI.
-  static String unsupportedHint(AppLocalizations l10n, LaunchTarget target) {
+  ///
+  /// 小程序这一类刻意**分开两种原因**：没装微信，和"装了微信但本版本还没接入 SDK"。
+  /// 前者用户自己能解决，后者只能等我们——把两者说成同一句"暂不支持"，用户会白折腾一遍。
+  ///
+  /// Mini programs deliberately get **two separate reasons**: WeChat missing (the user can fix
+  /// that) versus "WeChat is here but this build has not wired the SDK" (only we can fix that).
+  /// Collapsing both into "not supported yet" sends the user off to do something useless.
+  static Future<String> unsupportedHint(
+    AppLocalizations l10n,
+    LaunchTarget target, {
+    bool miniProgramWired = false,
+    WeChatInstalledProbe isWeChatInstalled = probeWeChatInstalled,
+  }) async {
     switch (target) {
       case WebLaunchTarget():
       case NativeAppLaunchTarget():
         return l10n.errorServiceLaunchFailed;
       case WeChatMiniProgramLaunchTarget():
-        return l10n.launchMiniProgramUnsupported;
+        // 顺序很重要：**未接入**排在"没装微信"前面。
+        // 未接入时，装不装微信都打不开——先说"装了也没用"，用户就不会白装一遍微信再回来。
+        // 只有真的接好了，才轮到"这台设备缺微信"这条用户自己能解决的原因。
+        //
+        // Order matters: "not wired" comes **before** "WeChat missing". While unwired, installing
+        // WeChat changes nothing, so telling the user to install it would send them off to do
+        // something useless. That reason only applies once the capability really is wired.
+        if (!miniProgramWired) return l10n.launchMiniProgramNotWired;
+        if (!await isWeChatInstalled()) return l10n.launchMiniProgramNoWeChat;
+        return l10n.errorServiceLaunchFailed;
       case CampusAppLaunchTarget():
         return l10n.launchCampusAppUnsupported;
     }
   }
 }
 
+/// 「设备上是否装了微信」的探测函数 / a probe for "is WeChat installed here".
+///
+/// 做成可注入的函数而不是内部直接打平台通道，是为了**可测**：`testWidgets` 跑在假异步时区
+/// 里，直接 `await` 一个真实平台通道会永远等不到结果（测试挂死，而且看不出挂在哪）。
+/// 注入之后，测试传一个假探测，真机上仍走 [probeWeChatInstalled]。
+///
+/// Injectable rather than calling the platform channel directly, so it is testable: `testWidgets`
+/// runs in a fake-async zone where awaiting a real platform channel never completes, which hangs
+/// the suite with no clue where. Tests inject a fake; devices use [probeWeChatInstalled].
+typedef WeChatInstalledProbe = Future<bool> Function();
+
+/// 真机上的探测实现 / the on-device probe.
+///
+/// Android 11+ 必须在 `AndroidManifest.xml` 里声明 `weixin` scheme 与 `com.tencent.mm`，
+/// 否则这里永远返回 false，表现就是"点了没反应"。
+/// Android 11+ only resolves `weixin://` when the manifest declares that scheme and WeChat's
+/// package; without it this always answers false and the symptom is "nothing happens".
+Future<bool> probeWeChatInstalled() async {
+  try {
+    return await url_launcher.canLaunchUrl(Uri.parse('weixin://'));
+  } on Exception {
+    return false;
+  }
+}
+
+/// 小程序拉起的**接入缝** / the seam where WeChat mini-program launching plugs in.
+///
+/// 产品决定走「路线 A：微信 OpenSDK 的 `WXLaunchMiniProgram`」，但**开放平台的移动应用 AppID
+/// 尚未申请**，因此原生依赖、AppID 注册与 `WXEntryActivity` 都还不存在。所以这里如实报告
+/// "未接入"，而不是假装能拉起一个小程序——一个点了没反应的入口比一句"还没接"更糟。
+///
+/// The product chose **route A: WeChat's OpenSDK `WXLaunchMiniProgram`**, but the Open Platform
+/// mobile-app AppID has not been applied for, so the native dependency, the AppID registration
+/// and the callback activity do not exist yet. This seam therefore reports "not wired" rather
+/// than pretending: an entry that silently does nothing is worse than an honest "not yet".
+///
+/// AppID 到位后的接入步骤（判定逻辑无需再改，实现这个类并在装配处传进来即可）：
+///   1. `android/app/build.gradle.kts` 加 `com.tencent.mm.opensdk:wechat-sdk-android`；
+///   2. Android 注册 AppID 并提供 `WXEntryActivity` 收回调；iOS 注册 URL Scheme / Universal Link；
+///   3. 通过 MethodChannel 调 `WXLaunchMiniProgram.Req`（`userName` = 小程序 `originalId`、
+///      `path`、`miniprogramType`），并处理 `-3`（小程序未关联到该开放平台账号）等错误码；
+///   4. 用 `--dart-define=CAMPUS_WECHAT_APP_ID=wx…` 注入 AppID，`isWired` 才为 true。
+///
+/// The steps once the AppID lands: add the SDK dependency, register the AppID and provide the
+/// callback activity on Android (URL scheme / Universal Link on iOS), call `WXLaunchMiniProgram`
+/// over a MethodChannel, and inject the AppID with a `--dart-define`.
+abstract class MiniProgramTransport {
+  const MiniProgramTransport();
+
+  /// 是否**真的**接入了 SDK / whether the SDK is really wired.
+  bool get isWired;
+
+  /// 拉起一个小程序；未接入或拉起失败时返回 false，由调用方决定回退。
+  /// Launch one mini program; false when unwired or when the launch failed.
+  Future<bool> launch(WeChatMiniProgramLaunchTarget target);
+}
+
+/// 未接入的实现（当前默认）/ the unwired implementation, which is today's default.
+class UnwiredMiniProgramTransport implements MiniProgramTransport {
+  const UnwiredMiniProgramTransport();
+
+  @override
+  bool get isWired => false;
+
+  @override
+  Future<bool> launch(WeChatMiniProgramLaunchTarget target) async => false;
+}
+
 /// 默认（也是生产）实现 / the default implementation, which is the production one.
 class DefaultCampusLauncher implements CampusLauncher {
-  const DefaultCampusLauncher();
+  const DefaultCampusLauncher({
+    this.miniPrograms = const UnwiredMiniProgramTransport(),
+    this.weChatAppId = '',
+    this.weChatInstalled = probeWeChatInstalled,
+  });
+
+  /// 小程序传输实现 / the mini-program transport.
+  final MiniProgramTransport miniPrograms;
+
+  /// 微信开放平台 AppID（空 = 未接入）/ the Open Platform AppID (empty = not wired).
+  final String weChatAppId;
+
+  /// 「是否装了微信」的探测 / the "is WeChat installed" probe.
+  final WeChatInstalledProbe weChatInstalled;
+
+  /// 按当前配置装配 / build from the current configuration.
+  ///
+  /// `config` 里没有 AppID 时，**即便**传进了一个"已接入"的 transport，也仍然按未接入处理：
+  /// 声称具备某能力必须有凭据，否则就是把谎话反过来说一遍。
+  ///
+  /// Without an AppID in `config`, an injected transport is still treated as unwired: claiming a
+  /// capability requires evidence, or it is the same lie told backwards.
+  factory DefaultCampusLauncher.fromConfig(
+    AppConfig config, {
+    MiniProgramTransport? miniPrograms,
+    WeChatInstalledProbe weChatInstalled = probeWeChatInstalled,
+  }) {
+    return DefaultCampusLauncher(
+      miniPrograms: miniPrograms ?? const UnwiredMiniProgramTransport(),
+      weChatAppId: config.hasWeChatAppId ? config.weChatAppId : '',
+      weChatInstalled: weChatInstalled,
+    );
+  }
+
+  /// 微信是否已安装（运行时探测）/ whether WeChat is installed (a runtime probe).
+  ///
+  /// 保留为静态方法供调用方直接使用；测试请改用注入的 [WeChatInstalledProbe]，
+  /// 因为 `testWidgets` 里等真实平台通道会挂死。
+  /// Kept as a static for callers; tests should inject a [WeChatInstalledProbe] instead, because
+  /// awaiting a real platform channel inside `testWidgets` hangs.
+  static Future<bool> isWeChatInstalled() => probeWeChatInstalled();
 
   @override
   Future<LaunchOutcome> launch(BuildContext context, LaunchTarget target) {
@@ -187,9 +318,18 @@ class DefaultCampusLauncher implements CampusLauncher {
     return _handOff(fallback);
   }
 
-  /// §7 的小程序路径：不拉起、不拿 WebView 渲染 `originalId`。
-  /// §7's mini program path: no SDK launch, and never rendering `originalId` in a WebView.
+  /// §7 的小程序路径：**已接入就调 SDK，没接入就如实说，绝不拿 WebView 渲染 `originalId`**。
+  ///
+  /// 顺序刻意如此：先试真正的拉起（路线 A），失败才谈回退。回退到网页是**另一件事**，
+  /// 它打开的是网页而不是小程序，所以界面上的说明必须写清楚。
+  ///
+  /// §7's mini-program path: call the SDK when wired, say so honestly when not, and never render
+  /// `originalId` in a WebView. A web fallback opens a *page*, not the mini program, so the copy
+  /// has to say which one happened.
   Future<LaunchOutcome> _launchMiniProgram(WeChatMiniProgramLaunchTarget target) async {
+    if (miniPrograms.isWired && weChatAppId.isNotEmpty) {
+      if (await miniPrograms.launch(target)) return LaunchOutcome.handedOff;
+    }
     final String? fallback = target.fallbackUrl;
     if (fallback == null) return LaunchOutcome.unsupported;
     return _handOff(fallback);
@@ -251,15 +391,24 @@ Future<LaunchOutcome> launchServiceFrom(
   if (outcome == LaunchOutcome.handedOff || outcome == LaunchOutcome.openedInApp) {
     return outcome;
   }
-  messenger.showSnackBar(
-    SnackBar(
-      content: Text(
-        outcome == LaunchOutcome.unsupported
-            ? CampusLauncher.unsupportedHint(l10n, target)
-            : l10n.errorServiceLaunchFailed,
-      ),
-    ),
-  );
+  // 小程序这条提示要探测运行时状况，因此在 await 之前先把文案取好。
+  // The mini-program copy needs a runtime probe, so the message is resolved before the await.
+  final bool miniProgramWired = launcher is DefaultCampusLauncher &&
+      launcher.miniPrograms.isWired &&
+      launcher.weChatAppId.isNotEmpty;
+  final String message = outcome == LaunchOutcome.unsupported
+      ? await CampusLauncher.unsupportedHint(
+          l10n,
+          target,
+          miniProgramWired: miniProgramWired,
+          // 用启动器上那个探测（测试可注入假探测）；不是默认实现时退回真机探测。
+          // Use the launcher's probe (injectable in tests), falling back to the device one.
+          isWeChatInstalled: launcher is DefaultCampusLauncher
+              ? launcher.weChatInstalled
+              : probeWeChatInstalled,
+        )
+      : l10n.errorServiceLaunchFailed;
+  messenger.showSnackBar(SnackBar(content: Text(message)));
   return outcome;
 }
 

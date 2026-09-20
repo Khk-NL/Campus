@@ -158,7 +158,10 @@
   "launchOpenInBrowser": "Open in browser",
   "@launchOpenInBrowser": { "description": "§7 的回退分支：改用系统浏览器 / §7's fallback to the system browser" },
   "launchWebViewFailed": "This page will not open in the in-app browser (a network problem, or the site blocks embedding).",
-  "launchMiniProgramUnsupported": "A WeChat mini program needs the WeChat client, which this phase does not launch, and this entry has no web fallback.",
+  "launchMiniProgramNotWired": "This build does not launch WeChat mini programs yet (it needs an Open Platform mobile-app AppID). Having WeChat installed will not help until that lands.",
+  "@launchMiniProgramNotWired": { "description": "装了微信、但本版本未接入 OpenSDK / WeChat is present but this build has not wired the SDK" },
+  "launchMiniProgramNoWeChat": "WeChat is not installed on this device, so the mini program cannot be launched, and this entry has no web fallback.",
+  "@launchMiniProgramNoWeChat": { "description": "设备未安装微信 / WeChat is not installed on this device" },
   "launchCampusAppUnsupported": "A Campus app needs the plugin runtime (Phase 4) and cannot run yet.",
 
   "storeTitle": "Student apps",

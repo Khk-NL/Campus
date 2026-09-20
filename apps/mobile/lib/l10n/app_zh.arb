@@ -173,7 +173,10 @@
   "launchOpenInBrowser": "用浏览器打开",
   "@launchOpenInBrowser": { "description": "§7 的回退分支：改用系统浏览器 / §7's fallback to the system browser" },
   "launchWebViewFailed": "这个页面在内置浏览器里打不开（可能是网络问题，或该网站不允许被嵌入）。",
-  "launchMiniProgramUnsupported": "微信小程序需要微信客户端拉起，本阶段暂不支持；该入口也没有可用的网页兜底。",
+  "launchMiniProgramNotWired": "本版本还没有接入微信唤起小程序（需要微信开放平台的移动应用 AppID）。装了微信也打不开，请等待后续版本。",
+  "@launchMiniProgramNotWired": { "description": "装了微信、但本版本未接入 OpenSDK / WeChat is present but this build has not wired the SDK" },
+  "launchMiniProgramNoWeChat": "这台设备没有安装微信，无法拉起小程序；该入口也没有可用的网页兜底。",
+  "@launchMiniProgramNoWeChat": { "description": "设备未安装微信 / WeChat is not installed on this device" },
   "launchCampusAppUnsupported": "Campus 应用需要插件运行时（Phase 4），暂不支持。",
 
   "storeTitle": "学生应用",

@@ -866,11 +866,17 @@ abstract class AppLocalizations {
   /// **'这个页面在内置浏览器里打不开（可能是网络问题，或该网站不允许被嵌入）。'**
   String get launchWebViewFailed;
 
-  /// No description provided for @launchMiniProgramUnsupported.
+  /// 装了微信、但本版本未接入 OpenSDK / WeChat is present but this build has not wired the SDK
   ///
   /// In zh, this message translates to:
-  /// **'微信小程序需要微信客户端拉起，本阶段暂不支持；该入口也没有可用的网页兜底。'**
-  String get launchMiniProgramUnsupported;
+  /// **'本版本还没有接入微信唤起小程序（需要微信开放平台的移动应用 AppID）。装了微信也打不开，请等待后续版本。'**
+  String get launchMiniProgramNotWired;
+
+  /// 设备未安装微信 / WeChat is not installed on this device
+  ///
+  /// In zh, this message translates to:
+  /// **'这台设备没有安装微信，无法拉起小程序；该入口也没有可用的网页兜底。'**
+  String get launchMiniProgramNoWeChat;
 
   /// No description provided for @launchCampusAppUnsupported.
   ///

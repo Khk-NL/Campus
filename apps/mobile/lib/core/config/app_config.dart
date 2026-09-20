@@ -14,6 +14,7 @@ class AppConfig {
     required this.apiBaseUrl,
     required this.appVersion,
     required this.requestTimeout,
+    this.weChatAppId = '',
   });
 
   /// 由 `--dart-define=CAMPUS_API_BASE_URL=...` 覆盖的后端地址。
@@ -26,6 +27,22 @@ class AppConfig {
   /// 单次 HTTP 请求超时。后端不在时能快速失败并落到演示数据。
   /// Per-request HTTP timeout, so a missing backend fails fast into demo data.
   final Duration requestTimeout;
+
+  /// 微信开放平台「移动应用」AppID；为空表示**尚未接入**小程序唤起。
+  ///
+  /// 它同时是那条能力的**开关**：AppID 到位、原生依赖与 `WXEntryActivity` 都接好之后，
+  /// 用 `--dart-define=CAMPUS_WECHAT_APP_ID=wx...` 注入即可，代码不需要再改一处判断。
+  /// 空值时客户端**如实报告"本版本尚未接入"**，绝不声称能拉起小程序。
+  ///
+  /// The WeChat Open Platform mobile-app AppID. Empty means mini-program launching is **not
+  /// wired yet**, and it doubles as that capability's switch: once the AppID, the native
+  /// dependency and the callback activity are in place, inject it with
+  /// `--dart-define=CAMPUS_WECHAT_APP_ID=wx...` and no other code needs to change. While it is
+  /// empty the client honestly reports "not wired in this build" rather than claiming it can.
+  final String weChatAppId;
+
+  /// 小程序唤起是否已接入 / whether mini-program launching is really wired.
+  bool get hasWeChatAppId => weChatAppId.isNotEmpty;
 
   static const String _defaultApiBaseUrl = 'http://127.0.0.1:3000/api';
 
@@ -40,6 +57,13 @@ class AppConfig {
     defaultValue: '0.1.0',
   );
 
+  /// 编译期注入的微信开放平台 AppID（默认空 = 未接入）。
+  /// The WeChat Open Platform AppID, injected at compile time (empty = not wired).
+  static const String configuredWeChatAppId = String.fromEnvironment(
+    'CAMPUS_WECHAT_APP_ID',
+    defaultValue: '',
+  );
+
   /// 默认配置。可用 `--dart-define` 覆盖任意一项。
   /// The default configuration; any field can be overridden with `--dart-define`.
   factory AppConfig.defaults() {
@@ -47,9 +71,11 @@ class AppConfig {
       apiBaseUrl: configuredApiBaseUrl,
       appVersion: configuredAppVersion,
       requestTimeout: Duration(seconds: 5),
+      weChatAppId: configuredWeChatAppId,
     );
   }
 
   @override
-  String toString() => 'AppConfig(apiBaseUrl: $apiBaseUrl, appVersion: $appVersion)';
+  String toString() =>
+      'AppConfig(apiBaseUrl: $apiBaseUrl, weChatWired: $hasWeChatAppId)';
 }

@@ -13,12 +13,20 @@ import type { LauncherCapabilities } from '@campus/launcher';
 /**
  * Android（首发平台）。
  *
- * `supportsWeChatMiniProgram` 为 true **不代表**小程序一定可用 —— 它只在微信容器内或
- * 已集成微信 OpenSDK 时成立，且拉起失败时仍会回退。这里表达的是"具备这条传输"。
+ * **两个字段的含义必须分清**，否则就会出现"能力说谎"：
+ *   * `transports` —— 这个平台**有没有这条通道**（Android 可以集成微信 OpenSDK，所以列了）；
+ *   * `supportsWeChatMiniProgram` —— 我们**是否已经接好了**它。它现在是 `false`：
+ *     微信开放平台的移动应用 AppID 尚未申请，原生依赖与 `WXEntryActivity` 都还不存在。
+ *     规划层据此走"能力不支持"，而不是给用户规划一条走到微信才失败的路。
+ *     接入后把这一处改成 `true`（并提供一个 wechat-mini-program 的 handler —— 现有的装配
+ *     守卫会在只有声明没有实现时直接抛错，这正是我们要的）。
  *
- * `supportsWeChatMiniProgram: true` does **not** mean a mini program will always open — that
- * only holds inside a WeChat container or with the WeChat OpenSDK integrated, and a failed
- * launch still falls back. It means the transport exists.
+ * The two fields mean different things, and conflating them is how a capability starts lying:
+ * `transports` says whether the **platform** has the channel at all (Android can host the WeChat
+ * OpenSDK, so it is listed), while `supportsWeChatMiniProgram` says whether **we have wired it**.
+ * It is `false` today: the Open Platform AppID has not been applied for and neither the native
+ * dependency nor the callback activity exists. Flipping this one place to `true` is the job once
+ * the SDK is integrated — and the existing wiring guard then forces a real handler to exist.
  */
 export const ANDROID_LAUNCHER_CAPABILITIES: LauncherCapabilities = {
   transports: [
@@ -29,10 +37,10 @@ export const ANDROID_LAUNCHER_CAPABILITIES: LauncherCapabilities = {
     'app-store',
   ],
   supportsAppStoreFallback: true,
-  supportsWeChatMiniProgram: true,
+  supportsWeChatMiniProgram: false,
 };
 
-/** iOS：传输面与 Android 相同，但应用商店地址不同（由平台 handler 负责） */
+/** iOS：传输面与 Android 相同，但应用商店地址不同（由平台 handler 负责），小程序同样未接入。 */
 export const IOS_LAUNCHER_CAPABILITIES: LauncherCapabilities = {
   transports: [
     'in-app-webview',
@@ -42,7 +50,7 @@ export const IOS_LAUNCHER_CAPABILITIES: LauncherCapabilities = {
     'app-store',
   ],
   supportsAppStoreFallback: true,
-  supportsWeChatMiniProgram: true,
+  supportsWeChatMiniProgram: false,
 };
 
 /**

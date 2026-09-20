@@ -66,5 +66,23 @@
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="http" />
         </intent>
+        <!-- 微信：Android 11 起，没有这一段，canLaunchUrl(weixin://) 永远返回 false，
+             而现象是"点了没反应"，根本看不出是包可见性问题。
+             说明：这里声明的是"能查到微信"，不等于"能拉起小程序"。小程序唤起走微信
+             OpenSDK，需要开放平台的移动应用 AppID，尚未申请（见 campus_launcher.dart 的
+             MiniProgramTransport）。这一段必须先加上，因为它同时是"设备是否装了微信"的
+             判断依据，用来把失败原因说清楚。
+
+             WeChat: from Android 11 on, without this entry canLaunchUrl(weixin://) always
+             answers false and the symptom is "nothing happens", with no hint that package
+             visibility is the cause. Declaring it means "WeChat can be detected", NOT "mini
+             programs can be launched": that needs an Open Platform AppID which has not been
+             applied for yet. It is required now because the same probe tells the user whether
+             WeChat is installed at all. -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="weixin" />
+        </intent>
+        <package android:name="com.tencent.mm" />
     </queries>
 </manifest>

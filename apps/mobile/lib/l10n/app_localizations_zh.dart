@@ -429,8 +429,11 @@ class AppLocalizationsZh extends AppLocalizations {
   String get launchWebViewFailed => '这个页面在内置浏览器里打不开（可能是网络问题，或该网站不允许被嵌入）。';
 
   @override
-  String get launchMiniProgramUnsupported =>
-      '微信小程序需要微信客户端拉起，本阶段暂不支持；该入口也没有可用的网页兜底。';
+  String get launchMiniProgramNotWired =>
+      '本版本还没有接入微信唤起小程序（需要微信开放平台的移动应用 AppID）。装了微信也打不开，请等待后续版本。';
+
+  @override
+  String get launchMiniProgramNoWeChat => '这台设备没有安装微信，无法拉起小程序；该入口也没有可用的网页兜底。';
 
   @override
   String get launchCampusAppUnsupported => 'Campus 应用需要插件运行时（Phase 4），暂不支持。';

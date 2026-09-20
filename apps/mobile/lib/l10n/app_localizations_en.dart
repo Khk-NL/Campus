@@ -441,8 +441,12 @@ class AppLocalizationsEn extends AppLocalizations {
       'This page will not open in the in-app browser (a network problem, or the site blocks embedding).';
 
   @override
-  String get launchMiniProgramUnsupported =>
-      'A WeChat mini program needs the WeChat client, which this phase does not launch, and this entry has no web fallback.';
+  String get launchMiniProgramNotWired =>
+      'This build does not launch WeChat mini programs yet (it needs an Open Platform mobile-app AppID). Having WeChat installed will not help until that lands.';
+
+  @override
+  String get launchMiniProgramNoWeChat =>
+      'WeChat is not installed on this device, so the mini program cannot be launched, and this entry has no web fallback.';
 
   @override
   String get launchCampusAppUnsupported =>
