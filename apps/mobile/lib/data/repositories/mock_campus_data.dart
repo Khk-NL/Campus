@@ -275,13 +275,21 @@ List<Announcement> buildMockAnnouncements() {
       sourceName: '教务处',
     ),
     Announcement(
-      id: 'announcement-course-adjust',
-      title: '现代软件工程第 5 周调课',
-      body: '第 5 周周二 7-8 节调整至文史楼 305，请留意。',
+      id: 'announcement-library-hours',
+      title: '图书馆延长开放时间',
+      body: '期中周起，主馆自习区开放至 23:00。',
       priority: AnnouncementPriority.normal,
       publishedAt: _inDays(-1, 16),
-      sourceName: '现代软件工程',
+      sourceName: '图书馆',
     ),
+    // 说明：这里原本还有一条 `announcement-course-adjust`（现代软件工程第 5 周调课）。
+    // 调课不是公告，是**指向课程的事件**（§9），因此它已经搬到 `buildMockEvents()` 里，
+    // 成为一条带 `isScheduleChange` + 教学槽位的事件。公告列表少一条，换来的是它终于
+    // 能被结构化地使用，而不是靠课程名子串被"捞"进课程通知。
+    //
+    // Note: a "week 5 schedule change" announcement used to live here. A schedule change is not
+    // an announcement but an **event pointing at the course** (§9), so it moved into
+    // `buildMockEvents()` with `isScheduleChange` and the academic slot.
   ];
 }
 
@@ -309,6 +317,31 @@ List<CampusEvent> buildMockEvents() {
       location: '文史楼 201',
       relatedCourseId: 'course-modern-se',
       sourceName: '现代软件工程',
+    ),
+    // §9 的调课：**指向原课程的事件**，不是就地改写课程行。
+    //
+    // 它此前是一条纯文本公告（`现代软件工程第 5 周调课`），课表只能靠课程名**子串匹配**
+    // 把它捞进"课程通知"——与参考项目的 `taskCourse` 五级启发式同一个毛病：改个错别字就
+    // 关联不上。现在周次、星期、节次、地点都是结构化的，§12.4 第 9 步（按周显示调课）
+    // 才有东西可用。
+    //
+    // §9's schedule change: an event **pointing at** the course, never an in-place edit. It used
+    // to be a plain-text announcement that the timetable could only surface by substring-matching
+    // the course name — the same flaw as the reference project's five-level heuristic. Week,
+    // weekday, periods and room are structured now, which is what §12.4's step 9 needs.
+    CampusEvent(
+      id: 'event-schedule-change-se-w5',
+      title: '现代软件工程第 5 周调课',
+      startAt: _inDays(0, 7),
+      endAt: _inDays(0, 9),
+      location: '文史楼 305',
+      relatedCourseId: 'course-modern-se',
+      sourceName: '现代软件工程',
+      isScheduleChange: true,
+      teachingWeek: 5,
+      dayOfWeek: DateTime.tuesday,
+      periodStart: 7,
+      periodEnd: 8,
     ),
   ];
 }

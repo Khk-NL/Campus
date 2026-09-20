@@ -1090,5 +1090,70 @@ expect(find.text('大学英语'), findsNothing);
    从 `_unimplemented` 换成真调用（课表目前 100% 来自演示数据）。
 4. 第 7 步之后：导入、去重、冲突检测、调课/停课、ICS 导出。
 
+---
+
+## 2026-09-21 · 课表复刻（二）：把剩下的契约漂移收掉（§12.4 第 0 步收尾）
+
+**状态 / status**：第 0 步的**剩余**漂移已清零。本轮**没有用户可见的界面变化**——修的是
+"客户端拿不到后端已经能表达的数据"这一类静默失配，可见的变化属于 §12.4 第 9 步（调课按周显示）。
+
+### 43. 漂移清单：动手前先核对，两项已经没了
+
+`docs/COURSE_MODULE_NOTES.md` §11.5 列了五项 TS↔Dart 漂移。核对代码后：
+
+| 漂移 | 现在 |
+| --- | --- |
+| `TaskStatus` 是 `'done'` 而非 `'completed'` | ✅ **已在 Stage 1A 修好**（Dart 注释里还留了那次修正的理由） |
+| `AnnouncementPriority` 缺 `'urgent'` | ❌ 仍然缺 → **本轮修** |
+| `CampusEvent` 的教学槽位完全没有 | ❌ 仍然缺 → **本轮修** |
+| `CourseScheduleRule` 的 parity / weeks | ✅ 已在 Stage 1A/1B 补齐（上一轮核对过） |
+| `Course.tryFromJson` 对缺失字段静默给默认值 | ✅ 已改为区分"没给"与"给了但非法" |
+
+### 44. 修了什么
+
+**44.1 `AnnouncementPriority.urgent`**
+
+Dart 侧只有 low / normal / high，未知取值落回 `normal`——于是**紧急公告被静默降级**。
+它意味着"可以突破安静时段推送"（TS 注释里写着），丢了这一档，最该被看到的那条公告反而
+排在普通队列里。现在四个取值一一对应，并加了 `isUrgent`。
+
+**44.2 `CampusEvent` 的教学槽位**
+
+Dart 侧补上 `isScheduleChange` / `teachingWeek` / `dayOfWeek` / `periodStart` / `periodEnd`，
+以及两个纯查询：
+
+* `hasTeachingSlot` —— 槽位是否完整（缺一个就是 `false`，**不编**）；
+* `concernsWeek(week)` —— 判定刻意**保守**：普通活动一律算有关（它本来就不属于某一周）；
+  调课事件**没给周次**时也算有关。宁可多显示一条，也不要把一条可能的调课藏起来。
+
+**44.3 演示数据：调课从"公告"变成"事件"**
+
+原来那条 `现代软件工程第 5 周调课` 是一条**纯文本公告**，课表只能靠**课程名子串匹配**
+把它"捞"进课程通知——与参考项目的 `taskCourse` 五级启发式同一个毛病：改个错别字就关联不上。
+现在它是一条 `CampusEvent`：`isScheduleChange: true` + 第 5 周 + 周二 + 7-8 节 + 文史楼 305，
+指向原课程而**不就地改写课程行**（§9 的硬要求：改写了就再也说不清"这门课原本什么时候上"）。
+
+### 45. 验证 / verification
+
+| 检查 | 结果 |
+| --- | --- |
+| `pnpm turbo run build --force` | 8/8（`Cached: 0 cached`） |
+| `pnpm smoke` | 22 + 23 + 24 + 5 + 13 = **87 项全过** |
+| `flutter analyze` | No issues found |
+| `flutter test` | **79/79**（73 → 79：新增 6 项契约漂移测试） |
+| 真机截图 | 本轮**没有**用户可见变化，因此没有新截图——如实说明，不拿旧截图充当本轮的证据 |
+
+### 46. 下一步 / next
+
+1. **§12.4 第 9 步**：让调课事件**按周**出现在课表（现在只是"能被表达"，还没被用起来）。
+   落点：`timetable_page` 的通知区目前是加载时算好一次的 `Future`，要改成按当前周计算，
+   这样 `concernsWeek(_week)` 才真正生效。
+2. **第 1 步 `periodsPerDay` 定案**（后端 13 / Dart 12，**未核实**）+ 客户端接上
+   `PeriodSchedule`：`home_view_model` 现在仍在用"08:00 + 每节 45 分钟"的估算。
+3. **第 6 步起**：`Course` / `CourseScheduleRule` 建表 + `/api/courses`，把 `fetchCourses`
+   从 `_unimplemented` 换成真调用。
+4. 之后：导入、去重、冲突检测、ICS 导出。
+
+
 
 

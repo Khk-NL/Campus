@@ -35,10 +35,20 @@ enum TransactionKind {
 }
 
 /// 公告优先级 / announcement priority.
+///
+/// 四个取值与 `@campus/models` 的 `AnnouncementPriority` 一一对应。`urgent` 曾经缺失，
+/// 后果是**紧急公告被降级成普通公告**（未知取值落回 [normal]）：语义上它意味着"可以突破
+/// 安静时段推送"，丢了这一档，最该被看到的那条公告反而排在普通队列里。
+///
+/// The four values mirror `@campus/models`. `urgent` used to be missing, which silently demoted
+/// urgent announcements to normal ones (unknown values fall back to [normal]) — losing the one
+/// level that means "may bypass quiet hours", so the announcement that matters most queued like
+/// any other.
 enum AnnouncementPriority {
   low('low'),
   normal('normal'),
-  high('high');
+  high('high'),
+  urgent('urgent');
 
   const AnnouncementPriority(this.wireValue);
 
@@ -54,6 +64,9 @@ enum AnnouncementPriority {
     }
     return AnnouncementPriority.normal;
   }
+
+  /// 是否属于"必须让用户看见"的那一档 / whether this is the must-not-miss level.
+  bool get isUrgent => this == AnnouncementPriority.urgent;
 }
 
 /// 任务状态（§10 Task 的四种取值）/ task status, the four §10 values.
@@ -150,6 +163,11 @@ class CampusEvent {
     this.location,
     this.relatedCourseId,
     this.sourceName,
+    this.isScheduleChange = false,
+    this.teachingWeek,
+    this.dayOfWeek,
+    this.periodStart,
+    this.periodEnd,
   });
 
   /// 主键 / the id.
@@ -173,6 +191,28 @@ class CampusEvent {
   /// 来源名称 / the source's name.
   final String? sourceName;
 
+  /// 是否为**调课/停课**产生的变更事件（§9）。
+  ///
+  /// §9 的例子「第七周周三调到文史楼 201」必须表达成一个指向原课程的事件，而**不是**就地
+  /// 改写课程行：改写了，就再也说不清"这门课原本什么时候上"。
+  ///
+  /// Whether this event is a schedule change. §9's "week 7 Wednesday moved to Wenshi 201" must be
+  /// an event pointing at the course rather than an in-place edit of it: editing destroys the
+  /// answer to "when did this course originally meet".
+  final bool isScheduleChange;
+
+  /// 教学活动发生在第几教学周 / the teaching week this slot applies to.
+  final int? teachingWeek;
+
+  /// 星期几，`DateTime.monday`(1) … `DateTime.sunday`(7) / the weekday.
+  final int? dayOfWeek;
+
+  /// 起始节次 / the first period.
+  final int? periodStart;
+
+  /// 结束节次 / the last period.
+  final int? periodEnd;
+
   /// 是否已经结束 / whether it is already over.
   bool isFinishedAt(DateTime now) => endAt.isBefore(now);
 
@@ -184,6 +224,33 @@ class CampusEvent {
     final DateTime target = DateTime(day.year, day.month, day.day);
     return !target.isBefore(start) && !target.isAfter(end);
   }
+
+  /// 这条事件是否与第 [week] 教学周有关 / whether this event concerns teaching week [week].
+  ///
+  /// 判定刻意**保守**：
+  ///   * 不是调课事件的（普通活动），一律算有关——它本来就不属于某一周；
+  ///   * 是调课事件但**没给周次**的，也算有关：宁可多显示一条，也不要把一条可能相关的
+  ///     变更藏起来（漏掉调课通知比多显示一条严重得多）。
+  ///
+  /// Deliberately conservative: a non-schedule-change event is always relevant (it belongs to no
+  /// particular week), and a schedule change with no week given is also kept — showing one extra
+  /// row beats hiding a real timetable change.
+  bool concernsWeek(int week) {
+    if (!isScheduleChange) return true;
+    final int? target = teachingWeek;
+    if (target == null) return true;
+    return target == week;
+  }
+
+  /// 是否携带完整的教学槽位（周次 + 星期 + 节次）/ whether the academic slot is complete.
+  bool get hasTeachingSlot =>
+      teachingWeek != null &&
+      dayOfWeek != null &&
+      periodStart != null &&
+      periodEnd != null &&
+      dayOfWeek! >= DateTime.monday &&
+      dayOfWeek! <= DateTime.sunday &&
+      periodStart! <= periodEnd!;
 
   /// 从后端 JSON 解析；缺少 `id` 或时间时返回 null。
   /// Parse from the backend JSON; null when `id` or a timestamp is missing.
@@ -200,6 +267,11 @@ class CampusEvent {
       location: asNonEmptyString(json['location']),
       relatedCourseId: asNonEmptyString(json['relatedCourseId']),
       sourceName: asNonEmptyString(json['sourceName']),
+      isScheduleChange: asBool(json['isScheduleChange']),
+      teachingWeek: asInt(json['teachingWeek']),
+      dayOfWeek: asInt(json['dayOfWeek']),
+      periodStart: asInt(json['periodStart']),
+      periodEnd: asInt(json['periodEnd']),
     );
   }
 
