@@ -39,6 +39,126 @@ export interface UniversityConfig {
    * Reported by the adapter. Core reads it to pick a degraded path.
    */
   readonly capabilities: readonly UniversityCapability[];
+  /**
+   * 第一节的**本地墙上时刻**，`"HH:mm"` 24 小时制，落在 [timezone] 时区。
+   * Wall-clock start of period 1, `"HH:mm"` 24-hour, in [timezone].
+   *
+   * 这里存"时刻"而不是 UTC 时间戳，因为课表说的是"上午第一节 8 点上课"，
+   * 与夏令时/时区换算无关。
+   * A wall-clock string rather than a UTC instant: a timetable says "period 1 starts at
+   * 8 a.m.", which is independent of timezone arithmetic.
+   */
+  readonly firstPeriodStart: string;
+  /**
+   * 单节时长（分钟）。与 [firstPeriodStart] 一起构成默认的
+   * [createEvenPeriodSchedule] 口径；不规则课表见 [PeriodSchedule] 的说明。
+   * Length of one period in minutes. Together with [firstPeriodStart] it feeds the default
+   * [createEvenPeriodSchedule] reading; irregular timetables — see [PeriodSchedule].
+   */
+  readonly periodMinutes: number;
+}
+
+// ---------------------------------------------------------------------------
+// 节次 ↔ 时刻 / periods ↔ clock time
+// ---------------------------------------------------------------------------
+
+/**
+ * 「第几节」到「几点几分」的查询接口。
+ *
+ * 这是**可替换的抽象**，也是 Core 里唯一允许回答"第 N 节几点开始"的地方。调用方
+ * （日历、上课提醒、ICS 导出、首页 Today）只依赖本接口，因此在下面两种实现之间切换
+ * 时**一行调用方代码都不用改**：
+ *
+ *   1. [createEvenPeriodSchedule]：当前口径——`firstPeriodStart` + 等长的
+ *      `periodMinutes`。覆盖绝大多数高校（节次等长且首尾相接）。
+ *   2. 将来的显式时刻表：把真实课表逐节列出来（大节/小节、不同午休长度）。届时只需
+ *      新增一个实现并在装配处替换，接口形状不变。
+ *
+ * A replaceable abstraction, and the only place in Core allowed to answer "when does period
+ * N start". Callers — calendar, class reminders, ICS export, Home's Today — depend on this
+ * interface only, so switching between the two implementations below changes no caller:
+ * the default [createEvenPeriodSchedule] (equal-length periods) and a future explicit
+ * per-period table for irregular timetables.
+ *
+ * ⚠️ 当前实现的已知局限 / known limitation of the current implementation：
+ * [createEvenPeriodSchedule] 假定各节**等长且首尾相接**。真实课表并不总是这样——
+ * 例如 ECNU 官方作息表里节间存在 5 / 15 / 45 分钟不等的休息，第 1 节 08:00 起、
+ * 单节 45 分钟，但第 5 节实际是 11:30 而不是 11:00。**第 2 节之后的时刻都可能是近似值**，
+ * 直到换成显式时刻表。
+ *
+ * It assumes equal-length, back-to-back periods. Real timetables often differ: ECNU's
+ * official table has 5/15/45-minute gaps, so period 5 really starts at 11:30 while the
+ * equal-length reading gives 11:00. Every period after the first may be approximate until
+ * an explicit table is plugged in.
+ */
+export interface PeriodSchedule {
+  /** 一天的最大节次，取自学校配置 / max periods per day, from the university config */
+  readonly periodsPerDay: number;
+
+  /**
+   * 第 `periodIndex` 节（从 1 开始，含）开始时刻距当地午夜的分钟数。
+   * 越界（`< 1` 或 `> periodsPerDay`）返回 `null` —— 接口不猜、也不夹取，
+   * 由调用方决定降级方式（首页据此退化为"全天"）。
+   *
+   * Minutes from local midnight at which period `periodIndex` (1-based, inclusive) starts.
+   * Out of range (`< 1` or `> periodsPerDay`) yields `null`: the interface neither guesses
+   * nor clamps, leaving the degraded path to the caller.
+   */
+  startMinutesOf(periodIndex: number): number | null;
+
+  /**
+   * 第 `periodIndex` 节结束（含）时刻距午夜的分钟数；越界返回 `null`。
+   * Minutes from midnight at which period `periodIndex` ends (inclusive); `null` when out
+   * of range.
+   */
+  endMinutesOf(periodIndex: number): number | null;
+}
+
+/**
+ * 解析 `"HH:mm"`（也接受 `"H:mm"`）为距午夜的分钟数；非法输入返回 `null`。
+ *
+ * Parses `"HH:mm"` (and `"H:mm"`) into minutes from midnight; `null` for malformed input.
+ * 只解析墙上时刻，不涉及任何时区换算 / a wall-clock parse only, no timezone arithmetic.
+ */
+export function parseClockMinutes(text: string): number | null {
+  const match = /^(\d{1,2}):(\d{2})$/.exec(text.trim());
+  if (match === null) return null;
+  const hour = Number(match[1]);
+  const minute = Number(match[2]);
+  if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
+  return hour * 60 + minute;
+}
+
+/**
+ * 基于「首节时刻 + 等长单节时长」的 [PeriodSchedule] 实现——当前的默认口径。
+ *
+ * [firstPeriodStart] 无法解析时回退到 `08:00`（保守默认，与模型里其它兜底一致）。
+ * 局限见 [PeriodSchedule]。
+ *
+ * The default [PeriodSchedule]: period 1 at [firstPeriodStart], then equal-length periods.
+ * An unparsable [firstPeriodStart] falls back to `08:00`. See [PeriodSchedule] for the
+ * caveat.
+ */
+export function createEvenPeriodSchedule(
+  config: Pick<UniversityConfig, 'firstPeriodStart' | 'periodMinutes' | 'periodsPerDay'>,
+): PeriodSchedule {
+  const firstMinutes = parseClockMinutes(config.firstPeriodStart) ?? 8 * 60;
+  const length = config.periodMinutes > 0 ? config.periodMinutes : 45;
+  const periodsPerDay = config.periodsPerDay;
+  const startOf = (periodIndex: number): number | null => {
+    if (!Number.isInteger(periodIndex) || periodIndex < 1 || periodIndex > periodsPerDay) {
+      return null;
+    }
+    return firstMinutes + (periodIndex - 1) * length;
+  };
+  return {
+    periodsPerDay,
+    startMinutesOf: startOf,
+    endMinutesOf: (periodIndex: number): number | null => {
+      const start = startOf(periodIndex);
+      return start === null ? null : start + length;
+    },
+  };
 }
 
 export interface University extends Timestamps {
