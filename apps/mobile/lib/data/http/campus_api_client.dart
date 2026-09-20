@@ -168,12 +168,34 @@ class CampusApiClient {
   /// 释放底层连接 / release the underlying connections.
   void dispose() => _http.close();
 
-  Future<Object?> _getJson(String path, [Map<String, String>? query]) async {
+  /// `POST /services/{id}/opened` —— 记一次打开（热度）。
+  ///
+  /// 热度是**服务端聚合**的：客户端只上报「我打开了它」，计数由服务端加，避免多个客户端
+  /// 各自留一份账。
+  /// Heat is aggregated server-side: the client only reports that it opened something, so
+  /// several clients never each keep their own tally.
+  Future<Object?> recordServiceOpen(String serviceId) =>
+      _postJson('/services/${Uri.encodeComponent(serviceId)}/opened');
+
+  /// `POST /apps/{id}/opened` —— 同上，学生应用 / the same, for a student app.
+  Future<Object?> recordAppOpen(String appId) =>
+      _postJson('/apps/${Uri.encodeComponent(appId)}/opened');
+
+  Future<Object?> _getJson(String path, [Map<String, String>? query]) {
     final Uri uri = _uri(path, query);
+    return _send(uri, () => _http.get(uri, headers: _jsonHeaders));
+  }
+
+  Future<Object?> _postJson(String path) {
+    final Uri uri = _uri(path);
+    return _send(uri, () => _http.post(uri, headers: _jsonHeaders));
+  }
+
+  /// 发一次请求并解码；所有失败种类在这里收敛成 [CampusApiException]。
+  /// Send once and decode; every failure kind converges into [CampusApiException] here.
+  Future<Object?> _send(Uri uri, Future<http.Response> Function() run) async {
     try {
-      final http.Response response = await _http
-          .get(uri, headers: const <String, String>{'accept': 'application/json'})
-          .timeout(_config.requestTimeout);
+      final http.Response response = await run().timeout(_config.requestTimeout);
       if (response.statusCode < 200 || response.statusCode >= 300) {
         throw CampusApiException(
           'Request failed with status ${response.statusCode}',
@@ -195,6 +217,11 @@ class CampusApiClient {
       throw CampusApiException('Malformed JSON: ${error.message}', uri: uri);
     }
   }
+
+  /// 请求头 / the request headers.
+  static const Map<String, String> _jsonHeaders = <String, String>{
+    'accept': 'application/json',
+  };
 
   Uri _uri(String path, [Map<String, String>? query]) {
     final Uri base = Uri.parse(baseUrl);

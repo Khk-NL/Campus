@@ -78,6 +78,7 @@ class CampusApp {
     required this.launchTarget,
     required this.permissions,
     this.tags = const <String>[],
+    this.openCount = 0,
     this.iconUrl,
     this.repositoryUrl,
     this.version,
@@ -132,6 +133,16 @@ class CampusApp {
   /// 更新时间 / last update time.
   final DateTime? updatedAt;
 
+  /// 热度：被打开过多少次（服务端聚合）。
+  ///
+  /// 与 `installCount`、点赞数是**三个互不相同的计数**，刻意不合成一个"热度分"——合成之后
+  /// 排序依据就再也解释不清。列表的「按热度」用的就是它。
+  ///
+  /// Heat: how many times it was opened, aggregated server-side. Deliberately kept apart from
+  /// `installCount` and likes: folding several counts into one "hotness" score leaves the
+  /// ordering unexplainable, and this is the field the heat ordering reads.
+  final int openCount;
+
   /// 是否官方（§18）/ whether it is an official app (§18).
   bool get isOfficial => origin == ServiceOrigin.official;
 
@@ -174,6 +185,7 @@ class CampusApp {
       launchTarget: launchTarget,
       permissions: asStringList(json['permissions']),
       tags: asStringList(json['tags']),
+      openCount: asInt(json['openCount']) ?? 0,
       updatedAt: asDateTime(json['updatedAt']),
     );
   }

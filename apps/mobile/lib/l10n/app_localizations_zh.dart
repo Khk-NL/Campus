@@ -370,6 +370,34 @@ class AppLocalizationsZh extends AppLocalizations {
   String get appsEmpty => '暂无校园服务';
 
   @override
+  String appsSubListLabel(String group, int count) {
+    return '$group · $count';
+  }
+
+  @override
+  String get appsSearchHint => '搜索当前子列表';
+
+  @override
+  String get appsSearchEmpty => '没有匹配的入口';
+
+  @override
+  String get appsSortLabel => '排序';
+
+  @override
+  String get appsSortName => '按名称';
+
+  @override
+  String get appsSortHeat => '按热度';
+
+  @override
+  String get appsSortRecent => '按最近更新';
+
+  @override
+  String appsHeatTooltip(int count) {
+    return '被打开 $count 次';
+  }
+
+  @override
   String get appsMore => '更多';
 
   @override

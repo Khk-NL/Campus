@@ -74,6 +74,19 @@ export interface CampusApp extends Timestamps {
   readonly status: ReviewStatus;
   /** 安装量，§13-Phase 5 的 Developer Center 需要 / install count for Phase 5 */
   readonly installCount: number;
+  /**
+   * 被打开过多少次（`most-used` 排序的依据）。
+   *
+   * **与 `installCount`、`likeCount` 是三个互不相同的计数，刻意不合成一个热度分**：
+   * 合成之后就再也解释不清排序依据到底是什么（§27.9）。而且 `installCount` 的语义本身
+   * 尚未定案，因此它不参与任何排序。
+   *
+   * How many times the app was opened — the `most-used` key. Kept distinct from
+   * `installCount` and `likeCount` on purpose: folding them into one "heat" score makes
+   * the ordering unexplainable (§27.9), and the semantics of `installCount` are not
+   * settled yet, so it takes part in no ordering at all.
+   */
+  readonly openCount: number;
 }
 
 /**

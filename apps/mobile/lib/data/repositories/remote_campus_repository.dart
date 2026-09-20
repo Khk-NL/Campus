@@ -117,6 +117,16 @@ class RemoteCampusRepository implements CampusRepository {
     return apps;
   }
 
+  @override
+  Future<void> recordServiceOpen(String serviceId) async {
+    await _api.recordServiceOpen(serviceId);
+  }
+
+  @override
+  Future<void> recordAppOpen(String appId) async {
+    await _api.recordAppOpen(appId);
+  }
+
   /// 明确抛出"接口尚未发布"，而不是偷偷返回空列表。
   ///
   /// 返回空列表会把"后端还没有这个接口"伪装成"你确实没有课程"，用户看到的是一个说谎

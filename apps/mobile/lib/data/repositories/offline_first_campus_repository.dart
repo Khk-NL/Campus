@@ -184,6 +184,31 @@ class OfflineFirstCampusRepository implements CampusRepository {
       );
 
   @override
+  Future<void> recordServiceOpen(String serviceId) =>
+      _record(() => _remote.recordServiceOpen(serviceId));
+
+  @override
+  Future<void> recordAppOpen(String appId) => _record(() => _remote.recordAppOpen(appId));
+
+  /// 上报热度，**失败就地咽掉** / report heat, swallowing failures.
+  ///
+  /// 热度是次要数据，而它跟着的是一次**已经成功**的打开：为了记账失败去弹一个错误，
+  /// 等于用一件小事否定用户刚刚做成的正事。离线时直接跳过——演示数据没有可上报的计数。
+  ///
+  /// Heat is secondary data attached to an open that **already succeeded**: surfacing an error
+  /// because a tally failed would let a bookkeeping detail contradict what the user just did.
+  /// Offline it is skipped outright — demo data has no server-side count to bump.
+  Future<void> _record(Future<void> Function() call) async {
+    if (_mode.value == DataSourceMode.mock) return;
+    try {
+      await call();
+    } on CampusApiException {
+      // 记账失败不影响任何已经发生的事。
+      // A failed tally changes nothing about what already happened.
+    }
+  }
+
+  @override
   void dispose() {
     _mode.dispose();
     _sourceNotifier.dispose();

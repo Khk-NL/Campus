@@ -151,6 +151,19 @@ abstract class CampusRepository {
   /// re-check the status, because a second check is a second chance to show unmoderated rows.
   Future<List<CampusApp>> fetchCampusApps(CampusAppsQuery query);
 
+  /// 上报一次「校园服务被打开」，用于热度（计数由服务端聚合）。
+  ///
+  /// **只在真的打开成功后才调用**：失败的一次点击不是一次使用。热度是次要数据，
+  /// 因此上层吞掉失败，绝不让它挡住「打开」这个主操作。
+  ///
+  /// Report one successful open of a campus service; the server owns the aggregate. Called
+  /// **only after a launch really succeeded** — a failed tap is not a use. Heat is secondary
+  /// data, so callers swallow failures instead of letting them block the primary action.
+  Future<void> recordServiceOpen(String serviceId);
+
+  /// 上报一次「学生应用被打开」/ report one successful open of a student app.
+  Future<void> recordAppOpen(String appId);
+
   /// 释放资源 / release resources.
   void dispose() {}
 }

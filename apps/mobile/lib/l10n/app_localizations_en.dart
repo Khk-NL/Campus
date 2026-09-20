@@ -381,6 +381,34 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appsEmpty => 'No campus services yet';
 
   @override
+  String appsSubListLabel(String group, int count) {
+    return '$group · $count';
+  }
+
+  @override
+  String get appsSearchHint => 'Search this sub-list';
+
+  @override
+  String get appsSearchEmpty => 'No entry matches';
+
+  @override
+  String get appsSortLabel => 'Sort';
+
+  @override
+  String get appsSortName => 'By name';
+
+  @override
+  String get appsSortHeat => 'By heat';
+
+  @override
+  String get appsSortRecent => 'Recently updated';
+
+  @override
+  String appsHeatTooltip(int count) {
+    return 'Opened $count times';
+  }
+
+  @override
   String get appsMore => 'More';
 
   @override

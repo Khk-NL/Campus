@@ -23,6 +23,7 @@ class CampusService {
     required this.sourceSystem,
     required this.tags,
     required this.status,
+    this.openCount = 0,
     this.iconUrl,
     this.sourceId,
     this.lastVerifiedAt,
@@ -84,6 +85,16 @@ class CampusService {
   /// 更新时间 / last update time.
   final DateTime? updatedAt;
 
+  /// 热度：被打开过多少次（服务端聚合）。
+  ///
+  /// 服务与应用**都有**这一个计数：产品规则是"学生与官方等价值"，那么"什么被用得最多"
+  /// 就必须对两者同样成立，否则同一个排序在学生应用上真实、在官方入口上永远是 0。
+  ///
+  /// Heat: how many times it was opened, aggregated server-side. Services and apps both carry
+  /// it: if student projects and official entries are peers, "what gets used most" has to hold
+  /// for both — otherwise one ordering is real for apps and permanently 0 for services.
+  final int openCount;
+
   /// 入口是否尚未人工核实。/ whether this entry still awaits verification.
   bool get isUnverified => lastVerifiedAt == null;
 
@@ -125,6 +136,7 @@ class CampusService {
       sourceSystem: ServiceSourceSystem.fromWire(json['sourceSystem']),
       sourceId: asNonEmptyString(json['sourceId']),
       tags: asStringList(json['tags']),
+      openCount: asInt(json['openCount']) ?? 0,
       lastVerifiedAt: asDateTime(json['lastVerifiedAt']),
       status: RecordStatus.fromWire(json['status']),
       createdAt: asDateTime(json['createdAt']),

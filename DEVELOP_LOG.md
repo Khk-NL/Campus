@@ -741,3 +741,133 @@ $env:JAVA_HOME='D:\Code\JDK'; $env:ANDROID_HOME='D:\Android\sdk'; $env:ANDROID_S
    要么接受，要么在离线时给一条提示。
 4. Stage 4 投稿—审核（§3）、Stage 6 点赞/反馈/私有备注；编辑走 Developer Center（§11）。
 5. 仍未定案的老问题：`periodsPerDay` 后端 13 / Dart 12；服务目录 7 条入口的真实 URL。
+
+---
+
+## 2026-09-20 · 生态 IA 定案：学生与官方同列 + 热度（打开次数）
+
+**状态 / status**：应用页按用户定案的信息架构重做完毕；热度（打开次数）后端已上线并实测；
+点赞表已建好但**不在界面暴露**（等登录态）。
+
+### 27. 用户定下的产品规则（本节所有取舍的依据）
+
+> 「**学生应用也混合在三大界面里面，学生和官方是等价值的，放在一起，官方的只是会多一个
+> 特殊标识**；每一种类型单独搜索和排序，排序可以按名称和热度分（类似 GitHub 的 star），
+> 总之向 GitHub 社区看齐吧。」
+
+> 「学生应用如果愿意开源可以给出 GitHub 链接，也可以反馈等等；**所有远程能力你找一个合适的
+> 阶段后让我统一实现辅助我配置**。」
+
+第二句改变了排期方式：**需要外部凭据或第三方账号的功能不再逐个去做**，统一归到一个阶段
+（见 §31），由用户一次性配置。本轮只做不依赖任何凭据的部分。
+
+### 28. 做了什么
+
+**28.1 应用页：三张子列表，学生与官方同列**
+
+`apps_page.dart` 重做。核心是一层**展示期**的归并：`/api/services` 与 `/api/apps` 各自
+映射成同一种 `CampusEntry`（新文件 `features/apps/campus_entry.dart`），再按**从哪进去**
+分进官方工作台 / Web / 小程序三个**平级子列表**：
+
+- 学生做的 Web 工具与教务处**并排**在 Web 组里；学生做的小程序与随师办同属小程序组；
+- `origin` 只决定徽章：官方那一行多一个**校徽**，其余按来源显示「学生开发 / 开源 / 外部」；
+- 分组规则仍然只有**一份实现**（`ServiceGrouping.classify`），服务与入口各有一个薄封装调它，
+  没有第二处 `if`；
+- 删掉 `features/store/store_page.dart`（推入页没有了，"藏太深"这件事从结构上消失），
+  详情弹层 `app_details_sheet.dart` 保留并被复用。
+
+**28.2 每个子列表各有自己的搜索与排序**
+
+`_queries` / `_sorts` / 三个 `TextEditingController` 都按 `ServiceGroup` 分别持有：切走再切
+回来，输入还在，且**不会串到别的子列表**。排序口径三个，都能一句话解释：
+
+| 口径 | 依据 |
+| --- | --- |
+| 按名称 | 名称升序（大小写不敏感） |
+| 按热度 | `openCount` 倒序，并列按名称 —— **只在真的有计数时这个选项才出现** |
+| 按最近更新 | `updatedAt` 倒序，并列按名称 |
+
+**28.3 热度 = 打开次数（不是点赞）**
+
+后端（本轮的第二个改动）：
+
+| 位置 | 改动 |
+| --- | --- |
+| `campus_apps.open_count` / `campus_services.open_count` | 两个 migration，均已应用 |
+| `campus_app_likes` | **表已建好**（`@@unique([appId,userId])`），但**没有接口、界面也不显示** |
+| `POST /api/apps/:id/opened`、`POST /api/services/:id/opened` | 原子 `update` 加一，返回 `{openCount}`；不存在或未通过审核 → 404 |
+| `packages/models` | 两个领域模型各加 `openCount`，注释写明 install / open / like **三个计数互不相同** |
+| `?sort=most-used` | 由 `installCount` 改为 `openCount`（`installCount` 语义未定案，不参与排序） |
+| `packages/university-adapter/src/providers.ts` | `ServiceDescriptor` 的 `Omit` 列表加 `openCount`——它是运行时累加的计数，不该由 adapter 描述 |
+
+**为什么不用点赞当热度**：GitHub 的 star 靠登录 + 一人一票，而 Campus 现在**没有登录态**
+（真实登录要等 Phase 6 的 ECNU `client_id`/`secret`）。没有身份就无法去重，只能做成一个人人
+可刷的匿名计数器——那会得到一个"看起来像 GitHub、数字不可信"的功能。因此本轮用**打开次数**：
+它不需要身份就能真实，语义也说得清楚（"被打开过多少次"）。点赞表先建好，登录态到位即可接。
+
+**28.4 客户端只在成功之后记账**
+
+`_open()` 先 `launchServiceFrom`，**只有** `handedOff` / `openedInApp` 才 `recordOpen`；
+失败的一次点击不是一次使用。记账在上层吞掉异常（`OfflineFirstCampusRepository._record`），
+离线时直接跳过：热度是次要数据，绝不能因为记账失败而挡住"打开"这个主操作。
+
+### 29. 本轮踩的坑 / pitfalls
+
+27. **`Get-Content -Raw` + `Set-Content` 会把无 BOM 的 UTF-8 文件写坏。** 我用一条
+    PowerShell 命令批量替换测试文件里的 finder，结果 PS 5.1 按 ANSI/GBK 读了无 BOM 的
+    UTF-8 源码，再以 UTF-8 写回——中文全部变成双重编码的乱码，连字符串的收尾引号都被吞掉，
+    Dart 文件直接语法错误。这与第 9 条是同一类问题，但**第一次咬到源码文件**。
+    **做法**：文本文件一律用 `edit` / `write` 工具改；不得用 PowerShell 做读-改-写往返。
+28. **演示数据与 seed 的启动方式不一致，会让同一条数据换组。** 演示数据里「羽毛球约球」是
+    Web 目标，而 `seed-apps.ts` 里它是小程序——离线时它落在 Web 组、联网后跑到小程序组，
+    看起来像"这个应用自己搬家了"。已把演示数据对齐成小程序，并在注释里写明原因。
+29. **话题芯片的文字与行标题会重名。** 「图书馆」既是服务名**也是**一个标签，`find.text`
+    于是同时命中芯片、行标题与搜索框里已输入的文字（一次报"找到 3 个"）。测试里的 finder
+    必须限定在 `Card` 内（`find.widgetWithText(Card, name)`）。
+30. **一个"碰巧成立"的断言。** 热度排序的测试原本用「图书馆」，但按名称排序时它本来就排在
+    「教务处」前面——**排序完全没生效这条断言也会通过**。改成用「校园卡」（按名称排最后）
+    才真正区分开。这与插件的教训同类：断言写错会一直假通过。
+
+### 30. 验证 / verification
+
+| 检查 | 结果 |
+| --- | --- |
+| `pnpm turbo run build --force` | 8/8（`Cached: 0 cached`） |
+| `pnpm smoke` | 19 + 22 + 24 + 5 + 13 = **83 项全过** |
+| `flutter analyze` | No issues found |
+| `flutter test` | **61/61**（56 → 61：删掉随 Store 页一起作废的 7 项，新增 12 项） |
+| 后端实测 | `POST /api/apps/demo-app-badminton/opened` 连发两次 → `{"openCount":1}` `{"openCount":2}`；`?sort=most-used` 首条即它；不存在的 id → 404；服务侧同样 |
+| MuMu 实测 | 见下方截图 |
+
+### 31. 需要用户统一配置的远程能力（用户要求归到一个阶段）
+
+**这些都不要在各阶段零散地做**，集中成一阶段「远程能力接入」，由用户一次性提供凭据 /
+完成第三方配置，我负责写代码与验收。清单：
+
+| # | 能力 | 需要用户提供 / 完成 | 我方可先做的部分 |
+| --- | --- | --- | --- |
+| 1 | **微信小程序唤起** | 微信开放平台**移动应用 AppID**、包名 + 签名指纹备案、小程序与开放平台账号**关联**（Android 还要 `WXEntryActivity` 收回调；iOS 还要 Universal Links） | 把启动器的小程序分支按能力闸门写好、接好失败回退；**当前 `ANDROID_LAUNCHER_CAPABILITIES.supportsWeChatMiniProgram` 写着 `true` 而客户端其实不拉起——这是"能力说谎"，应改 `false`，等 SDK 到位再置回** |
+| 2 | **无 AppID 的替代路子** | 小程序自己的 `appid` + `secret`（存服务端），用于生成 URL Link / URL Scheme | 服务端生成链接 + 客户端 deep link 拉起；链接有有效期，要有过期提示 |
+| 3 | **点赞（star）** | 登录态（见 #4）；表已建好 | 接口 `POST/DELETE /api/apps/:id/like` + 一人一票约束 + `likeCount` 聚合 |
+| 4 | **真实登录** | ECNU 统一身份认证的 `client_id` / `client_secret`（§19：**不保存学校密码、不绕过学校认证**） | 登录页与回调骨架；`AppUser` 与 `platformRoles`（`Role` 枚举已在 schema 里） |
+| 5 | **反馈（开发者回一次）** | 登录态 | `campus_app_feedback` 表 + 结构化字段（可用性 / 描述准确性 / 是否推荐 / 自由文本）+ `developer_reply` 单字段 |
+| 6 | **投稿 → 审核（Developer Center）** | 决定投稿入口：站内表单 vs GitHub Issue（后者天然带 `source_url`，但要求学生有 GitHub 账号）；`apps/admin` 目前**完全不存在**，而审核没有后台就无法运转 | `CampusAppSubmission` + `campus_app_review_checks` + `/api/apps/submissions`；**编辑实质性字段必须使审核失效**（字段清单写在**一处**） |
+| 7 | **失效探测 / 报坏** | 无（可先做），但 `reachability` 需要运营裁定 | `POST /api/services/:id/report` + `reachability` / `brokenReports` / `replacedById` 上模型；小程序条目显式标注"无法自动核实" |
+| 8 | **GitHub 链接** | 无（`repositoryUrl` 已在模型与详情里） | 只有"通过审核的条目才允许挂外链"这条纪律要在投稿流程里落实 |
+| 9 | **日历 / ICS 导出** | 无 | 见 §12.4 第 11 步 |
+
+> 第 1 条是本轮顺带发现的**诚实性问题**：能力预置声称支持小程序，客户端却没有实现。
+> 建议在远程能力阶段开始时先把它改成 `false`，让规划层直接报"能力不支持"，而不是让一个
+> `unsupported` 悄悄退化成"打不开"。
+
+### 32. 下一步 / next
+
+1. **课表复刻**（用户第 2 项要求）：`D:\Code` 下没有 `sp-course`，对应项目是
+   `D:\Code\sp-study-courses`（Super Productivity 插件）。其 README 已读完，
+   本仓库 `docs/COURSE_MODULE_NOTES.md` §12.4 就是现成的 12 步落地顺序，
+   **第 0 步必须是收敛 TS↔Dart 契约**（`CourseScheduleRule` 的 `parity`/`weeks`、
+   `CampusEvent` 的教学槽位），否则后端发出来的单双周会被 `Course.tryFromJson` 静默丢掉。
+2. 演示数据没有「学生开发」以外的来源，`origin` 徽章的四种取值在界面上只验证到两种。
+3. 话题芯片仍靠"再要一次未筛选列表"推导，条目分页后需要服务端的标签词表接口。
+4. `storeIntro` / `storeEmpty` / `storeTagEmpty` 三个 ARB key 随 Store 页一起作废，待清理。
+

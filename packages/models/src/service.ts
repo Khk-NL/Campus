@@ -104,6 +104,17 @@ export interface CampusService extends Timestamps {
    */
   readonly lastVerifiedAt?: Date;
   readonly status: RecordStatus;
+  /**
+   * 被打开过多少次，与 `CampusApp.openCount` 同形。
+   *
+   * §27.9 的「学生应用与官方服务等价值」在这里落地：热度必须在两类数据上都真实，
+   * 不能一边真计数、一边永远为零。它同样是一个独立计数，不合成热度分。
+   *
+   * How many times this entry was opened, mirroring `CampusApp.openCount`. "Heat" has to
+   * be real for both official services and student apps rather than true for one and fake
+   * for the other. It stays a standalone counter, never folded into a heat score.
+   */
+  readonly openCount: number;
 }
 
 /** 判断服务是否可对用户展示 / is this entry visible to users at all? */

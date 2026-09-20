@@ -164,6 +164,7 @@ model User {
   submittedApps CampusApp[]     @relation("AppSubmitter")
   developedApps CampusApp[]     @relation("AppDeveloper")
   appUsage      CampusAppUsage[]
+  appLikes      CampusAppLike[]
 
   @@unique([universityId, externalUserId])
   @@index([universityId])
@@ -203,6 +204,11 @@ model CampusService {
   tags           String[]            @default([])
   lastVerifiedAt DateTime?           @map("last_verified_at")
   status         RecordStatus        @default(active)
+
+  /// 被打开过多少次（与 campus_apps.open_count 同形）。学生应用与官方服务用同一口径记录
+  /// 热度，不因为来源不同而一真一假。与 CampusApp 的三个计数一样，不合成一个热度分。
+  /// Open counter, mirroring campus_apps.open_count so "heat" is real for both sources.
+  openCount Int @default(0) @map("open_count")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -301,6 +307,11 @@ model CampusApp {
   /// 三个计数刻意分开，不合成"热度"——合成之后无法解释排序依据（§27.9）
   /// install / usage / like counters are kept apart on purpose.
   installCount Int       @default(0) @map("install_count")
+
+  /// 被打开过多少次（`most-used` 排序依据）。与 installCount、likeCount 是三个互不相同的
+  /// 计数，刻意不合成一个热度分（§27.9）。
+  /// How many times the app was opened; distinct from installCount and likeCount.
+  openCount    Int       @default(0) @map("open_count")
   lastVerifiedAt DateTime? @map("last_verified_at")
 
   createdAt DateTime @default(now()) @map("created_at")
@@ -310,6 +321,9 @@ model CampusApp {
   developer User? @relation("AppDeveloper", fields: [developerId], references: [id], onDelete: SetNull)
 
   usage CampusAppUsage[]
+
+  /// 点赞的反向关系 / back-relation for likes（本轮只建表，不暴露接口）
+  likes CampusAppLike[]
 
   /// 标签通过关联表而不是主表上的 String[]（见 §4 的归一化设计）
   /// Tags go through a link table rather than a String[] on this row.
@@ -426,4 +440,30 @@ model CampusAppTagLink {
   @@id([appId, tagId])
   @@index([tagId])
   @@map("campus_app_tag_links")
+}
+
+// ---------------------------------------------------------------------------
+// 点赞 / likes
+//
+// 本轮只建表备用，不暴露任何点赞接口。之所以先建：`likeCount` 是与 installCount、
+// openCount 并列的第三个计数（§27.9），三者互不相同、不合成热度分。
+//
+// The table is created now, with no like endpoints this round: likeCount is the third
+// counter alongside installCount and openCount, and §27.9 keeps the three apart.
+// ---------------------------------------------------------------------------
+
+model CampusAppLike {
+  id     String @id @default(cuid())
+  appId  String @map("app_id")
+  userId String @map("user_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  app  CampusApp @relation(fields: [appId], references: [id], onDelete: Cascade)
+  user User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// 一个用户对一个应用最多一个赞 / at most one like per user per app
+  @@unique([appId, userId])
+  @@index([userId])
+  @@map("campus_app_likes")
 }

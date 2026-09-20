@@ -4,7 +4,7 @@
 import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import type { CampusService } from '@campus/models';
 import { requireCapability, type UniversityAdapterRegistry } from '@campus/university-adapter';
-import type { Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { UNIVERSITY_ADAPTER_REGISTRY } from '../adapters/adapters.module';
 import { PrismaService } from '../prisma/prisma.service';
 import type { ListServicesQuery } from './dto/list-services.query';
@@ -72,6 +72,41 @@ export class ServicesService {
       throw new NotFoundException(`CampusService ${id} not found / 未找到该校园服务`);
     }
     return toCampusService(row);
+  }
+
+  /**
+   * 记一次「打开」，返回新的计数。刻意与 `AppsService.recordOpen` 同形：产品要求「学生应用与
+   * 官方服务等价值」，热度就必须在两个来源上都真实——一类真计数、一类永远为零，等于把来源
+   * 差异伪装成热度差异。
+   *
+   * 计数走**单条原子 `UPDATE ... RETURNING`**（Prisma 的 `increment`），不是先读再写：先读后写
+   * 在并发下会丢更新。不存在、或 `status !== 'active'` 都抛 `NotFoundException`，与 `getById`
+   * 的失败行为保持一致（同样不区分二者，避免泄露某个 id 是否存在）。
+   *
+   * Records one open and returns the new count, deliberately shaped like
+   * `AppsService.recordOpen`: "heat" must be real for official services and student apps
+   * alike, and a counter that is always zero on one side fakes a difference of provenance
+   * as a difference of popularity.
+   *
+   * A single atomic `UPDATE ... RETURNING`, never read-then-write. Missing or non-active
+   * entries throw `NotFoundException`, consistent with `getById` and equally non-disclosing.
+   */
+  async recordOpen(id: string): Promise<number> {
+    try {
+      // `status` 是同一条 UPDATE 的条件，而不是一次额外的读。
+      // `status` lives in the WHERE clause, not in an extra read.
+      const row = await this.prisma.campusService.update({
+        where: { id, status: 'active' },
+        data: { openCount: { increment: 1 } },
+        select: { openCount: true },
+      });
+      return row.openCount;
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+        throw new NotFoundException(`CampusService ${id} not found / 未找到该校园服务`);
+      }
+      throw error;
+    }
   }
 
   /**

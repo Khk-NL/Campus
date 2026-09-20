@@ -128,6 +128,18 @@ class InMemoryCampusRepository implements CampusRepository {
     return list;
   }
 
+  /// 演示数据不记热度：热度是**服务端聚合**的计数，本地自己加一只计数器只会得到一个
+  /// 与后端无关的假数字，离线时排行榜看起来正常、联网后全部归零。
+  ///
+  /// Demo data records no heat: the count is a **server-side** aggregate, and keeping a private
+  /// counter locally would produce a number unrelated to the backend — a ranking that looks
+  /// fine offline and resets the moment the network returns.
+  @override
+  Future<void> recordServiceOpen(String serviceId) async {}
+
+  @override
+  Future<void> recordAppOpen(String appId) async {}
+
   /// 演示数据所属的高校 id。测试用它来构造查询，从而不必硬编码任何校名——
   /// 通用层与测试都不该知道这所高校叫什么。
   /// The university id the demo data belongs to. Tests use it to build queries without

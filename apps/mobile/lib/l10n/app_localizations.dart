@@ -758,6 +758,54 @@ abstract class AppLocalizations {
   /// **'暂无校园服务'**
   String get appsEmpty;
 
+  /// 子列表切换器上的标题与条数 / a sub-list chip's title and count
+  ///
+  /// In zh, this message translates to:
+  /// **'{group} · {count}'**
+  String appsSubListLabel(String group, int count);
+
+  /// 每个子列表各自的搜索框 / the search box of the current sub-list
+  ///
+  /// In zh, this message translates to:
+  /// **'搜索当前子列表'**
+  String get appsSearchHint;
+
+  /// 搜索没命中（区别于子列表本身为空）/ nothing matched the search, as opposed to an empty sub-list
+  ///
+  /// In zh, this message translates to:
+  /// **'没有匹配的入口'**
+  String get appsSearchEmpty;
+
+  /// No description provided for @appsSortLabel.
+  ///
+  /// In zh, this message translates to:
+  /// **'排序'**
+  String get appsSortLabel;
+
+  /// No description provided for @appsSortName.
+  ///
+  /// In zh, this message translates to:
+  /// **'按名称'**
+  String get appsSortName;
+
+  /// 按打开次数排序 / order by how often it was opened
+  ///
+  /// In zh, this message translates to:
+  /// **'按热度'**
+  String get appsSortHeat;
+
+  /// No description provided for @appsSortRecent.
+  ///
+  /// In zh, this message translates to:
+  /// **'按最近更新'**
+  String get appsSortRecent;
+
+  /// 热度徽标的说明 / what the heat badge means
+  ///
+  /// In zh, this message translates to:
+  /// **'被打开 {count} 次'**
+  String appsHeatTooltip(int count);
+
   /// 列表项右侧的「更多」按钮，进入详情 / the More button that opens details
   ///
   /// In zh, this message translates to:

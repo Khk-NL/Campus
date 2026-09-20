@@ -44,6 +44,7 @@ library;
 import 'package:campus_mobile/data/models/campus_service.dart';
 import 'package:campus_mobile/data/models/launch_target.dart';
 import 'package:campus_mobile/data/models/service_enums.dart';
+import 'package:campus_mobile/features/apps/campus_entry.dart';
 
 /// 「应用」Tab 的三个分组 / the three groups of the Apps tab.
 ///
@@ -68,14 +69,42 @@ class ServiceGrouping {
   static const List<ServiceGroup> orderedGroups = ServiceGroup.values;
 
   /// 把一门服务归到**唯一**一组 / place one service in exactly one group.
-  static ServiceGroup groupOf(CampusService service) {
+  static ServiceGroup groupOf(CampusService service) => classify(
+        isOfficial: service.isOfficial,
+        isOfficialHub: service.category == ServiceCategory.officialHub,
+        target: service.launchTarget,
+      );
+
+  /// 把一条统一入口归到**唯一**一组 / place one unified entry in exactly one group.
+  static ServiceGroup groupOfEntry(CampusEntry entry) => classify(
+        isOfficial: entry.isOfficial,
+        isOfficialHub: entry.category == ServiceCategory.officialHub,
+        target: entry.launchTarget,
+      );
+
+  /// 分组规则的**唯一**实现 / the one and only implementation of the rule.
+  ///
+  /// 服务与应用走的是同一条链：判据是"是否官方""是否聚合入口""怎么打开"，与数据来自哪个
+  /// 接口无关。应用没有 `category`，因此官方应用不会进「官方工作台」——那需要它同时是
+  /// 官方**聚合入口**，而应用的模型里没有这个概念。宁可它落在 Web / 小程序里并带上官方
+  /// 徽章，也不要为了把它塞进某一组而发明一个假分类。
+  ///
+  /// Both kinds run the same chain: official, aggregate, launch kind — nothing depends on which
+  /// endpoint the row came from. Apps have no `category`, so an official app cannot reach the
+  /// workbench group, which requires being an official **aggregate**. It is better to leave it
+  /// in Web / mini programs with its official badge than to invent a category to place it.
+  static ServiceGroup classify({
+    required bool isOfficial,
+    required bool isOfficialHub,
+    required LaunchTarget target,
+  }) {
     // 1) 官方工作台优先：官方聚合入口即便以小程序启动，也属于官方工作台。
     // Official workbench first: an official aggregate belongs here even when its launch
     // kind is a mini program.
-    if (isOfficialWorkbench(service)) return ServiceGroup.officialWorkbench;
+    if (isOfficial && isOfficialHub) return ServiceGroup.officialWorkbench;
     // 2) 按启动方式：微信小程序。
     // Then by launch kind: a WeChat mini program.
-    if (service.launchTarget is WeChatMiniProgramLaunchTarget) {
+    if (target is WeChatMiniProgramLaunchTarget) {
       return ServiceGroup.miniProgram;
     }
     // 3) 兜底：其余都交给浏览器 / 系统打开。
@@ -156,12 +185,33 @@ class ServiceGrouping {
   static List<CampusService> favoritesFirst(
     Iterable<CampusService> services, {
     required bool Function(CampusService service) isFavorite,
-  }) {
-    final List<CampusService> pinned = <CampusService>[];
-    final List<CampusService> rest = <CampusService>[];
-    for (final CampusService service in services) {
-      (isFavorite(service) ? pinned : rest).add(service);
+  }) =>
+      partitionFirst<CampusService>(services, isFavorite);
+
+  /// 组内排序（统一入口版本）/ in-group ordering for unified entries.
+  static List<CampusEntry> favoritesFirstEntries(
+    Iterable<CampusEntry> entries, {
+    required bool Function(CampusEntry entry) isFavorite,
+  }) =>
+      partitionFirst<CampusEntry>(entries, isFavorite);
+
+  /// 分区 + 拼接：已收藏的在前，其余保持传入顺序。
+  ///
+  /// 用"分区 + 拼接"而不是 `sort`：Dart 的 `List.sort` 不保证稳定，用比较器表达"收藏优先"
+  /// 会把同组内原有的顺序打乱（而那个顺序可能是用户刚选的排序口径）。分区拼接是稳定的。
+  ///
+  /// Partition and concatenate rather than `sort`: Dart's `List.sort` is not stable, and
+  /// expressing "favorites first" as a comparator would scramble the order inside each part —
+  /// which is exactly the ordering the user just chose. Partitioning is stable.
+  static List<T> partitionFirst<T>(
+    Iterable<T> items,
+    bool Function(T) isFavorite,
+  ) {
+    final List<T> pinned = <T>[];
+    final List<T> rest = <T>[];
+    for (final T item in items) {
+      (isFavorite(item) ? pinned : rest).add(item);
     }
-    return <CampusService>[...pinned, ...rest];
+    return <T>[...pinned, ...rest];
   }
 }

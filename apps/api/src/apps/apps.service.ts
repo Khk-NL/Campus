@@ -10,7 +10,7 @@
  */
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { normalizeTagName, type CampusApp } from '@campus/models';
-import type { CampusApp as CampusAppRow, Prisma } from '@prisma/client';
+import { Prisma, type CampusApp as CampusAppRow } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { LAUNCH_TARGET_TYPE } from '../services/enum.mapper';
 import { toLaunchTarget } from '../services/launch-target.mapper';
@@ -86,6 +86,7 @@ function toDomain(row: CampusAppRowWithTags): CampusApp {
     version: row.version,
     status: REVIEW_STATUS.toDomain[row.status],
     installCount: row.installCount,
+    openCount: row.openCount,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };
@@ -141,7 +142,14 @@ export class AppsService {
       query.sort === 'name'
         ? [{ name: 'asc' }]
         : query.sort === 'most-used'
-          ? [{ installCount: 'desc' }, { name: 'asc' }]
+          ? // `most-used` = 这个应用**被打开过多少次**，按 `openCount` 倒序。
+            // `installCount` 的语义尚未定案，因此不参与排序；install / open / like 是三个
+            // 互不相同的计数，不合成一个热度分，排序依据才能用一句话说清。
+            //
+            // `most-used` means "how many times it was opened", ordered by `openCount`.
+            // `installCount` takes part in no ordering because its semantics are unsettled;
+            // install / open / like stay three distinct counters, so the ordering stays explainable.
+            [{ openCount: 'desc' }, { name: 'asc' }]
           : query.sort === 'recently-updated'
             ? [{ updatedAt: 'desc' }, { name: 'asc' }]
             : // 缺省按上架时间倒序：这是最不意外、也最容易解释的口径。
@@ -195,6 +203,41 @@ export class AppsService {
       select: { tagId: true },
     });
     return alias?.tagId ?? null;
+  }
+
+  /**
+   * 记一次「打开」，返回新的计数。这就是 `most-used` 排序的数据来源。
+   *
+   * 计数走**单条原子 `UPDATE ... RETURNING`**（Prisma 的 `increment`），而不是"先读再写"：
+   * 先读后写在并发下会丢更新，而"打开"恰恰是最容易并发的写入。
+   *
+   * 只给已审核通过的应用计数；**不存在与未通过审核都抛 `NotFoundException`**，理由与
+   * `getById` 相同——对公开调用方而言两者都不可见，区分开会泄露某个 id 确实存在。
+   *
+   * Records one open and returns the new count — the source of the `most-used` ordering.
+   * The increment is a single atomic `UPDATE ... RETURNING`, never read-then-write, because
+   * concurrent opens would lose updates otherwise. Approved apps only; missing and
+   * unapproved both throw `NotFoundException` for the same reason as `getById`.
+   */
+  async recordOpen(id: string): Promise<number> {
+    try {
+      // where 里带上 status，让「已审核通过」成为同一条 UPDATE 的条件，而不是一次额外的读。
+      // `status` rides along in the WHERE clause, so approval is part of the same UPDATE
+      // rather than a separate read.
+      const row = await this.prisma.campusApp.update({
+        where: { id, status: 'approved' },
+        data: { openCount: { increment: 1 } },
+        select: { openCount: true },
+      });
+      return row.openCount;
+    } catch (error) {
+      // update 找不到匹配行时 Prisma 抛 P2025；转成与 getById 一致的 404。
+      // P2025 means no row matched; translate it into the same 404 as getById.
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+        throw new NotFoundException(`CampusApp ${id} not found / 未找到该应用`);
+      }
+      throw error;
+    }
   }
 
   /** 应用详情。同样只允许已审核通过的条目 / details, approved only. */

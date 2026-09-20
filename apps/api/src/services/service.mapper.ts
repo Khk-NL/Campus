@@ -71,6 +71,7 @@ export function toCampusService(row: ServiceRow): CampusService {
     tags: row.tags,
     ...(row.lastVerifiedAt ? { lastVerifiedAt: row.lastVerifiedAt } : {}),
     status: mapEnum(RECORD_STATUS.toDomain, row.status, 'RecordStatus'),
+    openCount: row.openCount,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };

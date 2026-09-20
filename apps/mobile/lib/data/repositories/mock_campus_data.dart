@@ -330,11 +330,15 @@ List<CampusTask> buildMockTasks() {
 /// §14: the Store only solves discovery, so entries carry no install state.
 ///
 /// 条目与标签刻意与后端的 `prisma/seed-apps.ts` 对齐：后端不可达时这三分数据要能
-/// 顶上同一个界面，标签芯片也得照样出现。标签写的是**规范名**，与后端归一化后的结果一致。
+/// 顶上同一个界面，标签芯片也得照样出现。标签写的是**规范名**，与后端归一化后的结果一致；
+/// 「羽毛球约球」的启动方式也对齐成微信小程序——否则同一条数据离线落在「Web」组、在线落在
+/// 「小程序」组，用户看到的是"同一个应用换了地方"。
 ///
 /// The entries and their tags deliberately mirror `prisma/seed-apps.ts`, so that when the
 /// backend is unreachable the same screen is still populated and the tag chips still appear.
-/// The tag values are the **canonical names**, matching the server's normalised result.
+/// The tag values are the **canonical names**, matching the server's normalised result, and the
+/// badminton entry launches as a WeChat mini program there too: otherwise one row lands in Web
+/// offline and in mini programs online, which reads as "the app moved".
 List<CampusApp> buildMockCampusApps() {
   return <CampusApp>[
     CampusApp(
@@ -346,10 +350,10 @@ List<CampusApp> buildMockCampusApps() {
       scope: AppUniversityScope.universityOnly,
       repositoryUrl: 'https://github.com/example/badminton-partner',
       version: '0.3.1',
-      launchTarget: const WebLaunchTarget(
-        // 占位地址，待核实 / placeholder URL, to be verified
-        url: 'https://example.github.io/badminton-partner/',
-        preferredMode: WebLaunchMode.webview,
+      launchTarget: const WeChatMiniProgramLaunchTarget(
+        // 占位 ID，待核实 / placeholder id, to be verified
+        originalId: 'gh_placeholder_badminton',
+        path: 'pages/index/index',
       ),
       permissions: const <String>['user.basic', 'calendar.write'],
       tags: const <String>['组队', '羽毛球'],

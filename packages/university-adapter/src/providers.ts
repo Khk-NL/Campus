@@ -54,19 +54,28 @@ export interface CourseProvider {
 // ---------------------------------------------------------------------------
 
 /**
- * 服务描述符：去掉 Core 分配的 id / universityId / 时间戳 / 状态 / 校验时间。
+ * 服务描述符：去掉 Core 分配的 id / universityId / 时间戳 / 状态 / 校验时间，
+ * 以及 Core 在运行时累加的 `openCount`。
  *
  * `sourceId` 在此处被收紧为**非空**：领域模型允许它为 null（人工录入的服务没有
  * 来源标识），但 Adapter 必须始终知道自己的来源标识，否则重复同步无法去重。
  *
- * A service descriptor without Campus ids, status or verification timestamps.
+ * A service descriptor without Campus ids, status or verification timestamps — and without
+ * `openCount`, which the core accumulates at runtime rather than any adapter describing it.
  * `sourceId` is tightened to non-null here: the domain model allows null for
  * hand-entered services, but an adapter always knows its own source id — without it,
  * re-syncing could not dedupe.
  */
 export type ServiceDescriptor = Omit<
   CampusService,
-  'id' | 'universityId' | 'createdAt' | 'updatedAt' | 'status' | 'lastVerifiedAt' | 'sourceId'
+  | 'id'
+  | 'universityId'
+  | 'createdAt'
+  | 'updatedAt'
+  | 'status'
+  | 'lastVerifiedAt'
+  | 'sourceId'
+  | 'openCount'
 > & {
   readonly sourceId: string;
 };

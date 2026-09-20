@@ -121,7 +121,7 @@ powershell -File scripts\dev\verify-phase0.ps1
 D:\npm-global\pnpm.cmd smoke     # 5 个契约脚本，共 83 项
 cd apps\mobile
 & D:\flutter\bin\flutter.bat analyze    # 必须零问题
-& D:\flutter\bin\flutter.bat test       # 55 项
+& D:\flutter\bin\flutter.bat test       # 61 项
 ```
 
 **当前基线（本文件撰写时实测）**：
@@ -129,11 +129,11 @@ cd apps\mobile
 | 检查 | 结果 |
 | --- | --- |
 | 数据库 | running |
-| 迁移 | 4 个，全部已应用 |
-| TS 全量构建 | 8/8 |
+| 迁移 | 6 个，全部已应用 |
+| TS 全量构建 | 8/8（`--force` 时 `Cached: 0 cached`） |
 | 契约冒烟测试 | 19 + 22 + 24 + 5 + 13 = **83 项** |
 | `flutter analyze` | No issues found |
-| `flutter test` | **55/55** |
+| `flutter test` | **61/61** |
 
 ## 5. 已实现的 API
 
@@ -171,6 +171,13 @@ GET /api/services?universityId=ecnu&q=羽毛球&category=venue&sort=recent
 | --- | --- | --- |
 | GET | `/api/apps` | 应用列表，**只返回已审核通过（approved）的条目** |
 | GET | `/api/apps/:id` | 详情（未通过审核与不存在返回同一个 404） |
+| POST | `/api/apps/:id/opened` | 记一次打开（热度），返回 `{openCount}`；不存在或未通过审核 → 404 |
+
+服务目录同样有 `POST /api/services/:id/opened`（`status != active` → 404）。
+
+**热度 = 被打开过多少次**（`openCount`，服务端聚合）。它与 `installCount`、点赞数是
+**三个互不相同的计数**，刻意不合成一个"热度分"——合成之后排序依据就解释不清。
+客户端的「按热度」读的就是它，且**只在真的有非零计数时才把该选项摆出来**。
 
 查询参数：
 
@@ -214,6 +221,7 @@ GET /api/apps?tag=羽球              # 别名
 | --- | --- |
 | 节次↔时刻映射 | 🔶 数据库列与 TS 类型已就位；**客户端尚未接线**，首页时间仍是估算 |
 | 标签 | 🔶 表 / 归一化纯函数 / API 筛选 / **客户端筛选 UI 已完成**；投稿时新建标签待审未做 |
+| 热度（打开次数） | ✅ 两端 `openCount` + `POST …/opened` + 客户端「按热度」排序；**点赞表已建但无接口**（等登录态） |
 | 投稿—审核 | ❌ 未开始（表结构与设计已在 `CAMPUS_APP_SCHEMA_DESIGN.md`） |
 | 探索（人工精选 / 失效检测） | ❌ 未开始 |
 | 反馈 / 点赞 / 私有备注 | ❌ 未开始 |
