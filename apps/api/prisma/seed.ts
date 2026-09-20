@@ -17,6 +17,7 @@ import { createECNUAdapter, ECNU, ECNU_UNIVERSITY_ID } from '@campus/adapter-ecn
 import { createPgAdapter } from '../src/prisma/prisma-client.factory';
 import { LAUNCH_TARGET_TYPE, SERVICE_CATEGORY, SERVICE_ORIGIN, SERVICE_SOURCE_SYSTEM } from '../src/services/enum.mapper';
 import { fromLaunchTarget } from '../src/services/launch-target.mapper';
+import { seedApps } from './seed-apps';
 
 // 与应用共用同一个 adapter 工厂，避免 seed 与运行时用了不同的连接方式。
 // Shares the adapter factory with the app so the seed and the runtime cannot drift.
@@ -144,6 +145,14 @@ async function main(): Promise<void> {
   await seedUniversity();
   await seedDemoUser();
   await seedServices();
+
+  // 演示应用的投稿人取同一个演示用户。真实场景里投稿人可能不是开发者，
+  // 这正是 submitter_id 与 developer_id 分成两列的原因。
+  // Demo apps use the same demo user as submitter; in reality the submitter may not be the
+  // developer, which is exactly why submitter_id and developer_id are separate columns.
+  const apps = await seedApps(prisma, ECNU_UNIVERSITY_ID, 'mock-2026001001');
+  console.log(`  ✓ 应用 / apps: 新增 ${apps.created}，更新 ${apps.updated}，共 ${apps.total}`);
+
   console.log('完成 / done');
 }
 
