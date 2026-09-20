@@ -28,6 +28,7 @@ class InMemoryCampusRepository implements CampusRepository {
 
   final ValueNotifier<DataSourceMode> _mode =
       ValueNotifier<DataSourceMode>(DataSourceMode.mock);
+  final ValueNotifier<int> _sourceNotifier = ValueNotifier<int>(0);
 
   /// 演示数据只在首次访问时构造一次。/ demo data is built once, lazily.
   late final List<CampusService> _services = buildMockServices();
@@ -48,6 +49,14 @@ class InMemoryCampusRepository implements CampusRepository {
   @override
   Listenable get modeChanges => _mode;
 
+  /// 内存实现里每一类数据都来自演示数据，没有例外。
+  /// In the in-memory implementation every source is demo data, without exception.
+  @override
+  DataSourceMode sourceMode(DataSourceSource source) => DataSourceMode.mock;
+
+  @override
+  Listenable get sourceChanges => _sourceNotifier;
+
   @override
   Future<AppUser?> fetchCurrentUser() async => _user;
 
@@ -55,7 +64,8 @@ class InMemoryCampusRepository implements CampusRepository {
   Future<List<University>> fetchUniversities() async => <University>[_university];
 
   @override
-  Future<List<CampusService>> listServices(CampusServicesQuery query) async {    Iterable<CampusService> result = _services.where(
+  Future<List<CampusService>> listServices(CampusServicesQuery query) async {
+    Iterable<CampusService> result = _services.where(
       (CampusService service) => service.universityId == query.universityId,
     );
     final ServiceCategory? category = query.category;
@@ -104,7 +114,10 @@ class InMemoryCampusRepository implements CampusRepository {
   String get demoUniversityId => _university.id;
 
   @override
-  void dispose() => _mode.dispose();
+  void dispose() {
+    _mode.dispose();
+    _sourceNotifier.dispose();
+  }
 
   /// 与远端 `sort=name|recent` 等价的本地排序。
   /// The local equivalent of the remote `sort=name|recent`.

@@ -85,7 +85,46 @@ AppUser buildMockUser() {
   );
 }
 
+/// 演示学期 / the demo term.
+///
+/// 课程表（§9）必须能回答"现在是第几教学周"。真实教学周来自教务系统（Phase 6），
+/// 因此这里给出一个相对当下的演示学期起点：不让任何演示数据因为时间流逝而永远过期。
+///
+/// The timetable (§9) must answer "which teaching week is it". The real week comes from
+/// the academic system (Phase 6), so this is a demo term start relative to now, which
+/// keeps the demo data from going stale.
+class DemoTerm {
+  const DemoTerm._();
+
+  /// 演示学期共多少教学周 / how many teaching weeks the demo term has.
+  static const int totalWeeks = 18;
+
+  /// 演示学期的第一天（周一）/ the demo term's first day, a Monday.
+  static DateTime start() {
+    final DateTime today = _today();
+    // 把"今天"落在第 4 教学周附近：往前推 3 周再对齐到周一。
+    // Places "today" around teaching week 4: back three weeks, aligned to Monday.
+    final DateTime monday = today.subtract(Duration(days: today.weekday - DateTime.monday));
+    return monday.subtract(const Duration(days: 21));
+  }
+
+  /// [now] 落在第几教学周（从 1 开始）/ which teaching week [now] falls in, 1-based.
+  static int weekOf(DateTime now) {
+    final DateTime termStart = start();
+    final int days = DateTime(now.year, now.month, now.day).difference(termStart).inDays;
+    final int week = days ~/ 7 + 1;
+    if (week < 1) return 1;
+    if (week > totalWeeks) return totalWeeks;
+    return week;
+  }
+}
+
 /// 演示课程（§9 的 Course）/ demo courses.
+///
+/// 每条都带结构化排课（`weekday` + `startPeriod`/`endPeriod`），课程表网格直接用它们
+/// 定位，不必从 `scheduleRule` 这句人话里反解。
+/// Every entry carries structured scheduling (`weekday` plus periods) that the timetable
+/// grid positions with directly, instead of parsing it back out of `scheduleRule`.
 List<Course> buildMockCourses() {
   return <Course>[
     Course(
@@ -97,6 +136,9 @@ List<Course> buildMockCourses() {
       startWeek: 1,
       endWeek: 16,
       scheduleRule: '周一 3-4 节',
+      weekday: DateTime.monday,
+      startPeriod: 3,
+      endPeriod: 4,
       externalCourseId: 'demo-course-1',
     ),
     Course(
@@ -107,8 +149,67 @@ List<Course> buildMockCourses() {
       location: '文史楼 201',
       startWeek: 1,
       endWeek: 16,
-      scheduleRule: '周一 7-8 节',
+      scheduleRule: '周二 7-8 节',
+      weekday: DateTime.tuesday,
+      startPeriod: 7,
+      endPeriod: 8,
       externalCourseId: 'demo-course-2',
+    ),
+    Course(
+      id: 'course-advanced-math',
+      universityId: kEcnuUniversityId,
+      name: '高等数学（二）',
+      teacher: '演示教师',
+      location: '数学馆 203',
+      startWeek: 1,
+      endWeek: 18,
+      scheduleRule: '周一 1-2 节',
+      weekday: DateTime.monday,
+      startPeriod: 1,
+      endPeriod: 2,
+      externalCourseId: 'demo-course-3',
+    ),
+    Course(
+      id: 'course-college-english',
+      universityId: kEcnuUniversityId,
+      name: '大学英语',
+      teacher: '演示教师',
+      location: '外语楼 108',
+      startWeek: 1,
+      endWeek: 16,
+      scheduleRule: '周三 5-6 节',
+      weekday: DateTime.wednesday,
+      startPeriod: 5,
+      endPeriod: 6,
+      externalCourseId: 'demo-course-4',
+    ),
+    Course(
+      id: 'course-data-structures',
+      universityId: kEcnuUniversityId,
+      name: '数据结构',
+      teacher: '演示教师',
+      location: '信息楼 A305',
+      startWeek: 2,
+      endWeek: 17,
+      scheduleRule: '周四 3-4 节',
+      weekday: DateTime.thursday,
+      startPeriod: 3,
+      endPeriod: 4,
+      externalCourseId: 'demo-course-5',
+    ),
+    Course(
+      id: 'course-physics-lab',
+      universityId: kEcnuUniversityId,
+      name: '大学物理实验',
+      teacher: '演示教师',
+      location: '物理楼 实验 3 室',
+      startWeek: 3,
+      endWeek: 14,
+      scheduleRule: '周五 5-8 节',
+      weekday: DateTime.friday,
+      startPeriod: 5,
+      endPeriod: 8,
+      externalCourseId: 'demo-course-6',
     ),
   ];
 }
@@ -131,6 +232,22 @@ List<Announcement> buildMockAnnouncements() {
       priority: AnnouncementPriority.low,
       publishedAt: _inDays(-2, 10),
       sourceName: '信息化办公室',
+    ),
+    Announcement(
+      id: 'announcement-exam-week',
+      title: '期末考试安排已发布',
+      body: '考试周安排可在教务处系统查询，请提前确认考场。',
+      priority: AnnouncementPriority.high,
+      publishedAt: _inDays(0, 9),
+      sourceName: '教务处',
+    ),
+    Announcement(
+      id: 'announcement-course-adjust',
+      title: '现代软件工程第 5 周调课',
+      body: '第 5 周周二 7-8 节调整至文史楼 305，请留意。',
+      priority: AnnouncementPriority.normal,
+      publishedAt: _inDays(-1, 16),
+      sourceName: '现代软件工程',
     ),
   ];
 }
@@ -187,6 +304,22 @@ List<CampusTask> buildMockTasks() {
       status: TaskStatus.notStarted,
       deadline: _inDays(0, 21),
       sourceName: '体育场馆预约',
+    ),
+    CampusTask(
+      id: 'task-math-homework',
+      title: '高等数学作业第 4 章',
+      status: TaskStatus.notStarted,
+      deadline: _inDays(2),
+      relatedCourseId: 'course-advanced-math',
+      sourceName: '高等数学（二）',
+    ),
+    CampusTask(
+      id: 'task-english-presentation',
+      title: '大学英语小组展示准备',
+      status: TaskStatus.inProgress,
+      deadline: _inDays(5),
+      relatedCourseId: 'course-college-english',
+      sourceName: '大学英语',
     ),
   ];
 }

@@ -81,6 +81,20 @@ class ApiHealth {
   }
 }
 
+/// 后端尚未发布该接口 / the backend does not publish this endpoint yet.
+///
+/// 与普通的 [CampusApiException] 分开，是因为上层要按失败**种类**决定回退范围：
+/// 连不上后端说明整个后端不可用，而一个 404 只说明**这一类数据**还没有接口——
+/// 服务目录可能照样是真的。混在一起就只能整份回退，用户会以为真实目录也是假的。
+///
+/// Kept apart from a plain [CampusApiException] because the layer above chooses the
+/// fallback *scope* by failure kind: an unreachable backend means nothing works, whereas a
+/// 404 means only that one resource has no endpoint yet, while the catalogue may still be
+/// real. Merging them forces a wholesale fallback and implies the real catalogue is fake.
+class UnimplementedEndpointException extends CampusApiException {
+  const UnimplementedEndpointException(super.message, {super.statusCode, super.uri});
+}
+
 /// 极薄的 HTTP 封装 / a very thin HTTP wrapper.
 class CampusApiClient {
   CampusApiClient({required AppConfig config, http.Client? httpClient})

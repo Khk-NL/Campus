@@ -9,6 +9,7 @@
 library;
 
 import 'package:campus_mobile/core/app_state.dart';
+import 'package:campus_mobile/core/i18n/app_i18n.dart';
 import 'package:campus_mobile/core/theme/campus_theme.dart';
 import 'package:campus_mobile/data/repositories/data_source_mode.dart';
 import 'package:campus_mobile/features/shared/widgets/state_views.dart';
@@ -101,6 +102,15 @@ class _OfflineBannerState extends State<OfflineBanner> {
 }
 
 /// 数据源小徽标，放在 AppBar 里 / a compact data-source badge for the AppBar.
+///
+/// 它**只描述服务目录**（后端唯一已发布的接口）。课程 / 待办 / 活动 / 公告是否也是
+/// 演示数据，由 [DemoSourceBadge] 在各区块上单独回答——把两件事混在一个徽标里，就会出现
+/// "已连接后端服务"旁边摆着假课程的自相矛盾。
+///
+/// It describes the **service catalogue only** (the one endpoint the backend publishes).
+/// Whether courses, tasks, events and notices are also demo data is answered per block by
+/// [DemoSourceBadge]; merging the two questions into one badge produces the contradiction
+/// of "connected to the backend" sitting next to invented courses.
 class DataSourceBadge extends StatelessWidget {
   const DataSourceBadge({super.key});
 
@@ -108,21 +118,51 @@ class DataSourceBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final AppState state = AppScope.of(context);
     final AppLocalizations l10n = AppLocalizations.of(context);
-    switch (state.dataSourceMode) {
+    switch (state.sourceMode(DataSourceSource.services)) {
       case DataSourceMode.remote:
         return TinyBadge(
-          label: l10n.stateOnline,
+          label: l10n.dataSourceServicesOnline,
           icon: Icons.cloud_done_outlined,
           color: Theme.of(context).statusColors.success,
         );
       case DataSourceMode.mock:
         return TinyBadge(
-          label: l10n.stateMockBadge,
+          label: l10n.dataSourceServicesMock,
           icon: Icons.science_outlined,
           color: Theme.of(context).statusColors.warning,
         );
       case DataSourceMode.unknown:
         return const SizedBox.shrink();
     }
+  }
+}
+
+/// 单独一块内容的「演示数据」标记 / a per-block "demo data" badge.
+///
+/// 后端目前只有服务目录接口（课程 / 待办 / 活动 / 公告的表属于 Phase 2），因此这些
+/// 区块显示的是内置演示数据。静默展示会让人误以为"我真的没有作业"，所以每一块都必须
+/// 自己说清楚。
+///
+/// The backend only has the catalogue endpoint for now (the course, task, event and
+/// notice tables arrive in Phase 2), so these blocks show built-in demo data. Showing them
+/// silently would read as "I really have no homework", so each block says so itself.
+class DemoSourceBadge extends StatelessWidget {
+  const DemoSourceBadge({required this.source, super.key});
+
+  /// 这一块是哪种数据 / which kind of data this block shows.
+  final DataSourceSource source;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppState state = AppScope.of(context);
+    final AppLocalizations l10n = AppLocalizations.of(context);
+    if (state.sourceMode(source) != DataSourceMode.mock) {
+      return const SizedBox.shrink();
+    }
+    return TinyBadge(
+      label: l10n.demoDataNotice(l10n.dataSourceSource(source)),
+      icon: Icons.science_outlined,
+      color: Theme.of(context).statusColors.warning,
+    );
   }
 }

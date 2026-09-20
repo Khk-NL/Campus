@@ -28,7 +28,51 @@ class AppLocalizationsZh extends AppLocalizations {
   String get navStore => '应用';
 
   @override
+  String get navTimetable => '课程表';
+
+  @override
   String get navProfile => '我的';
+
+  @override
+  String get navNotification => '通知';
+
+  @override
+  String get dataSourceLabelServices => '校园服务';
+
+  @override
+  String get dataSourceLabelCourses => '课程';
+
+  @override
+  String get dataSourceLabelTasks => '待办';
+
+  @override
+  String get dataSourceLabelEvents => '活动';
+
+  @override
+  String get dataSourceLabelAnnouncements => '公告';
+
+  @override
+  String get dataSourceLabelApps => '学生应用';
+
+  @override
+  String demoDataNotice(String source) {
+    return '$source · 演示数据';
+  }
+
+  @override
+  String get demoDataExplanation => '该块数据后端尚未提供接口，当前显示内置演示数据，不会同步。';
+
+  @override
+  String get dataSourceServicesOnline => '校园服务 · 已连接后端';
+
+  @override
+  String get dataSourceServicesMock => '校园服务 · 演示数据';
+
+  @override
+  String get dataSourceCatalogueOnline => '服务目录来自后端 API';
+
+  @override
+  String get dataSourceDemoExplanation => '课程、待办、活动与公告后端尚未提供接口，均来自内置演示数据。';
 
   @override
   String get actionRetry => '重试';
@@ -162,6 +206,51 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get timetableTitle => '课程表';
+
+  @override
+  String timetableWeekLabel(int week) {
+    return '第 $week 周';
+  }
+
+  @override
+  String timetableWeekRange(int start, int end) {
+    return '第 $start–$end 周';
+  }
+
+  @override
+  String get timetableCurrentWeek => '本周';
+
+  @override
+  String get timetablePreviousWeek => '上一周';
+
+  @override
+  String get timetableNextWeek => '下一周';
+
+  @override
+  String timetablePeriodLabel(int period) {
+    return '第 $period 节';
+  }
+
+  @override
+  String get timetableNoCourses => '本周没有课程';
+
+  @override
+  String get timetableUnscheduled => '未排课';
+
+  @override
+  String get timetableCourseTasks => '课程待办';
+
+  @override
+  String get timetableNoCourseTasks => '没有课程相关待办';
+
+  @override
+  String get timetableCourseNotices => '课程通知';
+
+  @override
+  String get timetableNoCourseNotices => '没有课程相关通知';
+
+  @override
   String relativeOverdue(Object days) {
     return '已过期 $days 天';
   }
@@ -182,6 +271,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get searchHint => '搜索服务、应用、课程、事务';
+
+  @override
+  String get searchTitle => '搜索';
 
   @override
   String get searchEmptyPrompt => '输入关键词，搜索校园服务、学生应用与校园事务';
@@ -343,6 +435,34 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get profileSignInHint => '登录与统一身份认证属于 Phase 6，本阶段使用演示身份。';
+
+  @override
+  String get profileSignIn => '登录';
+
+  @override
+  String get profileSignInDemo => '使用演示身份';
+
+  @override
+  String get profileSignOut => '退出登录';
+
+  @override
+  String get profileSignedInAs => '当前身份';
+
+  @override
+  String get profileSettings => '设置';
+
+  @override
+  String get profileSettingsIntro => '语言、外观与数据源。设置会在本机保存。';
+
+  @override
+  String get profileLoginIntro => '使用学校统一身份认证登录后，课程、事务与个人课表将与你的账号关联。';
+
+  @override
+  String get profileLoginDialogTitle => '登录';
+
+  @override
+  String get profileLoginDialogBody =>
+      '统一身份认证（SSO）属于 Phase 6。当前版本不保存任何学校密码（§19），仅提供演示身份用于浏览界面。';
 
   @override
   String get categoryOfficialHub => '官方入口';

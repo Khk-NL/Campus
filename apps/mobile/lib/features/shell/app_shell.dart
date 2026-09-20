@@ -1,20 +1,42 @@
-/// 应用外壳：底部 5 Tab 导航 / the app shell: the five-tab bottom navigation.
+/// 应用外壳：底部 4 Tab 导航 + 统一顶部栏 / the app shell: four bottom tabs and one top bar.
 ///
-/// §13-Phase 0 指定 Home / Search / Inbox / Store / Profile 五个入口。用
-/// `IndexedStack` 而不是按需构建，是为了让每个 Tab 的滚动位置与输入内容在切换后
-/// 保留——搜索页尤其需要。
+/// §13-Phase 0 原本指定五个入口（Home / Search / Inbox / Store / Profile）。本轮的界面
+/// 结构把这五个入口重新分工：
 ///
-/// Phase 0 fixes the five entries: Home, Search, Inbox, Store, Profile. `IndexedStack`
-/// rather than lazy construction keeps each tab's scroll position and typed input, which
-/// the search tab especially needs.
+///   * 底部栏只留 **首页 / 应用 / 课程表 / 我的** 四个；
+///   * **搜索** 与 **通知（事务）** 从底部栏移到顶部栏，成为**推入的路由页**。
+///
+/// 这么分不是审美偏好，而是依据"频率与层级"：搜索与通知是随时可能触发的**动作**，
+/// 放底部栏会长期占掉两个位置，而底部栏的位置应该留给"我平时待在哪儿"。顶部栏由
+/// 外壳统一持有（标题随当前 Tab 变化），因此从任何一个 Tab 都能一眼看到这两个入口，
+/// 且它们的行为完全一致。
+///
+/// Phase 0 fixed five entries (Home, Search, Inbox, Store, Profile). This round regroups
+/// them: the bottom bar keeps **Home, Apps, Timetable, Profile** only, while **Search** and
+/// **Notifications (inbox)** move up into the AppBar as **pushed routes**.
+///
+/// That split follows frequency and hierarchy rather than taste: search and notifications
+/// are *actions* that can fire from anywhere, and giving them two permanent bottom slots
+/// costs the bar its real job — the few places a user actually lives in. The shell owns one
+/// AppBar (its title follows the active tab), so both entries are reachable and behave
+/// identically from every tab.
+///
+/// 用 `IndexedStack` 而不是按需构建，是为了让每个 Tab 的滚动位置与已加载数据在切换后
+/// 保留——课程表切周次之后尤其需要。
+/// `IndexedStack` rather than lazy construction keeps each tab's scroll position and loaded
+/// data across switches, which the timetable especially needs after moving weeks.
 library;
 
+import 'package:campus_mobile/core/app_scope_repository.dart';
+import 'package:campus_mobile/core/theme/campus_theme.dart';
+import 'package:campus_mobile/data/models/transaction.dart';
+import 'package:campus_mobile/data/repositories/campus_repository.dart';
 import 'package:campus_mobile/features/home/home_page.dart';
-import 'package:campus_mobile/features/inbox/inbox_page.dart';
 import 'package:campus_mobile/features/profile/profile_page.dart';
-import 'package:campus_mobile/features/search/search_page.dart';
 import 'package:campus_mobile/features/shared/widgets/offline_banner.dart';
+import 'package:campus_mobile/features/shell/shell_routes.dart';
 import 'package:campus_mobile/features/store/store_page.dart';
+import 'package:campus_mobile/features/timetable/timetable_page.dart';
 import 'package:campus_mobile/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 
@@ -29,21 +51,74 @@ class AppShell extends StatefulWidget {
 class _AppShellState extends State<AppShell> {
   int _index = 0;
 
+  /// 是否有需要处理的待办——顶部通知入口据此显示小圆点。
+  /// Whether anything needs attention; it drives the dot on the notifications entry.
+  bool _hasOpenTasks = false;
+
+  /// 首次加载已经排过队了吗。/ whether the first load has already been queued.
+  bool _loadQueued = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // 依赖注入只能在 didChangeDependencies 里读（initState 里读会触发断言）。
+    // Injected dependencies are readable only in didChangeDependencies; reading them in
+    // initState trips an assertion.
+    if (_loadQueued) return;
+    _loadQueued = true;
+    _loadBadge();
+  }
+
+  Future<void> _loadBadge() async {
+    final CampusRepository repository = CampusRepositoryScope.read(context);
+    List<CampusTask> tasks;
+    try {
+      tasks = await repository.fetchTasks();
+    } on Exception {
+      tasks = const <CampusTask>[];
+    }
+    if (!mounted) return;
+    setState(() {
+      _hasOpenTasks = tasks.any((CampusTask task) => task.isOpen);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l10n = AppLocalizations.of(context);
     return Scaffold(
+      appBar: AppBar(
+        title: Text(_title(l10n)),
+        actions: <Widget>[
+          _AppBarAction(
+            icon: Icons.notifications_none,
+            tooltip: l10n.navNotification,
+            showDot: _hasOpenTasks,
+            onPressed: () => openNotificationCenter(context),
+          ),
+          _AppBarAction(
+            icon: Icons.search,
+            tooltip: l10n.navSearch,
+            onPressed: () => openSearch(context),
+          ),
+          const SizedBox(width: 4),
+        ],
+      ),
       body: Column(
         children: <Widget>[
+          // 离线横幅只在整个后端都不可达时出现；若只是某些接口还没上线，
+          // 由各区块自己的"演示数据"标记如实说明（见 home_page.dart）。
+          // The offline banner appears only when the whole backend is unreachable; when
+          // merely some endpoints are missing, each block states it with its own demo
+          // badge instead (see home_page.dart).
           const OfflineBanner(),
           Expanded(
             child: IndexedStack(
               index: _index,
               children: const <Widget>[
                 HomePage(),
-                SearchPage(),
-                InboxPage(),
                 StorePage(),
+                TimetablePage(),
                 ProfilePage(),
               ],
             ),
@@ -55,24 +130,19 @@ class _AppShellState extends State<AppShell> {
         onDestinationSelected: (int index) => setState(() => _index = index),
         destinations: <NavigationDestination>[
           NavigationDestination(
-            icon: const Icon(Icons.today_outlined),
-            selectedIcon: const Icon(Icons.today),
+            icon: const Icon(Icons.home_outlined),
+            selectedIcon: const Icon(Icons.home),
             label: l10n.navHome,
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.search_outlined),
-            selectedIcon: const Icon(Icons.search),
-            label: l10n.navSearch,
-          ),
-          NavigationDestination(
-            icon: const Icon(Icons.assignment_outlined),
-            selectedIcon: const Icon(Icons.assignment),
-            label: l10n.navInbox,
           ),
           NavigationDestination(
             icon: const Icon(Icons.apps_outlined),
             selectedIcon: const Icon(Icons.apps),
             label: l10n.navStore,
+          ),
+          NavigationDestination(
+            icon: const Icon(Icons.calendar_view_week_outlined),
+            selectedIcon: const Icon(Icons.calendar_view_week),
+            label: l10n.navTimetable,
           ),
           NavigationDestination(
             icon: const Icon(Icons.person_outline),
@@ -81,6 +151,56 @@ class _AppShellState extends State<AppShell> {
           ),
         ],
       ),
+    );
+  }
+
+  /// 标题随当前 Tab 变化 / the title follows the active tab.
+  String _title(AppLocalizations l10n) {
+    switch (_index) {
+      case 0:
+        return l10n.appTitle;
+      case 1:
+        return l10n.storeTitle;
+      case 2:
+        return l10n.timetableTitle;
+      default:
+        return l10n.profileTitle;
+    }
+  }
+}
+
+/// 顶部栏的一个图标入口 / one icon entry in the top bar.
+///
+/// 顶部栏是标准色实色块，因此图标必须是白色（主题的 AppBar 前景色），
+/// 小圆点用警告色以便在红底上仍然可辨。
+/// The top bar is a solid standard-colour block, so the icon must be white (the theme's
+/// AppBar foreground) and the dot uses the warning hue to stay visible on red.
+class _AppBarAction extends StatelessWidget {
+  const _AppBarAction({
+    required this.icon,
+    required this.tooltip,
+    required this.onPressed,
+    this.showDot = false,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onPressed;
+  final bool showDot;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    return IconButton(
+      icon: showDot
+          ? Badge(
+              smallSize: 8,
+              backgroundColor: theme.statusColors.warning,
+              child: Icon(icon),
+            )
+          : Icon(icon),
+      tooltip: tooltip,
+      onPressed: onPressed,
     );
   }
 }

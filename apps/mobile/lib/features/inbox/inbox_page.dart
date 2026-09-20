@@ -14,15 +14,23 @@ import 'package:campus_mobile/core/i18n/app_i18n.dart';
 import 'package:campus_mobile/data/models/transaction.dart';
 import 'package:campus_mobile/data/repositories/campus_repository.dart';
 import 'package:campus_mobile/features/inbox/widgets/transaction_details_sheet.dart';
-import 'package:campus_mobile/features/shared/widgets/offline_banner.dart';
 import 'package:campus_mobile/features/shared/widgets/state_views.dart';
 import 'package:campus_mobile/features/shared/widgets/transaction_tile.dart';
 import 'package:campus_mobile/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 
 /// 事务中心 / the inbox.
+///
+/// [pushed] 为 true 时表示这一页是**被推入的路由页**（顶部栏的通知入口），因此它自带
+/// 一个带返回按钮的 AppBar；为 false 时只返回内容，由外壳提供统一顶部栏。
+/// When [pushed] is true this screen is a **pushed route** (the top bar's notifications
+/// entry) and carries its own AppBar with a back button; when false it returns content
+/// only and the shell supplies the shared top bar.
 class InboxPage extends StatefulWidget {
-  const InboxPage({super.key});
+  const InboxPage({this.pushed = false, super.key});
+
+  /// 是否作为推入的路由页渲染 / whether to render as a pushed route.
+  final bool pushed;
 
   @override
   State<InboxPage> createState() => _InboxPageState();
@@ -84,72 +92,66 @@ class _InboxPageState extends State<InboxPage> {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l10n = AppLocalizations.of(context);
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.inboxTitle),
-        actions: const <Widget>[
-          Padding(
-            padding: EdgeInsets.only(right: 12),
-            child: Center(child: DataSourceBadge()),
-          ),
-        ],
-      ),
-      body: Column(
-        children: <Widget>[
-          _filterRow(l10n),
-          Expanded(
-            child: FutureBuilder<List<CampusTransaction>>(
-              future: _transactions,
-              builder: (
-                BuildContext context,
-                AsyncSnapshot<List<CampusTransaction>> snapshot,
-              ) {
-                if (snapshot.connectionState != ConnectionState.done) {
-                  return const LoadingView();
-                }
-                final Object? error = snapshot.error;
-                if (error != null) {
-                  return ErrorRetryView(details: error.toString(), onRetry: _load);
-                }
-                final List<CampusTransaction> all = snapshot.data ?? const <CampusTransaction>[];
-                final TransactionKind? filter = _filter;
-                final List<CampusTransaction> visible = filter == null
-                    ? all
-                    : <CampusTransaction>[
-                        for (final CampusTransaction item in all)
-                          if (item.kind == filter) item,
-                      ];
-                if (visible.isEmpty) {
-                  return EmptyStateView(
-                    message: l10n.inboxEmpty,
-                    icon: Icons.assignment_outlined,
-                  );
-                }
-                return RefreshIndicator(
-                  onRefresh: () async => _load(),
-                  child: ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
-                    itemCount: visible.length,
-                    separatorBuilder: (BuildContext context, int index) =>
-                        const Divider(),
-                    itemBuilder: (BuildContext context, int index) {
-                      final CampusTransaction transaction = visible[index];
-                      return TransactionTile(
-                        transaction: transaction,
-                        trailing: const Icon(Icons.chevron_right, size: 18),
-                        onTap: () => showTransactionDetails(
-                          context,
-                          transaction: transaction,
-                        ),
-                      );
-                    },
-                  ),
+    final Widget body = Column(
+      children: <Widget>[
+        _filterRow(l10n),
+        Expanded(
+          child: FutureBuilder<List<CampusTransaction>>(
+            future: _transactions,
+            builder: (
+              BuildContext context,
+              AsyncSnapshot<List<CampusTransaction>> snapshot,
+            ) {
+              if (snapshot.connectionState != ConnectionState.done) {
+                return const LoadingView();
+              }
+              final Object? error = snapshot.error;
+              if (error != null) {
+                return ErrorRetryView(details: error.toString(), onRetry: _load);
+              }
+              final List<CampusTransaction> all = snapshot.data ?? const <CampusTransaction>[];
+              final TransactionKind? filter = _filter;
+              final List<CampusTransaction> visible = filter == null
+                  ? all
+                  : <CampusTransaction>[
+                      for (final CampusTransaction item in all)
+                        if (item.kind == filter) item,
+                    ];
+              if (visible.isEmpty) {
+                return EmptyStateView(
+                  message: l10n.inboxEmpty,
+                  icon: Icons.assignment_outlined,
                 );
-              },
-            ),
+              }
+              return RefreshIndicator(
+                onRefresh: () async => _load(),
+                child: ListView.separated(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+                  itemCount: visible.length,
+                  separatorBuilder: (BuildContext context, int index) =>
+                      const Divider(),
+                  itemBuilder: (BuildContext context, int index) {
+                    final CampusTransaction transaction = visible[index];
+                    return TransactionTile(
+                      transaction: transaction,
+                      trailing: const Icon(Icons.chevron_right, size: 18),
+                      onTap: () => showTransactionDetails(
+                        context,
+                        transaction: transaction,
+                      ),
+                    );
+                  },
+                ),
+              );
+            },
           ),
-        ],
-      ),
+        ),
+      ],
+    );
+    if (!widget.pushed) return body;
+    return Scaffold(
+      appBar: AppBar(title: Text(l10n.navNotification)),
+      body: body,
     );
   }
 

@@ -32,7 +32,15 @@ class AppState extends ChangeNotifier {
     required ThemeMode initialThemeMode,
   })  : _preferences = preferences,
         _locale = initialLocale,
-        _themeMode = initialThemeMode;
+        _themeMode = initialThemeMode {
+    // 数据源模式是仓库的内部状态，但界面要跟着它变：后端探测完成或某一类接口被判定
+    // 未实现时，"演示数据"标记必须立刻出现或消失。因此把仓库的通知转发到本状态。
+    // The data source mode lives inside the repository, yet the UI follows it: when the
+    // backend probe finishes or an endpoint is found unimplemented, the demo-data badges
+    // must appear or vanish at once, so the repository's notifications are forwarded here.
+    repository.modeChanges.addListener(_onDataSourceChanged);
+    repository.sourceChanges.addListener(_onDataSourceChanged);
+  }
 
   /// 数据访问入口。UI 只认这个接口。/ the data entry point the UI depends on.
   final CampusRepository repository;
@@ -68,6 +76,17 @@ class AppState extends ChangeNotifier {
   /// 数据源模式的实时值（离线横幅据此显示）。
   /// The live data source mode, read by the offline banner.
   DataSourceMode get dataSourceMode => repository.mode;
+
+  /// 某一类数据来自哪里（首页 / 课程表据此给每块内容单独标注"演示数据"）。
+  ///
+  /// 必须能分来源回答：后端只有服务目录接口，课程 / 待办 / 活动 / 公告都还是演示数据。
+  /// 用一个全局模式去标注，就会把真实的目录和演示的课程混为一谈。
+  ///
+  /// Where one kind of data comes from, so Home and the timetable can label each block
+  /// separately. It has to be per source: the backend serves the catalogue while courses,
+  /// tasks, events and notices are still demo data, and one global mode would conflate the
+  /// real catalogue with invented courses.
+  DataSourceMode sourceMode(DataSourceSource source) => repository.sourceMode(source);
 
   /// 本次构建落地的高校 id（来自 `core/config/universities/`）。
   ///
@@ -131,11 +150,43 @@ class AppState extends ChangeNotifier {
     await loadIdentity();
   }
 
+  /// 以演示身份登录。
+  ///
+  /// §19 禁止保存学校密码、禁止绕过学校认证，真正的统一身份认证属于 Phase 6。因此这个
+  /// "登录"只是把演示身份装进界面状态：它让「我的」与首页有明确身份可显示，同时**不**
+  /// 触碰任何凭据。真实登录接入时，需要改的只有这一个方法。
+  ///
+  /// 注意：身份从仓库取。用内置演示数据的仓库会给出演示同学；后端仓库目前没有用户接口，
+  /// 因此返回 null，"我的"会如实保持未登录——这比编造一个用户更诚实。
+  ///
+  /// Sign in as the demo identity.
+  ///
+  /// §19 forbids storing school passwords or bypassing school authentication, and real SSO
+  /// is Phase 6 work. So this "sign-in" only loads the identity into the UI state, touching
+  /// no credential, and it is the single method real sign-in will replace.
+  ///
+  /// Note that the identity comes from the repository: the in-memory repository yields the
+  /// demo student, while the remote one has no user endpoint yet and returns null, so
+  /// Profile honestly stays signed out rather than inventing a user.
+  Future<void> signInAsDemo() => loadIdentity();
+
+  /// 退出登录：清空本地身份，但**不动**任何服务数据。
+  /// Sign out: clears the local identity and touches no service data.
+  Future<void> signOut() async {
+    _user = null;
+    notifyListeners();
+  }
+
   @override
   void dispose() {
+    repository.modeChanges.removeListener(_onDataSourceChanged);
+    repository.sourceChanges.removeListener(_onDataSourceChanged);
     repository.dispose();
     super.dispose();
   }
+
+  /// 转发数据源变化 / forwards a data source change.
+  void _onDataSourceChanged() => notifyListeners();
 }
 
 /// 全局访问点 / the app-wide access point.

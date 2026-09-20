@@ -28,7 +28,54 @@ class AppLocalizationsEn extends AppLocalizations {
   String get navStore => 'Store';
 
   @override
+  String get navTimetable => 'Timetable';
+
+  @override
   String get navProfile => 'Profile';
+
+  @override
+  String get navNotification => 'Notifications';
+
+  @override
+  String get dataSourceLabelServices => 'Campus services';
+
+  @override
+  String get dataSourceLabelCourses => 'Courses';
+
+  @override
+  String get dataSourceLabelTasks => 'Tasks';
+
+  @override
+  String get dataSourceLabelEvents => 'Events';
+
+  @override
+  String get dataSourceLabelAnnouncements => 'Notices';
+
+  @override
+  String get dataSourceLabelApps => 'Student apps';
+
+  @override
+  String demoDataNotice(String source) {
+    return '$source · demo data';
+  }
+
+  @override
+  String get demoDataExplanation =>
+      'The backend does not serve this block yet, so built-in demo data is shown and nothing is synced.';
+
+  @override
+  String get dataSourceServicesOnline => 'Catalogue · backend connected';
+
+  @override
+  String get dataSourceServicesMock => 'Catalogue · demo data';
+
+  @override
+  String get dataSourceCatalogueOnline =>
+      'The service catalogue comes from the backend API';
+
+  @override
+  String get dataSourceDemoExplanation =>
+      'Courses, tasks, events and notices have no backend endpoint yet; they all come from the built-in demo dataset.';
 
   @override
   String get actionRetry => 'Retry';
@@ -167,6 +214,51 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get timetableTitle => 'Timetable';
+
+  @override
+  String timetableWeekLabel(int week) {
+    return 'Week $week';
+  }
+
+  @override
+  String timetableWeekRange(int start, int end) {
+    return 'Weeks $start–$end';
+  }
+
+  @override
+  String get timetableCurrentWeek => 'This week';
+
+  @override
+  String get timetablePreviousWeek => 'Previous week';
+
+  @override
+  String get timetableNextWeek => 'Next week';
+
+  @override
+  String timetablePeriodLabel(int period) {
+    return 'Period $period';
+  }
+
+  @override
+  String get timetableNoCourses => 'No classes this week';
+
+  @override
+  String get timetableUnscheduled => 'Not scheduled';
+
+  @override
+  String get timetableCourseTasks => 'Course tasks';
+
+  @override
+  String get timetableNoCourseTasks => 'No course-related tasks';
+
+  @override
+  String get timetableCourseNotices => 'Course notices';
+
+  @override
+  String get timetableNoCourseNotices => 'No course-related notices';
+
+  @override
   String relativeOverdue(Object days) {
     return 'Overdue by $days d';
   }
@@ -187,6 +279,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get searchHint => 'Search services, apps, courses, transactions';
+
+  @override
+  String get searchTitle => 'Search';
 
   @override
   String get searchEmptyPrompt =>
@@ -352,6 +447,36 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get profileSignInHint =>
       'Sign-in and SSO arrive in Phase 6; this phase uses a demo identity.';
+
+  @override
+  String get profileSignIn => 'Sign in';
+
+  @override
+  String get profileSignInDemo => 'Use demo identity';
+
+  @override
+  String get profileSignOut => 'Sign out';
+
+  @override
+  String get profileSignedInAs => 'Signed in as';
+
+  @override
+  String get profileSettings => 'Settings';
+
+  @override
+  String get profileSettingsIntro =>
+      'Language, appearance and data source. Settings are stored on this device.';
+
+  @override
+  String get profileLoginIntro =>
+      'Signing in with the university\'s single sign-on links courses, transactions and your timetable to your account.';
+
+  @override
+  String get profileLoginDialogTitle => 'Sign in';
+
+  @override
+  String get profileLoginDialogBody =>
+      'Single sign-on belongs to Phase 6. This version stores no school password at all (§19); it offers a demo identity for browsing the interface.';
 
   @override
   String get categoryOfficialHub => 'Official hub';

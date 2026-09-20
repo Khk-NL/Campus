@@ -20,6 +20,8 @@ import 'package:campus_mobile/data/models/campus_service.dart';
 import 'package:campus_mobile/data/models/course.dart';
 import 'package:campus_mobile/data/models/transaction.dart';
 import 'package:campus_mobile/data/repositories/campus_repository.dart';
+import 'package:campus_mobile/data/repositories/data_source_mode.dart';
+import 'package:campus_mobile/data/repositories/mock_campus_data.dart';
 import 'package:campus_mobile/features/home/home_view_model.dart';
 import 'package:campus_mobile/features/home/widgets/quick_access_grid.dart';
 import 'package:campus_mobile/features/home/widgets/task_tile.dart';
@@ -109,32 +111,26 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l10n = AppLocalizations.of(context);
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.appTitle),
-        actions: const <Widget>[
-          Padding(
-            padding: EdgeInsets.only(right: 12),
-            child: Center(child: DataSourceBadge()),
-          ),
+    // 本页只返回内容：顶部栏（含通知 / 搜索入口）由 AppShell 统一提供，所以四个 Tab
+    // 的顶部栏完全一致。全页只有一条滚动列表，因此只留一个 RefreshIndicator。
+    // This screen returns content only: the shell owns the top bar (with the notifications
+    // and search entries) so all four tabs share it. One scrollable means one
+    // RefreshIndicator.
+    return RefreshIndicator(
+      onRefresh: () async => _load(),
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+        children: <Widget>[
+          _Greeting(text: l10n.homeGreeting),
+          const SizedBox(height: 12),
+          _todaySection(),
+          const SizedBox(height: 16),
+          _tasksSection(),
+          const SizedBox(height: 16),
+          _campusSection(),
+          const SizedBox(height: 16),
+          _quickAccessSection(),
         ],
-      ),
-      body: RefreshIndicator(
-        onRefresh: () async => _load(),
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-          children: <Widget>[
-            _Greeting(text: l10n.homeGreeting),
-            const SizedBox(height: 12),
-            _todaySection(),
-            const SizedBox(height: 16),
-            _tasksSection(),
-            const SizedBox(height: 16),
-            _campusSection(),
-            const SizedBox(height: 16),
-            _quickAccessSection(),
-          ],
-        ),
       ),
     );
   }
@@ -144,6 +140,7 @@ class _HomePageState extends State<HomePage> {
     return HomeSection<({List<Course> courses, List<CampusEvent> events})>(
       title: l10n.homeToday,
       icon: Icons.today_outlined,
+      trailing: const DemoSourceBadge(source: DataSourceSource.courses),
       future: Future.wait<Object>(<Future<Object>>[_courses, _events]).then(
         (List<Object> results) => (
           courses: results[0] as List<Course>,
@@ -153,8 +150,16 @@ class _HomePageState extends State<HomePage> {
       emptyMessage: l10n.homeNoTodayItems,
       builder: (BuildContext context, ({List<Course> courses, List<CampusEvent> events}) data) {
         final DateTime now = DateTime.now();
+        final int week = DemoTerm.weekOf(now);
         final List<HomeTodayItem> items = <HomeTodayItem>[
-          for (final Course course in data.courses) fromCourse(course),
+          // §12 的 Today 是"今天的课"：只有真在今天上、且本周确实结课的课程才算数，
+          // 否则首页会把整学期的课都摊在"今日"里。
+          // §12's Today means today's classes, so only courses that really meet today and
+          // are still running this week qualify; otherwise the whole term lands under
+          // "Today".
+          for (final Course course in data.courses)
+            if (course.weekday == now.weekday && course.meetsInWeek(week))
+              fromCourse(course),
           for (final CampusEvent event in data.events)
             if (event.occursOn(now))
               fromEvent(event, timeLabel: formatClock(event.startAt)),
@@ -175,6 +180,7 @@ class _HomePageState extends State<HomePage> {
     return HomeSection<List<CampusTask>>(
       title: l10n.homeTasks,
       icon: Icons.checklist_outlined,
+      trailing: const DemoSourceBadge(source: DataSourceSource.tasks),
       future: _tasks,
       emptyMessage: l10n.homeNoTasks,
       builder: (BuildContext context, List<CampusTask> tasks) {
@@ -206,6 +212,7 @@ class _HomePageState extends State<HomePage> {
     return HomeSection<List<Announcement>>(
       title: l10n.homeCampus,
       icon: Icons.campaign_outlined,
+      trailing: const DemoSourceBadge(source: DataSourceSource.announcements),
       future: _announcements,
       emptyMessage: l10n.homeNoCampusItems,
       builder: (BuildContext context, List<Announcement> announcements) {
@@ -232,6 +239,7 @@ class _HomePageState extends State<HomePage> {
     return HomeSection<List<CampusService>>(
       title: l10n.homeQuickAccess,
       icon: Icons.grid_view_outlined,
+      trailing: const DataSourceBadge(),
       future: _quickAccess,
       emptyMessage: l10n.stateEmpty,
       builder: (BuildContext context, List<CampusService> services) {

@@ -154,4 +154,30 @@ extension TransactionLocalization on AppLocalizations {
         return profileDataSourceMock;
     }
   }
+
+  /// 单类数据的名称：「课程」「待办」「公告」……
+  ///
+  /// 与 [dataSourceMode] 配对使用：后者只说"这一块数据是演示数据"，前者补上"哪一块"，
+  /// 于是首页可以在服务目录显示"已连接后端服务"的同时，把课程区标成"演示数据 · 课程"。
+  ///
+  /// The name of one data kind ("Courses", "Tasks", "Notices" …). It pairs with
+  /// [dataSourceMode]: that one says a block is demo data, this one says which block, so
+  /// Home can label the catalogue "connected" while marking the course block "demo data ·
+  /// courses".
+  String dataSourceSource(DataSourceSource source) {
+    switch (source) {
+      case DataSourceSource.services:
+        return dataSourceLabelServices;
+      case DataSourceSource.courses:
+        return dataSourceLabelCourses;
+      case DataSourceSource.tasks:
+        return dataSourceLabelTasks;
+      case DataSourceSource.events:
+        return dataSourceLabelEvents;
+      case DataSourceSource.announcements:
+        return dataSourceLabelAnnouncements;
+      case DataSourceSource.apps:
+        return dataSourceLabelApps;
+    }
+  }
 }

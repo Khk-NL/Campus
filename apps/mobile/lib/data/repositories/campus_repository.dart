@@ -68,6 +68,21 @@ abstract class CampusRepository {
   /// 模式变化通知（离线横幅据此重建）/ notifies when [mode] changes.
   Listenable get modeChanges;
 
+  /// 某一类数据当前来自哪里。UI 据此对每一块内容单独标注"演示数据"。
+  ///
+  /// 必须按来源分别回答：后端只有服务目录接口，课程 / 待办 / 活动 / 公告都得回退到
+  /// 演示数据，但服务目录本身是真实的。用整体 [mode] 去标注会让用户以为课程也是真的。
+  ///
+  /// Where one kind of data currently comes from, so the UI can label each block
+  /// separately. This has to be per source: the backend only serves the catalogue, so
+  /// courses, tasks, events and announcements fall back to demo data while the catalogue
+  /// is real. Labelling with the repository-wide [mode] would imply the courses are real
+  /// too.
+  DataSourceMode sourceMode(DataSourceSource source);
+
+  /// 数据来源变化通知 / notifies when any source mode changes.
+  Listenable get sourceChanges;
+
   /// 当前登录用户；没有登录态时返回 null。/ the signed-in user, null when absent.
   Future<AppUser?> fetchCurrentUser();
 

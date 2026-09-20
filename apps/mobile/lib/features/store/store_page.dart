@@ -14,7 +14,6 @@ import 'package:campus_mobile/core/i18n/app_i18n.dart';
 import 'package:campus_mobile/core/theme/campus_theme.dart';
 import 'package:campus_mobile/data/models/campus_app.dart';
 import 'package:campus_mobile/data/repositories/campus_repository.dart';
-import 'package:campus_mobile/features/shared/widgets/offline_banner.dart';
 import 'package:campus_mobile/features/shared/widgets/state_views.dart';
 import 'package:campus_mobile/features/store/widgets/app_details_sheet.dart';
 import 'package:campus_mobile/l10n/app_localizations.dart';
@@ -69,35 +68,29 @@ class _StorePageState extends State<StorePage> {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l10n = AppLocalizations.of(context);
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.storeTitle),
-        actions: const <Widget>[
-          Padding(
-            padding: EdgeInsets.only(right: 12),
-            child: Center(child: DataSourceBadge()),
-          ),
-        ],
-      ),
-      body: FutureBuilder<List<CampusApp>>(
-        future: _apps,
-        builder: (BuildContext context, AsyncSnapshot<List<CampusApp>> snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
-            return const LoadingView();
-          }
-          final Object? error = snapshot.error;
-          if (error != null) {
-            return ErrorRetryView(details: error.toString(), onRetry: _load);
-          }
-          final List<CampusApp> apps = snapshot.data ?? const <CampusApp>[];
-          if (apps.isEmpty) {
-            return EmptyStateView(
-              message: l10n.storeEmpty,
-              icon: Icons.apps_outlined,
-            );
-          }
-          return ListView(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+    // 只返回内容：顶部栏由 AppShell 统一提供（应用 Tab）。
+    // Content only: the shell supplies the shared top bar for the Apps tab.
+    return FutureBuilder<List<CampusApp>>(
+      future: _apps,
+      builder: (BuildContext context, AsyncSnapshot<List<CampusApp>> snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const LoadingView();
+        }
+        final Object? error = snapshot.error;
+        if (error != null) {
+          return ErrorRetryView(details: error.toString(), onRetry: _load);
+        }
+        final List<CampusApp> apps = snapshot.data ?? const <CampusApp>[];
+        if (apps.isEmpty) {
+          return EmptyStateView(
+            message: l10n.storeEmpty,
+            icon: Icons.apps_outlined,
+          );
+        }
+        return RefreshIndicator(
+          onRefresh: () async => _load(),
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
             children: <Widget>[
               // 明确说明本阶段的边界，避免用户以为点了就能装。
               // State this phase's limit, so nobody expects an install button.
@@ -116,9 +109,9 @@ class _StorePageState extends State<StorePage> {
                 const SizedBox(height: 10),
               ],
             ],
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 }

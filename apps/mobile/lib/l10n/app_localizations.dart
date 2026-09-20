@@ -134,11 +134,95 @@ abstract class AppLocalizations {
   /// **'应用'**
   String get navStore;
 
+  /// No description provided for @navTimetable.
+  ///
+  /// In zh, this message translates to:
+  /// **'课程表'**
+  String get navTimetable;
+
   /// No description provided for @navProfile.
   ///
   /// In zh, this message translates to:
   /// **'我的'**
   String get navProfile;
+
+  /// No description provided for @navNotification.
+  ///
+  /// In zh, this message translates to:
+  /// **'通知'**
+  String get navNotification;
+
+  /// 数据来源的名称，用于给每一块内容单独标注 / the name of one data source, used to label each block
+  ///
+  /// In zh, this message translates to:
+  /// **'校园服务'**
+  String get dataSourceLabelServices;
+
+  /// No description provided for @dataSourceLabelCourses.
+  ///
+  /// In zh, this message translates to:
+  /// **'课程'**
+  String get dataSourceLabelCourses;
+
+  /// No description provided for @dataSourceLabelTasks.
+  ///
+  /// In zh, this message translates to:
+  /// **'待办'**
+  String get dataSourceLabelTasks;
+
+  /// No description provided for @dataSourceLabelEvents.
+  ///
+  /// In zh, this message translates to:
+  /// **'活动'**
+  String get dataSourceLabelEvents;
+
+  /// No description provided for @dataSourceLabelAnnouncements.
+  ///
+  /// In zh, this message translates to:
+  /// **'公告'**
+  String get dataSourceLabelAnnouncements;
+
+  /// No description provided for @dataSourceLabelApps.
+  ///
+  /// In zh, this message translates to:
+  /// **'学生应用'**
+  String get dataSourceLabelApps;
+
+  /// 该块内容来自内置演示数据 / this block comes from the built-in demo dataset
+  ///
+  /// In zh, this message translates to:
+  /// **'{source} · 演示数据'**
+  String demoDataNotice(String source);
+
+  /// 为什么这块是演示数据（§13-Phase 2 才建表）/ why this block is demo data
+  ///
+  /// In zh, this message translates to:
+  /// **'该块数据后端尚未提供接口，当前显示内置演示数据，不会同步。'**
+  String get demoDataExplanation;
+
+  /// No description provided for @dataSourceServicesOnline.
+  ///
+  /// In zh, this message translates to:
+  /// **'校园服务 · 已连接后端'**
+  String get dataSourceServicesOnline;
+
+  /// No description provided for @dataSourceServicesMock.
+  ///
+  /// In zh, this message translates to:
+  /// **'校园服务 · 演示数据'**
+  String get dataSourceServicesMock;
+
+  /// No description provided for @dataSourceCatalogueOnline.
+  ///
+  /// In zh, this message translates to:
+  /// **'服务目录来自后端 API'**
+  String get dataSourceCatalogueOnline;
+
+  /// No description provided for @dataSourceDemoExplanation.
+  ///
+  /// In zh, this message translates to:
+  /// **'课程、待办、活动与公告后端尚未提供接口，均来自内置演示数据。'**
+  String get dataSourceDemoExplanation;
 
   /// No description provided for @actionRetry.
   ///
@@ -374,6 +458,84 @@ abstract class AppLocalizations {
   /// **'{count, plural, other{{count} 项日程}}'**
   String homeEventCount(num count);
 
+  /// No description provided for @timetableTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'课程表'**
+  String get timetableTitle;
+
+  /// 教学周（§9）/ the teaching week
+  ///
+  /// In zh, this message translates to:
+  /// **'第 {week} 周'**
+  String timetableWeekLabel(int week);
+
+  /// 课程的教学周范围 / a course's teaching week range
+  ///
+  /// In zh, this message translates to:
+  /// **'第 {start}–{end} 周'**
+  String timetableWeekRange(int start, int end);
+
+  /// No description provided for @timetableCurrentWeek.
+  ///
+  /// In zh, this message translates to:
+  /// **'本周'**
+  String get timetableCurrentWeek;
+
+  /// No description provided for @timetablePreviousWeek.
+  ///
+  /// In zh, this message translates to:
+  /// **'上一周'**
+  String get timetablePreviousWeek;
+
+  /// No description provided for @timetableNextWeek.
+  ///
+  /// In zh, this message translates to:
+  /// **'下一周'**
+  String get timetableNextWeek;
+
+  /// 节次 / a class period
+  ///
+  /// In zh, this message translates to:
+  /// **'第 {period} 节'**
+  String timetablePeriodLabel(int period);
+
+  /// No description provided for @timetableNoCourses.
+  ///
+  /// In zh, this message translates to:
+  /// **'本周没有课程'**
+  String get timetableNoCourses;
+
+  /// No description provided for @timetableUnscheduled.
+  ///
+  /// In zh, this message translates to:
+  /// **'未排课'**
+  String get timetableUnscheduled;
+
+  /// No description provided for @timetableCourseTasks.
+  ///
+  /// In zh, this message translates to:
+  /// **'课程待办'**
+  String get timetableCourseTasks;
+
+  /// No description provided for @timetableNoCourseTasks.
+  ///
+  /// In zh, this message translates to:
+  /// **'没有课程相关待办'**
+  String get timetableNoCourseTasks;
+
+  /// No description provided for @timetableCourseNotices.
+  ///
+  /// In zh, this message translates to:
+  /// **'课程通知'**
+  String get timetableCourseNotices;
+
+  /// No description provided for @timetableNoCourseNotices.
+  ///
+  /// In zh, this message translates to:
+  /// **'没有课程相关通知'**
+  String get timetableNoCourseNotices;
+
   /// No description provided for @relativeOverdue.
   ///
   /// In zh, this message translates to:
@@ -409,6 +571,12 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'搜索服务、应用、课程、事务'**
   String get searchHint;
+
+  /// No description provided for @searchTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'搜索'**
+  String get searchTitle;
 
   /// No description provided for @searchEmptyPrompt.
   ///
@@ -721,6 +889,60 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'登录与统一身份认证属于 Phase 6，本阶段使用演示身份。'**
   String get profileSignInHint;
+
+  /// No description provided for @profileSignIn.
+  ///
+  /// In zh, this message translates to:
+  /// **'登录'**
+  String get profileSignIn;
+
+  /// No description provided for @profileSignInDemo.
+  ///
+  /// In zh, this message translates to:
+  /// **'使用演示身份'**
+  String get profileSignInDemo;
+
+  /// No description provided for @profileSignOut.
+  ///
+  /// In zh, this message translates to:
+  /// **'退出登录'**
+  String get profileSignOut;
+
+  /// No description provided for @profileSignedInAs.
+  ///
+  /// In zh, this message translates to:
+  /// **'当前身份'**
+  String get profileSignedInAs;
+
+  /// No description provided for @profileSettings.
+  ///
+  /// In zh, this message translates to:
+  /// **'设置'**
+  String get profileSettings;
+
+  /// No description provided for @profileSettingsIntro.
+  ///
+  /// In zh, this message translates to:
+  /// **'语言、外观与数据源。设置会在本机保存。'**
+  String get profileSettingsIntro;
+
+  /// No description provided for @profileLoginIntro.
+  ///
+  /// In zh, this message translates to:
+  /// **'使用学校统一身份认证登录后，课程、事务与个人课表将与你的账号关联。'**
+  String get profileLoginIntro;
+
+  /// No description provided for @profileLoginDialogTitle.
+  ///
+  /// In zh, this message translates to:
+  /// **'登录'**
+  String get profileLoginDialogTitle;
+
+  /// No description provided for @profileLoginDialogBody.
+  ///
+  /// In zh, this message translates to:
+  /// **'统一身份认证（SSO）属于 Phase 6。当前版本不保存任何学校密码（§19），仅提供演示身份用于浏览界面。'**
+  String get profileLoginDialogBody;
 
   /// No description provided for @categoryOfficialHub.
   ///

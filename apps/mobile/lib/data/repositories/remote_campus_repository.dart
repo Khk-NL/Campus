@@ -31,12 +31,23 @@ class RemoteCampusRepository implements CampusRepository {
   final CampusApiClient _api;
   final ValueNotifier<DataSourceMode> _mode =
       ValueNotifier<DataSourceMode>(DataSourceMode.remote);
+  final ValueNotifier<int> _sourceNotifier = ValueNotifier<int>(0);
 
   @override
   DataSourceMode get mode => _mode.value;
 
   @override
   Listenable get modeChanges => _mode;
+
+  /// 远端实现永远如实回答"这一类来自后端"：真到了它要回退的时候，
+  /// [OfflineFirstCampusRepository] 会覆盖这个判断。
+  /// The remote implementation always claims its sources come from the backend; when a
+  /// fallback really happens, [OfflineFirstCampusRepository] overrides that answer.
+  @override
+  DataSourceMode sourceMode(DataSourceSource source) => DataSourceMode.remote;
+
+  @override
+  Listenable get sourceChanges => _sourceNotifier;
 
   /// 探测后端是否可达（`GET /api/health`）。不可达时抛 [CampusApiException]。
   /// Probe whether the backend is reachable via `GET /api/health`; throws
@@ -83,23 +94,40 @@ class RemoteCampusRepository implements CampusRepository {
   Future<Map<String, LocalizedText>> fetchServiceDescriptions() async => const {};
 
   @override
-  Future<List<Course>> fetchCourses() async => const <Course>[];
+  Future<List<Course>> fetchCourses() => _unimplemented('/courses');
 
   @override
-  Future<List<Announcement>> fetchAnnouncements() async => const <Announcement>[];
+  Future<List<Announcement>> fetchAnnouncements() => _unimplemented('/announcements');
 
   @override
-  Future<List<CampusEvent>> fetchEvents() async => const <CampusEvent>[];
+  Future<List<CampusEvent>> fetchEvents() => _unimplemented('/events');
 
   @override
-  Future<List<CampusTask>> fetchTasks() async => const <CampusTask>[];
+  Future<List<CampusTask>> fetchTasks() => _unimplemented('/tasks');
 
   @override
-  Future<List<CampusApp>> fetchCampusApps() async => const <CampusApp>[];
+  Future<List<CampusApp>> fetchCampusApps() => _unimplemented('/apps');
+
+  /// 明确抛出"接口尚未发布"，而不是偷偷返回空列表。
+  ///
+  /// 返回空列表会把"后端还没有这个接口"伪装成"你确实没有课程"，用户看到的是一个说谎
+  /// 的空状态；而抛出这个异常，上层就能换成演示数据并如实标注。
+  ///
+  /// Throw "endpoint not published yet" explicitly rather than quietly returning an empty
+  /// list: an empty list disguises "the backend has no such endpoint" as "you really have
+  /// no courses", which is a lying empty state. Throwing lets the layer above swap in demo
+  /// data and label it honestly.
+  Future<List<T>> _unimplemented<T>(String path) async {
+    throw UnimplementedEndpointException(
+      'The backend does not publish $path yet',
+      statusCode: 404,
+    );
+  }
 
   @override
   void dispose() {
     _mode.dispose();
+    _sourceNotifier.dispose();
     _api.dispose();
   }
 }

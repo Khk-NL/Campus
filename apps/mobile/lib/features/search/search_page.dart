@@ -21,7 +21,6 @@ import 'package:campus_mobile/data/repositories/campus_repository.dart';
 import 'package:campus_mobile/features/inbox/widgets/transaction_details_sheet.dart';
 import 'package:campus_mobile/features/search/search_index.dart';
 import 'package:campus_mobile/features/shared/widgets/course_details_sheet.dart';
-import 'package:campus_mobile/features/shared/widgets/offline_banner.dart';
 import 'package:campus_mobile/features/shared/widgets/service_details_sheet.dart';
 import 'package:campus_mobile/features/shared/widgets/state_views.dart';
 import 'package:campus_mobile/features/store/widgets/app_details_sheet.dart';
@@ -29,8 +28,15 @@ import 'package:campus_mobile/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 
 /// 搜索页 / the search screen.
+/// [pushed] 为 true 时表示它是顶部栏搜索入口推入的路由页，因此自带 AppBar 与返回按钮；
+/// 为 false 时只返回内容，由外壳提供统一的顶部栏。
+/// When [pushed] is true it is the route opened by the top bar's search entry and carries
+/// its own AppBar with a back button; otherwise it returns content only.
 class SearchPage extends StatefulWidget {
-  const SearchPage({super.key});
+  const SearchPage({this.pushed = false, super.key});
+
+  /// 是否作为推入的路由页渲染 / whether to render as a pushed route.
+  final bool pushed;
 
   @override
   State<SearchPage> createState() => _SearchPageState();
@@ -91,51 +97,55 @@ class _SearchPageState extends State<SearchPage> {
       categoryLabel: l10n.serviceCategory,
       kindLabel: l10n.transactionKind,
     );
-    if (mounted) setState(() => _index = index);
+    // 块体而非箭头体：`setState(() => _index = index)` 会把赋值的结果（非 null）当作
+    // setState 回调的返回值，触发 "setState() callback argument returned a Future" 那类
+    // 断言。凡是 setState 里做赋值，一律用块体。
+    // A block body, not an arrow: `setState(() => _index = index)` hands setState the
+    // assignment's non-null result, tripping the same family of assertions as assigning a
+    // Future does. Every assignment inside setState uses a block body here.
+    if (mounted) {
+      setState(() {
+        _index = index;
+      });
+    }
     return index;
   }
 
   @override
   Widget build(BuildContext context) {
     final AppLocalizations l10n = AppLocalizations.of(context);
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.navSearch),
-        actions: const <Widget>[
-          Padding(
-            padding: EdgeInsets.only(right: 12),
-            child: Center(child: DataSourceBadge()),
-          ),
-        ],
-      ),
-      body: Column(
-        children: <Widget>[
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-            child: TextField(
-              controller: _controller,
-              autofocus: false,
-              textInputAction: TextInputAction.search,
-              onChanged: (String value) => setState(() => _query = value),
-              decoration: InputDecoration(
-                hintText: l10n.searchHint,
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: _query.isEmpty
-                    ? null
-                    : IconButton(
-                        icon: const Icon(Icons.clear),
-                        tooltip: l10n.actionClear,
-                        onPressed: () {
-                          _controller.clear();
-                          setState(() => _query = '');
-                        },
-                      ),
-              ),
+    final Widget body = Column(
+      children: <Widget>[
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+          child: TextField(
+            controller: _controller,
+            autofocus: false,
+            textInputAction: TextInputAction.search,
+            onChanged: (String value) => setState(() => _query = value),
+            decoration: InputDecoration(
+              hintText: l10n.searchHint,
+              prefixIcon: const Icon(Icons.search),
+              suffixIcon: _query.isEmpty
+                  ? null
+                  : IconButton(
+                      icon: const Icon(Icons.clear),
+                      tooltip: l10n.actionClear,
+                      onPressed: () {
+                        _controller.clear();
+                        setState(() => _query = '');
+                      },
+                    ),
             ),
           ),
-          Expanded(child: _results(l10n)),
-        ],
-      ),
+        ),
+        Expanded(child: _results(l10n)),
+      ],
+    );
+    if (!widget.pushed) return body;
+    return Scaffold(
+      appBar: AppBar(title: Text(l10n.searchTitle)),
+      body: body,
     );
   }
 
