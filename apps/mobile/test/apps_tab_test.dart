@@ -242,6 +242,21 @@ void main() {
       findsOneWidget,
     );
 
+    // 开源仓库入口：学生应用有（它是取信凭据），学校服务没有——服务根本没有仓库字段，
+    // 因此不能出现一个指向空地址的按钮。
+    // The repository affordance: student apps have one (it is the trust signal), school services
+    // do not — a service has no repository field, so no button may point at nothing.
+    expect(
+      find.descendant(of: row('空教室查询'), matching: find.byIcon(Icons.code)),
+      findsOneWidget,
+      reason: '挂了仓库的学生应用要给出可见入口',
+    );
+    expect(
+      find.descendant(of: row('教务处'), matching: find.byIcon(Icons.code)),
+      findsNothing,
+      reason: '学校服务没有仓库，不该出现空链接按钮',
+    );
+
     state.dispose();
   });
 

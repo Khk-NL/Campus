@@ -34,6 +34,7 @@ import 'package:campus_mobile/core/config/university_config.dart';
 import 'package:campus_mobile/core/favorites/favorites_controller.dart';
 import 'package:campus_mobile/core/i18n/app_i18n.dart';
 import 'package:campus_mobile/core/launcher/campus_launcher.dart';
+import 'package:campus_mobile/core/launcher/external_opener.dart';
 import 'package:campus_mobile/core/text/localized_text.dart';
 import 'package:campus_mobile/core/theme/campus_theme.dart';
 import 'package:campus_mobile/data/models/campus_app.dart';
@@ -687,6 +688,18 @@ class _EntryTile extends StatelessWidget {
                   ],
                 ),
               ),
+              // 开源仓库入口：学生项目取信的主要凭据（用户明确要求"愿意开源可以给出 GitHub 链接"）。
+              // 只有真的挂了仓库才出现——服务没有这个字段，因此这里不会有"空链接"。
+              //
+              // The repository affordance: how a student project earns trust. It appears only when
+              // a repository really exists, so there is never an empty link.
+              if (entry.hasRepository)
+                IconButton(
+                  icon: const Icon(Icons.code),
+                  tooltip: l10n.storeRepository,
+                  onPressed: () =>
+                      unawaited(openUrlExternally(Uri.parse(entry.repositoryUrl!))),
+                ),
               IconButton(
                 icon: Icon(isFavorite ? Icons.star : Icons.star_border),
                 color: isFavorite ? theme.colorScheme.primary : theme.colorScheme.outline,

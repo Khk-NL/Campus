@@ -59,6 +59,7 @@ class CampusEntry {
     this.app,
     this.category,
     this.updatedAt,
+    this.repositoryUrl,
   });
 
   /// 收藏用的稳定键。
@@ -105,6 +106,19 @@ class CampusEntry {
   /// 更新时间 / last update time.
   final DateTime? updatedAt;
 
+  /// 代码仓库地址；**只有学生应用可能有**（服务是学校系统，不是仓库）。
+  ///
+  /// 用户明确要求过："学生应用如果愿意开源可以给出 GitHub 链接"。它是学生项目**取信**的主要
+  /// 凭据，因此做成一条可见入口，而不是藏在详情里的一行字。
+  ///
+  /// The source repository; only student apps can have one — a school service is a system, not a
+  /// repo. It is how a student project earns trust, so it is a visible affordance rather than a
+  /// line buried in the details sheet.
+  final String? repositoryUrl;
+
+  /// 是否挂了仓库 / whether a repository is linked.
+  bool get hasRepository => repositoryUrl != null && repositoryUrl!.isNotEmpty;
+
   /// 是否学生项目 / whether this is a student project.
   bool get isStudentProject => app != null;
 
@@ -146,6 +160,10 @@ class CampusEntry {
         openCount: app.openCount,
         app: app,
         updatedAt: app.updatedAt,
+        // 仓库只从应用带过来：服务没有这个字段，因此服务条目天然没有仓库入口。
+        // The repository comes from apps only; services have no such field, so a service entry
+        // simply has no repo affordance.
+        repositoryUrl: app.repositoryUrl,
       );
 }
 
