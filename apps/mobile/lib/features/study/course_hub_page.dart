@@ -2,7 +2,7 @@ import 'package:campus_mobile/core/app_scope_repository.dart';
 import 'package:campus_mobile/data/models/course.dart';
 import 'package:campus_mobile/data/repositories/campus_repository.dart';
 import 'package:campus_mobile/data/repositories/data_source_mode.dart';
-import 'package:campus_mobile/features/study/study_page.dart';
+import 'package:campus_mobile/features/study/course_space_entry.dart';
 import 'package:campus_mobile/features/timetable/timetable_page.dart';
 import 'package:flutter/material.dart';
 
@@ -48,7 +48,7 @@ class _CourseHubPageState extends State<CourseHubPage> {
   void _openCourse(Course course) {
     Navigator.of(context).push<void>(
       MaterialPageRoute<void>(
-        builder: (BuildContext context) => StudyPage(course: course),
+        builder: (BuildContext context) => CourseSpaceEntry(course: course),
       ),
     );
   }

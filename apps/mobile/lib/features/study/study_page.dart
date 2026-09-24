@@ -6,9 +6,17 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 /// 一门课程的学习空间；记录本地可用，远程能力明确标注接入状态。
 class StudyPage extends StatefulWidget {
-  const StudyPage({super.key, this.repository, this.course});
+  const StudyPage({
+    super.key,
+    this.repository,
+    this.course,
+    this.remote = false,
+    this.onSignOut,
+  });
   final StudyRepository? repository;
   final Course? course;
+  final bool remote;
+  final VoidCallback? onSignOut;
 
   @override
   State<StudyPage> createState() => _StudyPageState();
@@ -201,16 +209,24 @@ class _StudyPageState extends State<StudyPage> {
         title: Text(
           widget.course == null ? '课程空间' : '${widget.course!.name} · 课程空间',
         ),
+        actions: <Widget>[
+          if (widget.onSignOut != null)
+            IconButton(
+              tooltip: '退出试点账号',
+              onPressed: widget.onSignOut,
+              icon: const Icon(Icons.logout),
+            ),
+        ],
       ),
       body: content,
     );
   }
 
-  Widget _banner() => const Padding(
-    padding: EdgeInsets.fromLTRB(16, 8, 16, 0),
+  Widget _banner() => Padding(
+    padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
     child: Align(
       alignment: Alignment.centerLeft,
-      child: Text('本机演示 · 学习记录未同步'),
+      child: Text(widget.remote ? 'PocketBase 试点 · 学习记录已同步' : '本机演示 · 学习记录未同步'),
     ),
   );
 

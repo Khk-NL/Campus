@@ -10,7 +10,7 @@ library;
 
 import 'package:campus_mobile/data/models/course.dart';
 import 'package:campus_mobile/features/shared/widgets/state_views.dart';
-import 'package:campus_mobile/features/study/study_page.dart';
+import 'package:campus_mobile/features/study/course_space_entry.dart';
 import 'package:campus_mobile/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 
@@ -27,7 +27,8 @@ Future<void> showCourseDetails(BuildContext context, {required Course course}) {
         if (context.mounted) {
           Navigator.of(context).push<void>(
             MaterialPageRoute<void>(
-              builder: (BuildContext context) => StudyPage(course: course),
+              builder: (BuildContext context) =>
+                  CourseSpaceEntry(course: course),
             ),
           );
         }
