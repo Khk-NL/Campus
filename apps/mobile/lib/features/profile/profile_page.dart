@@ -14,6 +14,7 @@ import 'package:campus_mobile/core/i18n/app_i18n.dart';
 import 'package:campus_mobile/core/locale_resolution.dart';
 import 'package:campus_mobile/data/models/app_user.dart';
 import 'package:campus_mobile/data/models/university.dart';
+import 'package:campus_mobile/data/repositories/campus_repository.dart';
 import 'package:campus_mobile/data/repositories/data_source_mode.dart';
 import 'package:campus_mobile/features/shared/widgets/state_views.dart';
 import 'package:campus_mobile/l10n/app_localizations.dart';
@@ -67,14 +68,20 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   /// 身份与登录入口 / identity and the sign-in entry.
-  Widget _identityCard(BuildContext context, AppLocalizations l10n, AppState state) {
+  Widget _identityCard(
+    BuildContext context,
+    AppLocalizations l10n,
+    AppState state,
+  ) {
     final ThemeData theme = Theme.of(context);
     final AppUser? user = state.user;
     final String name = user?.name ?? l10n.profileNotSignedIn;
     final String university = _universityName(context, l10n, state);
     final String roles = user == null || user.roles.isEmpty
         ? '—'
-        : user.roles.map((dynamic role) => role.toString().split('.').last).join(', ');
+        : user.roles
+              .map((dynamic role) => role.toString().split('.').last)
+              .join(', ');
 
     return Card(
       child: Padding(
@@ -102,7 +109,9 @@ class _ProfilePageState extends State<ProfilePage> {
                     children: <Widget>[
                       Text(
                         name,
-                        style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                       Text(
                         university,
@@ -126,10 +135,14 @@ class _ProfilePageState extends State<ProfilePage> {
             // sign-out — never a dead button with only a caption.
             FilledButton.icon(
               onPressed: user == null
-                  ? () => _showSignInDialog(context, l10n, state)
+                  ? () => state.repository is CampusAccountRepository
+                        ? _showPocketBaseSignInDialog(context, state)
+                        : _showSignInDialog(context, l10n, state)
                   : () => state.signOut(),
               icon: Icon(user == null ? Icons.login : Icons.logout, size: 18),
-              label: Text(user == null ? l10n.profileSignIn : l10n.profileSignOut),
+              label: Text(
+                user == null ? l10n.profileSignIn : l10n.profileSignOut,
+              ),
             ),
           ],
         ),
@@ -166,8 +179,65 @@ class _ProfilePageState extends State<ProfilePage> {
     await state.signInAsDemo();
   }
 
+  Future<void> _showPocketBaseSignInDialog(
+    BuildContext context,
+    AppState state,
+  ) async {
+    final TextEditingController email = TextEditingController();
+    final TextEditingController password = TextEditingController();
+    final ({String email, String password})? credentials =
+        await showDialog<({String email, String password})>(
+          context: context,
+          builder: (BuildContext dialogContext) => AlertDialog(
+            title: const Text('试点账号登录'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                const Text('使用 PocketBase 试点账号，不是学校统一身份认证。'),
+                TextField(
+                  controller: email,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: const InputDecoration(labelText: '邮箱'),
+                ),
+                TextField(
+                  controller: password,
+                  obscureText: true,
+                  decoration: const InputDecoration(labelText: '密码'),
+                ),
+              ],
+            ),
+            actions: <Widget>[
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: const Text('取消'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(dialogContext)
+                    .pop((email: email.text.trim(), password: password.text)),
+                child: const Text('登录'),
+              ),
+            ],
+          ),
+        );
+    email.dispose();
+    password.dispose();
+    if (credentials == null) return;
+    try {
+      await state.signInWithPassword(credentials.email, credentials.password);
+    } on Exception {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('登录失败，请检查试点账号与服务连接。')));
+      }
+    }
+  }
+
   /// 设置：语言 / 外观 / 数据源 / the settings card.
-  Widget _settingsCard(BuildContext context, AppLocalizations l10n, AppState state) {
+  Widget _settingsCard(
+    BuildContext context,
+    AppLocalizations l10n,
+    AppState state,
+  ) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
@@ -189,14 +259,17 @@ class _ProfilePageState extends State<ProfilePage> {
 
   /// 语言切换（§0.8 的硬要求）/ the language switcher (§0.8's hard requirement).
   Widget _languageBlock(AppLocalizations l10n, AppState state) {
-    final String selected = state.locale?.languageCode ?? LanguageOption.system.code;
+    final String selected =
+        state.locale?.languageCode ?? LanguageOption.system.code;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         Text(
           l10n.profileLanguage,
-          style: Theme.of(context).textTheme.labelLarge
-              ?.copyWith(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w700),
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+            color: Theme.of(context).colorScheme.primary,
+            fontWeight: FontWeight.w700,
+          ),
         ),
         const SizedBox(height: 8),
         Wrap(
@@ -232,8 +305,10 @@ class _ProfilePageState extends State<ProfilePage> {
       children: <Widget>[
         Text(
           l10n.profileAppearance,
-          style: Theme.of(context).textTheme.labelLarge
-              ?.copyWith(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w700),
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+            color: Theme.of(context).colorScheme.primary,
+            fontWeight: FontWeight.w700,
+          ),
         ),
         const SizedBox(height: 8),
         Wrap(
@@ -273,22 +348,32 @@ class _ProfilePageState extends State<ProfilePage> {
   /// It has to be **per source**: the catalogue may be live while courses, tasks, events
   /// and notices are still demo data (their tables arrive in Phase 2), and one summary
   /// line would mislead.
-  Widget _dataSourceBlock(BuildContext context, AppLocalizations l10n, AppState state) {
+  Widget _dataSourceBlock(
+    BuildContext context,
+    AppLocalizations l10n,
+    AppState state,
+  ) {
     final DataSourceMode services = state.sourceMode(DataSourceSource.services);
-    final bool everythingIsDemo = <DataSourceSource>[
-      DataSourceSource.courses,
-      DataSourceSource.tasks,
-      DataSourceSource.events,
-      DataSourceSource.announcements,
-    ].every((DataSourceSource source) => state.sourceMode(source) == DataSourceMode.mock);
+    final bool everythingIsDemo =
+        <DataSourceSource>[
+          DataSourceSource.courses,
+          DataSourceSource.tasks,
+          DataSourceSource.events,
+          DataSourceSource.announcements,
+        ].every(
+          (DataSourceSource source) =>
+              state.sourceMode(source) == DataSourceMode.mock,
+        );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         Text(
           l10n.profileDataSource,
-          style: Theme.of(context).textTheme.labelLarge
-              ?.copyWith(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w700),
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+            color: Theme.of(context).colorScheme.primary,
+            fontWeight: FontWeight.w700,
+          ),
         ),
         const SizedBox(height: 6),
         _InfoRow(
@@ -301,16 +386,18 @@ class _ProfilePageState extends State<ProfilePage> {
           const SizedBox(height: 4),
           Text(
             l10n.dataSourceDemoExplanation,
-            style: Theme.of(context).textTheme.bodySmall
-                ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
         ],
         if (services != DataSourceMode.remote) ...<Widget>[
           const SizedBox(height: 6),
           Text(
             l10n.stateOfflineBody,
-            style: Theme.of(context).textTheme.bodySmall
-                ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
           const SizedBox(height: 8),
           Align(
@@ -326,7 +413,11 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   /// 关于 / about.
-  Widget _aboutCard(BuildContext context, AppLocalizations l10n, AppState state) {
+  Widget _aboutCard(
+    BuildContext context,
+    AppLocalizations l10n,
+    AppState state,
+  ) {
     final ThemeData theme = Theme.of(context);
     return Card(
       child: Padding(
@@ -337,7 +428,10 @@ class _ProfilePageState extends State<ProfilePage> {
             SectionHeader(title: l10n.profileAbout),
             Text(l10n.profileAboutBody, style: theme.textTheme.bodyMedium),
             const SizedBox(height: 10),
-            _InfoRow(label: l10n.profileVersion, value: state.config.appVersion),
+            _InfoRow(
+              label: l10n.profileVersion,
+              value: state.config.appVersion,
+            ),
           ],
         ),
       ),
@@ -345,12 +439,18 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   /// 高校名：优先后端返回值，其次本地配置。/ the university name: backend first, config second.
-  static String _universityName(BuildContext context, AppLocalizations l10n, AppState state) {
+  static String _universityName(
+    BuildContext context,
+    AppLocalizations l10n,
+    AppState state,
+  ) {
     final University? university = state.university;
     if (university != null) return university.name;
     // 兜底走配置目录，通用代码里不出现校名。
     // The fallback reads the config directory; generic code never names a school.
-    return ecnuUniversityName.resolve(Localizations.localeOf(context).languageCode);
+    return ecnuUniversityName.resolve(
+      Localizations.localeOf(context).languageCode,
+    );
   }
 }
 
@@ -373,7 +473,9 @@ class _InfoRow extends StatelessWidget {
             width: 88,
             child: Text(
               label,
-              style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
           ),
           Expanded(child: Text(value, style: theme.textTheme.bodyMedium)),

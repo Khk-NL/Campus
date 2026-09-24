@@ -20,7 +20,6 @@ import 'package:campus_mobile/data/models/app_user.dart';
 import 'package:campus_mobile/data/models/university.dart';
 import 'package:campus_mobile/data/repositories/campus_repository.dart';
 import 'package:campus_mobile/data/repositories/data_source_mode.dart';
-import 'package:campus_mobile/data/repositories/offline_first_campus_repository.dart';
 import 'package:flutter/material.dart';
 
 /// 应用状态 / the app state.
@@ -31,10 +30,10 @@ class AppState extends ChangeNotifier {
     required PreferenceStore preferences,
     required Locale? initialLocale,
     required ThemeMode initialThemeMode,
-  })  : _preferences = preferences,
-        favorites = FavoritesController(preferences: preferences),
-        _locale = initialLocale,
-        _themeMode = initialThemeMode {
+  }) : _preferences = preferences,
+       favorites = FavoritesController(preferences: preferences),
+       _locale = initialLocale,
+       _themeMode = initialThemeMode {
     // 数据源模式是仓库的内部状态，但界面要跟着它变：后端探测完成或某一类接口被判定
     // 未实现时，"演示数据"标记必须立刻出现或消失。因此把仓库的通知转发到本状态。
     // The data source mode lives inside the repository, yet the UI follows it: when the
@@ -103,7 +102,8 @@ class AppState extends ChangeNotifier {
   /// separately. It has to be per source: the backend serves the catalogue while courses,
   /// tasks, events and notices are still demo data, and one global mode would conflate the
   /// real catalogue with invented courses.
-  DataSourceMode sourceMode(DataSourceSource source) => repository.sourceMode(source);
+  DataSourceMode sourceMode(DataSourceSource source) =>
+      repository.sourceMode(source);
 
   /// 本次构建落地的高校 id（来自 `core/config/universities/`）。
   ///
@@ -115,7 +115,8 @@ class AppState extends ChangeNotifier {
   /// from the config directory and is forwarded to the repository from here. It is static
   /// because it never varies at runtime, so a screen may read it before dependencies
   /// settle.
-  static String get defaultUniversityId => UniversityConfigs.defaultConfig.universityId;
+  static String get defaultUniversityId =>
+      UniversityConfigs.defaultConfig.universityId;
 
   /// 当前高校的展示名兜底（后端没有返回 `University` 时使用）。
   /// A display-name fallback for the current university.
@@ -147,7 +148,8 @@ class AppState extends ChangeNotifier {
   Future<void> loadIdentity() async {
     try {
       final AppUser? user = await repository.fetchCurrentUser();
-      final List<University> universities = await repository.fetchUniversities();
+      final List<University> universities = await repository
+          .fetchUniversities();
       _user = user;
       _university = universities.isEmpty ? null : universities.first;
     } on Exception {
@@ -160,8 +162,8 @@ class AppState extends ChangeNotifier {
   /// 重新探测后端，并在成功时刷新身份。
   /// Re-probe the backend and refresh the identity when it answers.
   Future<void> retryConnection() async {
-    final CampusRepository current = repository;
-    if (current is OfflineFirstCampusRepository) {
+    final Object current = repository;
+    if (current is CampusProbeRepository) {
       await current.probe();
     }
     await loadIdentity();
@@ -187,9 +189,20 @@ class AppState extends ChangeNotifier {
   /// Profile honestly stays signed out rather than inventing a user.
   Future<void> signInAsDemo() => loadIdentity();
 
+  Future<void> signInWithPassword(String email, String password) async {
+    final Object current = repository;
+    if (current is! CampusAccountRepository) {
+      throw StateError('当前后端不支持账号登录');
+    }
+    await current.signIn(email, password);
+    await loadIdentity();
+  }
+
   /// 退出登录：清空本地身份，但**不动**任何服务数据。
   /// Sign out: clears the local identity and touches no service data.
   Future<void> signOut() async {
+    final Object current = repository;
+    if (current is CampusAccountRepository) current.signOut();
     _user = null;
     notifyListeners();
   }
@@ -216,12 +229,13 @@ class AppState extends ChangeNotifier {
 /// rarely, so rebuilding the subtree costs nothing measurable.
 class AppScope extends InheritedNotifier<AppState> {
   const AppScope({required AppState state, required super.child, super.key})
-      : super(notifier: state);
+    : super(notifier: state);
 
   /// 取当前状态，并在状态变化时重建调用方。
   /// Read the state and rebuild the caller whenever it changes.
   static AppState of(BuildContext context) {
-    final AppScope? scope = context.dependOnInheritedWidgetOfExactType<AppScope>();
+    final AppScope? scope = context
+        .dependOnInheritedWidgetOfExactType<AppScope>();
     assert(scope != null, 'AppScope.of() called outside an AppScope');
     return scope!.notifier!;
   }

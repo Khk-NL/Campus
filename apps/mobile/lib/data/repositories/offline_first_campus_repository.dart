@@ -54,20 +54,22 @@ import 'package:campus_mobile/data/repositories/remote_campus_repository.dart';
 import 'package:flutter/foundation.dart';
 
 /// 远端优先、内存兜底的仓库 / remote first, in-memory second.
-class OfflineFirstCampusRepository implements CampusRepository {
+class OfflineFirstCampusRepository
+    implements CampusRepository, CampusProbeRepository {
   OfflineFirstCampusRepository({
     required RemoteCampusRepository remote,
     required InMemoryCampusRepository fallback,
     DataSourceMode initialMode = DataSourceMode.unknown,
-  })  : _remote = remote,
-        _fallback = fallback {
+  }) : _remote = remote,
+       _fallback = fallback {
     _mode.value = initialMode;
   }
 
   final RemoteCampusRepository _remote;
   final InMemoryCampusRepository _fallback;
-  final ValueNotifier<DataSourceMode> _mode =
-      ValueNotifier<DataSourceMode>(DataSourceMode.unknown);
+  final ValueNotifier<DataSourceMode> _mode = ValueNotifier<DataSourceMode>(
+    DataSourceMode.unknown,
+  );
 
   /// 每个来源当前的模式 / the current mode of each source.
   ///
@@ -104,6 +106,7 @@ class OfflineFirstCampusRepository implements CampusRepository {
   /// 重试会**清空**"接口未实现"的记忆：接口可能刚好上线了，用户点重试就是想再试一次。
   /// Retrying also **clears** the "not implemented" memory: the endpoints may just have
   /// shipped, and pressing retry means exactly that.
+  @override
   Future<DataSourceMode> probe() async {
     _unimplemented.clear();
     _sourceModes = <DataSourceSource, DataSourceMode>{};
@@ -127,57 +130,61 @@ class OfflineFirstCampusRepository implements CampusRepository {
   /// occupying a source of its own.
   @override
   Future<List<University>> fetchUniversities() => _withFallback(
-        (CampusRepository repository) => repository.fetchUniversities(),
-        fallback: () async => const <University>[],
-        source: DataSourceSource.services,
-      );
+    (CampusRepository repository) => repository.fetchUniversities(),
+    fallback: () async => const <University>[],
+    source: DataSourceSource.services,
+  );
 
   @override
-  Future<List<CampusService>> listServices(CampusServicesQuery query) => _withFallback(
+  Future<List<CampusService>> listServices(CampusServicesQuery query) =>
+      _withFallback(
         (CampusRepository repository) => repository.listServices(query),
         fallback: () => _fallback.listServices(query),
         source: DataSourceSource.services,
       );
 
   @override
-  Future<Map<String, LocalizedText>> fetchServiceNames() =>
-      _withServiceCopy((CampusRepository repository) => repository.fetchServiceNames());
+  Future<Map<String, LocalizedText>> fetchServiceNames() => _withServiceCopy(
+    (CampusRepository repository) => repository.fetchServiceNames(),
+  );
 
   @override
-  Future<Map<String, LocalizedText>> fetchServiceDescriptions() => _withServiceCopy(
+  Future<Map<String, LocalizedText>> fetchServiceDescriptions() =>
+      _withServiceCopy(
         (CampusRepository repository) => repository.fetchServiceDescriptions(),
       );
 
   @override
   Future<List<Course>> fetchCourses() => _withFallback(
-        (CampusRepository repository) => repository.fetchCourses(),
-        fallback: () => _fallback.fetchCourses(),
-        source: DataSourceSource.courses,
-      );
+    (CampusRepository repository) => repository.fetchCourses(),
+    fallback: () => _fallback.fetchCourses(),
+    source: DataSourceSource.courses,
+  );
 
   @override
   Future<List<Announcement>> fetchAnnouncements() => _withFallback(
-        (CampusRepository repository) => repository.fetchAnnouncements(),
-        fallback: () => _fallback.fetchAnnouncements(),
-        source: DataSourceSource.announcements,
-      );
+    (CampusRepository repository) => repository.fetchAnnouncements(),
+    fallback: () => _fallback.fetchAnnouncements(),
+    source: DataSourceSource.announcements,
+  );
 
   @override
   Future<List<CampusEvent>> fetchEvents() => _withFallback(
-        (CampusRepository repository) => repository.fetchEvents(),
-        fallback: () => _fallback.fetchEvents(),
-        source: DataSourceSource.events,
-      );
+    (CampusRepository repository) => repository.fetchEvents(),
+    fallback: () => _fallback.fetchEvents(),
+    source: DataSourceSource.events,
+  );
 
   @override
   Future<List<CampusTask>> fetchTasks() => _withFallback(
-        (CampusRepository repository) => repository.fetchTasks(),
-        fallback: () => _fallback.fetchTasks(),
-        source: DataSourceSource.tasks,
-      );
+    (CampusRepository repository) => repository.fetchTasks(),
+    fallback: () => _fallback.fetchTasks(),
+    source: DataSourceSource.tasks,
+  );
 
   @override
-  Future<List<CampusApp>> fetchCampusApps(CampusAppsQuery query) => _withFallback(
+  Future<List<CampusApp>> fetchCampusApps(CampusAppsQuery query) =>
+      _withFallback(
         (CampusRepository repository) => repository.fetchCampusApps(query),
         fallback: () => _fallback.fetchCampusApps(query),
         source: DataSourceSource.apps,
@@ -188,7 +195,8 @@ class OfflineFirstCampusRepository implements CampusRepository {
       _record(() => _remote.recordServiceOpen(serviceId));
 
   @override
-  Future<void> recordAppOpen(String appId) => _record(() => _remote.recordAppOpen(appId));
+  Future<void> recordAppOpen(String appId) =>
+      _record(() => _remote.recordAppOpen(appId));
 
   /// 上报热度，**失败就地咽掉** / report heat, swallowing failures.
   ///
@@ -223,13 +231,13 @@ class OfflineFirstCampusRepository implements CampusRepository {
   /// Bilingual names and descriptions only exist for the catalogue, so they reuse the
   /// catalogue's mode instead of occupying a [DataSourceSource] of their own.
   Future<Map<String, LocalizedText>> _withServiceCopy(
-    Future<Map<String, LocalizedText>> Function(CampusRepository repository) remoteCall,
-  ) =>
-      _withFallback(
-        remoteCall,
-        fallback: () async => const <String, LocalizedText>{},
-        source: DataSourceSource.services,
-      );
+    Future<Map<String, LocalizedText>> Function(CampusRepository repository)
+    remoteCall,
+  ) => _withFallback(
+    remoteCall,
+    fallback: () async => const <String, LocalizedText>{},
+    source: DataSourceSource.services,
+  );
 
   /// 统一的两级策略 / the shared two-tier strategy.
   ///
@@ -284,7 +292,10 @@ class OfflineFirstCampusRepository implements CampusRepository {
 
   void _markSource(DataSourceSource source, DataSourceMode next) {
     if (_sourceModes[source] == next) return;
-    _sourceModes = <DataSourceSource, DataSourceMode>{..._sourceModes, source: next};
+    _sourceModes = <DataSourceSource, DataSourceMode>{
+      ..._sourceModes,
+      source: next,
+    };
     _sourceNotifier.value++;
   }
 }

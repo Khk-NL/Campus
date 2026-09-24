@@ -167,3 +167,13 @@ abstract class CampusRepository {
   /// 释放资源 / release resources.
   void dispose() {}
 }
+
+/// 可选能力：未来更换后端时由新适配器实现，页面不依赖具体服务商。
+abstract class CampusAccountRepository {
+  Future<void> signIn(String email, String password);
+  void signOut();
+}
+
+abstract class CampusProbeRepository {
+  Future<DataSourceMode> probe();
+}

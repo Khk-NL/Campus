@@ -1,4 +1,6 @@
 import 'package:campus_mobile/data/models/course.dart';
+import 'package:campus_mobile/core/app_state.dart';
+import 'package:campus_mobile/core/pocketbase_session.dart';
 import 'package:campus_mobile/features/study/pocketbase_study_repository.dart';
 import 'package:campus_mobile/features/study/sqlite_study_repository.dart';
 import 'package:campus_mobile/features/study/study_page.dart';
@@ -27,7 +29,7 @@ class _CourseSpaceEntryState extends State<CourseSpaceEntry> {
     super.dispose();
   }
 
-  Future<void> _signIn(PocketBaseStudyPilot pilot) async {
+  Future<void> _signIn(PocketBaseSession pilot) async {
     setState(() {
       _busy = true;
       _error = null;
@@ -35,6 +37,7 @@ class _CourseSpaceEntryState extends State<CourseSpaceEntry> {
     try {
       await pilot.signIn(_email.text.trim(), _password.text);
       _password.clear();
+      if (mounted) await AppScope.read(context).loadIdentity();
       if (mounted) setState(() {});
     } on Exception {
       if (mounted) setState(() => _error = '登录失败，请检查账号、密码和服务地址。');
@@ -45,7 +48,7 @@ class _CourseSpaceEntryState extends State<CourseSpaceEntry> {
 
   @override
   Widget build(BuildContext context) {
-    final PocketBaseStudyPilot? pilot = PocketBaseStudyPilot.instance;
+    final PocketBaseSession? pilot = PocketBaseSession.instance;
     if (pilot == null) {
       const String storage = String.fromEnvironment('STUDY_STORAGE');
       return StudyPage(
@@ -58,10 +61,11 @@ class _CourseSpaceEntryState extends State<CourseSpaceEntry> {
       return StudyPage(
         key: ValueKey<String>(pilot.client.authStore.record!.id),
         course: widget.course,
-        repository: pilot.repository,
+        repository: PocketBaseStudyRepository(pilot.client),
         remote: true,
         onSignOut: () {
           pilot.signOut();
+          AppScope.read(context).loadIdentity();
           setState(() {});
         },
       );

@@ -1,28 +1,6 @@
 import 'package:campus_mobile/features/study/study_repository.dart';
 import 'package:pocketbase/pocketbase.dart';
 
-/// 独立试点账号；不复用或冒充学校统一身份认证。
-class PocketBaseStudyPilot {
-  PocketBaseStudyPilot(String baseUrl) : client = PocketBase(baseUrl);
-
-  static const String baseUrl = String.fromEnvironment('POCKETBASE_URL');
-  static PocketBaseStudyPilot? instance = baseUrl.isEmpty
-      ? null
-      : PocketBaseStudyPilot(baseUrl);
-
-  final PocketBase client;
-
-  bool get signedIn => client.authStore.isValid;
-
-  Future<void> signIn(String email, String password) async {
-    await client.collection('users').authWithPassword(email, password);
-  }
-
-  void signOut() => client.authStore.clear();
-
-  StudyRepository get repository => PocketBaseStudyRepository(client);
-}
-
 /// 每位试点用户一份课程空间快照；权限由 PocketBase collection rules 强制执行。
 class PocketBaseStudyRepository implements StudyRepository {
   PocketBaseStudyRepository(this.client);

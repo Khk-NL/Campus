@@ -13,11 +13,14 @@ library;
 import 'package:campus_mobile/core/app_state.dart';
 import 'package:campus_mobile/core/config/app_config.dart';
 import 'package:campus_mobile/core/config/preference_store.dart';
+import 'package:campus_mobile/core/pocketbase_session.dart';
 import 'package:campus_mobile/core/launcher/wechat_mini_program_transport.dart';
 import 'package:campus_mobile/data/http/campus_api_client.dart';
 import 'package:campus_mobile/data/repositories/data_source_mode.dart';
+import 'package:campus_mobile/data/repositories/campus_repository.dart';
 import 'package:campus_mobile/data/repositories/in_memory_campus_repository.dart';
 import 'package:campus_mobile/data/repositories/offline_first_campus_repository.dart';
+import 'package:campus_mobile/data/repositories/pocketbase_campus_repository.dart';
 import 'package:campus_mobile/data/repositories/remote_campus_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -58,16 +61,27 @@ class AppStartup {
   /// store cannot be opened.
   static Future<AppBootstrap> bootstrap({AppConfig? config}) async {
     final AppConfig resolved = config ?? AppConfig.defaults();
-    final CampusApiClient apiClient = CampusApiClient(config: resolved);
-    final RemoteCampusRepository remote = RemoteCampusRepository(apiClient: apiClient);
-    final InMemoryCampusRepository fallback = InMemoryCampusRepository();
-
-    final DataSourceMode initialMode = await _probe(remote);
-    final OfflineFirstCampusRepository repository = OfflineFirstCampusRepository(
-      remote: remote,
-      fallback: fallback,
-      initialMode: initialMode,
-    );
+    final CampusRepository repository;
+    final PocketBaseSession? pilot = PocketBaseSession.instance;
+    if (pilot != null) {
+      final PocketBaseCampusRepository pocketBase = PocketBaseCampusRepository(
+        client: pilot.client,
+      );
+      await pocketBase.probe();
+      repository = pocketBase;
+    } else {
+      final CampusApiClient apiClient = CampusApiClient(config: resolved);
+      final RemoteCampusRepository remote = RemoteCampusRepository(
+        apiClient: apiClient,
+      );
+      final InMemoryCampusRepository fallback = InMemoryCampusRepository();
+      final DataSourceMode initialMode = await _probe(remote);
+      repository = OfflineFirstCampusRepository(
+        remote: remote,
+        fallback: fallback,
+        initialMode: initialMode,
+      );
+    }
 
     final PreferenceStore preferences =
         await PreferenceStore.open() ?? await _inMemoryPreferences();
@@ -93,10 +107,13 @@ class AppStartup {
   /// 由界面如实说明原因。因此这里不做任何重试，也不抛出。
   /// A refused registration is not a startup failure: it only means that one capability is
   /// unavailable, the app still works, and the UI explains why. No retries, no throwing.
-  static Future<OpenSdkMiniProgramTransport?> _weChatMiniPrograms(AppConfig config) async {
+  static Future<OpenSdkMiniProgramTransport?> _weChatMiniPrograms(
+    AppConfig config,
+  ) async {
     if (!config.hasWeChatAppId) return null;
-    final OpenSdkMiniProgramTransport transport =
-        OpenSdkMiniProgramTransport(appId: config.weChatAppId);
+    final OpenSdkMiniProgramTransport transport = OpenSdkMiniProgramTransport(
+      appId: config.weChatAppId,
+    );
     await transport.register();
     return transport;
   }
