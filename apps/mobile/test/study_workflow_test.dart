@@ -167,7 +167,9 @@ void main() {
       endWeek: 16,
     );
     await tester.pumpWidget(
-      MaterialApp(home: StudyPage(repository: repository, course: first)),
+      MaterialApp(
+        home: StudyPage(repository: repository, course: first),
+      ),
     );
     await tester.pumpAndSettle();
     await tester.tap(find.text('新建学习任务'));
@@ -180,10 +182,12 @@ void main() {
 
     await tester.pumpWidget(const SizedBox());
     await tester.pumpWidget(
-      MaterialApp(home: StudyPage(repository: repository, course: second)),
+      MaterialApp(
+        home: StudyPage(repository: repository, course: second),
+      ),
     );
     await tester.pumpAndSettle();
     expect(find.text('课程甲的任务'), findsNothing);
-    expect(find.text('我的课程笔记'), findsOneWidget);
+    expect(find.text('学习过程记录'), findsOneWidget);
   });
 }

@@ -1,4 +1,6 @@
 import 'package:campus_mobile/data/models/course.dart';
+import 'package:campus_mobile/features/study/course_note_repository.dart';
+import 'package:campus_mobile/features/study/course_notes_page.dart';
 import 'package:campus_mobile/features/study/study_repository.dart';
 import 'package:campus_mobile/features/study/study_session_page.dart';
 import 'package:flutter/material.dart';
@@ -13,12 +15,14 @@ class StudyPage extends StatefulWidget {
     this.remote = false,
     this.onSignOut,
     this.localStorageName,
+    this.noteRepository,
   });
   final StudyRepository? repository;
   final Course? course;
   final bool remote;
   final VoidCallback? onSignOut;
   final String? localStorageName;
+  final CourseNoteRepository? noteRepository;
 
   @override
   State<StudyPage> createState() => _StudyPageState();
@@ -113,6 +117,21 @@ class _StudyPageState extends State<StudyPage> {
       context: context,
       builder: (BuildContext context) =>
           _TextPromptDialog(title: title, label: label),
+    );
+  }
+
+  Future<void> _openNotes() async {
+    final Course? course = widget.course;
+    if (course == null) return;
+    final CourseNoteRepository repository =
+        widget.noteRepository ??
+        LocalCourseNoteRepository(await SharedPreferences.getInstance());
+    if (!mounted) return;
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (BuildContext context) =>
+            CourseNotesPage(courseId: course.id, repository: repository),
+      ),
     );
   }
 
@@ -212,6 +231,12 @@ class _StudyPageState extends State<StudyPage> {
           widget.course == null ? '课程空间' : '${widget.course!.name} · 课程空间',
         ),
         actions: <Widget>[
+          if (widget.course != null)
+            IconButton(
+              tooltip: '课程笔记',
+              onPressed: _openNotes,
+              icon: const Icon(Icons.note_alt_outlined),
+            ),
           if (widget.onSignOut != null)
             IconButton(
               tooltip: '退出试点账号',
@@ -240,17 +265,14 @@ class _StudyPageState extends State<StudyPage> {
     final Course? course = widget.course;
     if (course == null) return workspace.activities;
     final String notebookId = 'course:${course.id}:notes';
-    final StudyActivity notebook = workspace.activities.firstWhere(
-      (StudyActivity item) => item.id == notebookId,
-      orElse: () => StudyActivity(
-        id: notebookId,
-        courseId: course.id,
-        course: course.name,
-        title: '我的课程笔记',
-        objective: '记录课堂问题、资料来源、阶段结论和下一步。',
-        deadline: '本学期',
-        source: 'personal-course',
-      ),
+    final StudyActivity notebook = StudyActivity(
+      id: notebookId,
+      courseId: course.id,
+      course: course.name,
+      title: '学习过程记录',
+      objective: '记录课堂问题、资料来源、阶段结论和下一步。',
+      deadline: '本学期',
+      source: 'personal-course',
     );
     return <StudyActivity>[
       notebook,
@@ -289,6 +311,14 @@ class _StudyPageState extends State<StudyPage> {
   Widget _activityTab(StudyWorkspace workspace) => ListView(
     padding: const EdgeInsets.all(16),
     children: <Widget>[
+      if (widget.course != null) ...<Widget>[
+        FilledButton.tonalIcon(
+          onPressed: _openNotes,
+          icon: const Icon(Icons.note_alt_outlined),
+          label: const Text('课程笔记'),
+        ),
+        const SizedBox(height: 8),
+      ],
       Align(
         alignment: Alignment.centerLeft,
         child: TextButton.icon(
@@ -361,7 +391,7 @@ class _StudyPageState extends State<StudyPage> {
   );
 
   StudyActivity _activityFor(StudyWorkspace workspace, StudySession session) =>
-      workspace.activities.firstWhere(
+      _activitiesFor(workspace).firstWhere(
         (StudyActivity a) => a.id == session.activityId,
         orElse: () => StudyActivity(
           id: session.activityId,

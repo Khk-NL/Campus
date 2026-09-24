@@ -2,6 +2,7 @@ import 'package:campus_mobile/data/models/course.dart';
 import 'package:campus_mobile/core/app_state.dart';
 import 'package:campus_mobile/core/pocketbase_session.dart';
 import 'package:campus_mobile/features/study/pocketbase_study_repository.dart';
+import 'package:campus_mobile/features/study/pocketbase_course_note_repository.dart';
 import 'package:campus_mobile/features/study/sqlite_study_repository.dart';
 import 'package:campus_mobile/features/study/study_page.dart';
 import 'package:flutter/material.dart';
@@ -62,6 +63,7 @@ class _CourseSpaceEntryState extends State<CourseSpaceEntry> {
         key: ValueKey<String>(pilot.client.authStore.record!.id),
         course: widget.course,
         repository: PocketBaseStudyRepository(pilot.client),
+        noteRepository: PocketBaseCourseNoteRepository(pilot.client),
         remote: true,
         onSignOut: () {
           pilot.signOut();
