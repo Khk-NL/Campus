@@ -236,7 +236,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(StudyPage), findsOneWidget);
     expect(find.text('现代软件工程 · 课程空间'), findsOneWidget);
-    expect(find.text('我的课程笔记'), findsOneWidget);
+    expect(find.text('学习过程记录'), findsOneWidget);
+    expect(find.text('课程笔记'), findsOneWidget);
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('查看课程表', skipOffstage: false));
