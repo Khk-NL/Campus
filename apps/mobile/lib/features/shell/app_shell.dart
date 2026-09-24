@@ -3,7 +3,7 @@
 /// §13-Phase 0 原本指定五个入口（Home / Search / Inbox / Store / Profile）。本轮的界面
 /// 结构把这五个入口重新分工：
 ///
-///   * 底部栏只留 **首页 / 应用 / 课程表 / 我的** 四个；
+///   * 底部栏只留 **首页 / 应用 / 课程 / 我的** 四个；课程是主入口，课表是时间视图；
 ///   * **搜索** 与 **通知（事务）** 从底部栏移到顶部栏，成为**推入的路由页**。
 ///
 /// 这么分不是审美偏好，而是依据"频率与层级"：搜索与通知是随时可能触发的**动作**，
@@ -12,7 +12,7 @@
 /// 且它们的行为完全一致。
 ///
 /// Phase 0 fixed five entries (Home, Search, Inbox, Store, Profile). This round regroups
-/// them: the bottom bar keeps **Home, Apps, Timetable, Profile** only, while **Search** and
+/// them: the bottom bar keeps **Home, Apps, Courses, Profile** only, while **Search** and
 /// **Notifications (inbox)** move up into the AppBar as **pushed routes**.
 ///
 /// That split follows frequency and hierarchy rather than taste: search and notifications
@@ -21,8 +21,7 @@
 /// AppBar (its title follows the active tab), so both entries are reachable and behave
 /// identically from every tab.
 ///
-/// 用 `IndexedStack` 而不是按需构建，是为了让每个 Tab 的滚动位置与已加载数据在切换后
-/// 保留——课程表切周次之后尤其需要。
+/// 用 `IndexedStack` 而不是按需构建，是为了让每个 Tab 的滚动位置与已加载数据在切换后保留。
 /// `IndexedStack` rather than lazy construction keeps each tab's scroll position and loaded
 /// data across switches, which the timetable especially needs after moving weeks.
 library;
@@ -34,9 +33,9 @@ import 'package:campus_mobile/data/repositories/campus_repository.dart';
 import 'package:campus_mobile/features/apps/apps_page.dart';
 import 'package:campus_mobile/features/home/home_page.dart';
 import 'package:campus_mobile/features/profile/profile_page.dart';
+import 'package:campus_mobile/features/study/course_hub_page.dart';
 import 'package:campus_mobile/features/shared/widgets/offline_banner.dart';
 import 'package:campus_mobile/features/shell/shell_routes.dart';
-import 'package:campus_mobile/features/timetable/timetable_page.dart';
 import 'package:campus_mobile/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 
@@ -118,7 +117,7 @@ class _AppShellState extends State<AppShell> {
               children: const <Widget>[
                 HomePage(),
                 AppsPage(),
-                TimetablePage(),
+                CourseHubPage(),
                 ProfilePage(),
               ],
             ),
@@ -140,8 +139,8 @@ class _AppShellState extends State<AppShell> {
             label: l10n.navStore,
           ),
           NavigationDestination(
-            icon: const Icon(Icons.calendar_view_week_outlined),
-            selectedIcon: const Icon(Icons.calendar_view_week),
+            icon: const Icon(Icons.school_outlined),
+            selectedIcon: const Icon(Icons.school),
             label: l10n.navTimetable,
           ),
           NavigationDestination(
@@ -166,7 +165,7 @@ class _AppShellState extends State<AppShell> {
         // pushed page, so its title can no longer be `storeTitle`.
         return l10n.appsTitle;
       case 2:
-        return l10n.timetableTitle;
+        return l10n.navTimetable;
       default:
         return l10n.profileTitle;
     }

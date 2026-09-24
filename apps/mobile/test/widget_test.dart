@@ -1,6 +1,6 @@
 /// Widget 冒烟测试 / a widget smoke test.
 ///
-/// 本轮界面结构改成了 **4 Tab**：首页 / 应用 / 课程表 / 我的，`搜索` 与 `通知` 从底部栏
+/// 本轮界面结构改成了 **4 Tab**：首页 / 应用 / 课程 / 我的，`搜索` 与 `通知` 从底部栏
 /// 移到顶部栏（AppBar actions）并成为**推入的路由页**。这个测试就是新结构的验收：
 ///
 ///   1. 底部栏**只有**4 个 Tab，旧的 `搜索` / `事务` 不再出现在导航里；
@@ -8,7 +8,7 @@
 ///   3. 课程表页面能渲染出教学周与课程；
 ///   4. 「我的」仍能看到语言切换（§0.8）。
 ///
-/// The interface is now **four tabs** (Home / Apps / Timetable / Profile), with `Search` and
+/// The interface is now **four tabs** (Home / Apps / Courses / Profile), with `Search` and
 /// `Notifications` moved into the AppBar as **pushed routes**. This test is the acceptance
 /// for that: the bottom bar holds exactly four tabs and no longer offers Search or Inbox;
 /// both top-bar entries really open their screens and come back; the timetable renders a
@@ -27,6 +27,8 @@ import 'package:campus_mobile/core/theme/campus_theme.dart';
 import 'package:campus_mobile/data/repositories/in_memory_campus_repository.dart';
 import 'package:campus_mobile/features/inbox/inbox_page.dart';
 import 'package:campus_mobile/features/search/search_page.dart';
+import 'package:campus_mobile/features/study/course_hub_page.dart';
+import 'package:campus_mobile/features/study/study_page.dart';
 import 'package:campus_mobile/features/shell/app_shell.dart';
 import 'package:campus_mobile/features/timetable/timetable_page.dart';
 import 'package:campus_mobile/l10n/app_localizations.dart';
@@ -41,8 +43,9 @@ void main() {
     // The test environment has no platform implementation, so mock initial values
     // install a usable in-memory store.
     SharedPreferences.setMockInitialValues(<String, Object>{});
-    final PreferenceStore preferences =
-        PreferenceStore(await SharedPreferences.getInstance());
+    final PreferenceStore preferences = PreferenceStore(
+      await SharedPreferences.getInstance(),
+    );
     return AppState(
       repository: InMemoryCampusRepository(),
       config: AppConfig.defaults(),
@@ -76,12 +79,16 @@ void main() {
     await tester.pumpWidget(wrap(state));
     await tester.pumpAndSettle();
 
-    final AppLocalizations l10n =
-        AppLocalizations.of(tester.element(find.byType(NavigationBar)));
+    final AppLocalizations l10n = AppLocalizations.of(
+      tester.element(find.byType(NavigationBar)),
+    );
 
     expect(find.byType(NavigationBar), findsOneWidget);
     expect(
-      tester.widget<NavigationBar>(find.byType(NavigationBar)).destinations.length,
+      tester
+          .widget<NavigationBar>(find.byType(NavigationBar))
+          .destinations
+          .length,
       4,
       reason: '底部栏必须有且仅有 4 个 Tab',
     );
@@ -99,9 +106,11 @@ void main() {
         .whereType<NavigationDestination>()
         .toList();
     expect(
-      destinations.where((NavigationDestination destination) =>
-          destination.label == l10n.navSearch ||
-          destination.label == l10n.navInbox),
+      destinations.where(
+        (NavigationDestination destination) =>
+            destination.label == l10n.navSearch ||
+            destination.label == l10n.navInbox,
+      ),
       isEmpty,
       reason: '搜索与事务应从底部栏移除',
     );
@@ -122,8 +131,9 @@ void main() {
     await tester.pumpWidget(wrap(state));
     await tester.pumpAndSettle();
 
-    final AppLocalizations l10n =
-        AppLocalizations.of(tester.element(find.byType(NavigationBar)));
+    final AppLocalizations l10n = AppLocalizations.of(
+      tester.element(find.byType(NavigationBar)),
+    );
 
     // 顶部栏的图标入口以 tooltip 标识，因此用 tooltip 找按钮。
     // The top-bar entries are identified by tooltip, so look the buttons up that way.
@@ -157,10 +167,13 @@ void main() {
     await tester.pumpWidget(wrap(state));
     await tester.pumpAndSettle();
 
-    final AppLocalizations l10n =
-        AppLocalizations.of(tester.element(find.byType(NavigationBar)));
+    final AppLocalizations l10n = AppLocalizations.of(
+      tester.element(find.byType(NavigationBar)),
+    );
 
     await tester.tap(find.text(l10n.navTimetable).last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('查看课程表'));
     await tester.pumpAndSettle();
 
     expect(find.byType(TimetablePage), findsOneWidget);
@@ -201,6 +214,47 @@ void main() {
     }
     expect(find.text('现代软件工程'), findsNothing);
 
+    state.dispose();
+  });
+  testWidgets('课程列表和课表详情通向同一课程空间', (WidgetTester tester) async {
+    final AppState state = await buildState();
+    await tester.pumpWidget(wrap(state));
+    await tester.pumpAndSettle();
+
+    final AppLocalizations l10n = AppLocalizations.of(
+      tester.element(find.byType(NavigationBar)),
+    );
+    await tester.tap(find.text(l10n.navTimetable).last);
+    await tester.pumpAndSettle();
+    expect(find.text('我的课程'), findsOneWidget);
+    final Finder courseInHub = find.descendant(
+      of: find.byType(CourseHubPage),
+      matching: find.text('现代软件工程'),
+    );
+    await tester.ensureVisible(courseInHub);
+    await tester.tap(courseInHub);
+    await tester.pumpAndSettle();
+    expect(find.byType(StudyPage), findsOneWidget);
+    expect(find.text('现代软件工程 · 课程空间'), findsOneWidget);
+    expect(find.text('我的课程笔记'), findsOneWidget);
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('查看课程表', skipOffstage: false));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('查看课程表'));
+    await tester.pumpAndSettle();
+    expect(find.byType(TimetablePage), findsOneWidget);
+    final Finder courseInTimetable = find.descendant(
+      of: find.byType(TimetablePage),
+      matching: find.text('现代软件工程'),
+    );
+    await tester.ensureVisible(courseInTimetable);
+    await tester.pumpAndSettle();
+    await tester.tap(courseInTimetable);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('进入课程空间'));
+    await tester.pumpAndSettle();
+    expect(find.text('现代软件工程 · 课程空间'), findsOneWidget);
     state.dispose();
   });
 }

@@ -28,7 +28,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get navStore => '应用';
 
   @override
-  String get navTimetable => '课程表';
+  String get navTimetable => '课程';
 
   @override
   String get navProfile => '我的';

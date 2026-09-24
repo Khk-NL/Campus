@@ -28,7 +28,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get navStore => 'Store';
 
   @override
-  String get navTimetable => 'Timetable';
+  String get navTimetable => 'Courses';
 
   @override
   String get navProfile => 'Profile';

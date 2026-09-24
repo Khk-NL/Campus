@@ -10,6 +10,7 @@ library;
 
 import 'package:campus_mobile/data/models/course.dart';
 import 'package:campus_mobile/features/shared/widgets/state_views.dart';
+import 'package:campus_mobile/features/study/study_page.dart';
 import 'package:campus_mobile/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 
@@ -19,14 +20,27 @@ Future<void> showCourseDetails(BuildContext context, {required Course course}) {
     context: context,
     isScrollControlled: true,
     showDragHandle: true,
-    builder: (BuildContext sheetContext) => _CourseDetailsSheet(course: course),
+    builder: (BuildContext sheetContext) => _CourseDetailsSheet(
+      course: course,
+      onOpenSpace: () {
+        Navigator.of(sheetContext).pop();
+        if (context.mounted) {
+          Navigator.of(context).push<void>(
+            MaterialPageRoute<void>(
+              builder: (BuildContext context) => StudyPage(course: course),
+            ),
+          );
+        }
+      },
+    ),
   );
 }
 
 class _CourseDetailsSheet extends StatelessWidget {
-  const _CourseDetailsSheet({required this.course});
+  const _CourseDetailsSheet({required this.course, required this.onOpenSpace});
 
   final Course course;
+  final VoidCallback onOpenSpace;
 
   @override
   Widget build(BuildContext context) {
@@ -43,7 +57,9 @@ class _CourseDetailsSheet extends StatelessWidget {
             children: <Widget>[
               Text(
                 course.name,
-                style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               const SizedBox(height: 10),
               Wrap(
@@ -69,6 +85,15 @@ class _CourseDetailsSheet extends StatelessWidget {
                 l10n.courseWeeksLabel,
                 l10n.courseWeeksRange(course.startWeek, course.endWeek),
               ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: onOpenSpace,
+                  icon: const Icon(Icons.auto_stories_outlined),
+                  label: const Text('进入课程空间'),
+                ),
+              ),
             ],
           ),
         ),
@@ -87,8 +112,9 @@ class _CourseDetailsSheet extends StatelessWidget {
             width: 88,
             child: Text(
               label,
-              style: theme.textTheme.bodySmall
-                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
           ),
           Expanded(child: Text(value, style: theme.textTheme.bodyMedium)),

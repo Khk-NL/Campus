@@ -137,7 +137,7 @@ abstract class AppLocalizations {
   /// No description provided for @navTimetable.
   ///
   /// In zh, this message translates to:
-  /// **'课程表'**
+  /// **'课程'**
   String get navTimetable;
 
   /// No description provided for @navProfile.
