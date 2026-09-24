@@ -32,6 +32,8 @@ dependencies:
   # pure-Dart renderer draws it.
   flutter_svg: ^2.0.10
   pocketbase: ^0.25.1
+  sqflite: ^2.4.4
+  path: ^1.9.1
 
 dev_dependencies:
   flutter_test:
@@ -40,6 +42,7 @@ dev_dependencies:
   # flutter_lints 是官方推荐规则集。注意它只提供 lint，不做格式化。
   # The official recommended lint set; lints only, no formatting opinions.
   flutter_lints: ^6.0.0
+  sqflite_common_ffi: ^2.4.3
 
 flutter:
   uses-material-design: true

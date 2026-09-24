@@ -1,5 +1,6 @@
 import 'package:campus_mobile/data/models/course.dart';
 import 'package:campus_mobile/features/study/pocketbase_study_repository.dart';
+import 'package:campus_mobile/features/study/sqlite_study_repository.dart';
 import 'package:campus_mobile/features/study/study_page.dart';
 import 'package:flutter/material.dart';
 
@@ -45,7 +46,14 @@ class _CourseSpaceEntryState extends State<CourseSpaceEntry> {
   @override
   Widget build(BuildContext context) {
     final PocketBaseStudyPilot? pilot = PocketBaseStudyPilot.instance;
-    if (pilot == null) return StudyPage(course: widget.course);
+    if (pilot == null) {
+      const String storage = String.fromEnvironment('STUDY_STORAGE');
+      return StudyPage(
+        course: widget.course,
+        repository: storage == 'sqlite' ? SqliteStudyRepository() : null,
+        localStorageName: storage == 'sqlite' ? 'SQLite 本机' : null,
+      );
+    }
     if (pilot.signedIn) {
       return StudyPage(
         key: ValueKey<String>(pilot.client.authStore.record!.id),

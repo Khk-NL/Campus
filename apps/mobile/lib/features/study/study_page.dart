@@ -12,11 +12,13 @@ class StudyPage extends StatefulWidget {
     this.course,
     this.remote = false,
     this.onSignOut,
+    this.localStorageName,
   });
   final StudyRepository? repository;
   final Course? course;
   final bool remote;
   final VoidCallback? onSignOut;
+  final String? localStorageName;
 
   @override
   State<StudyPage> createState() => _StudyPageState();
@@ -226,7 +228,11 @@ class _StudyPageState extends State<StudyPage> {
     padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
     child: Align(
       alignment: Alignment.centerLeft,
-      child: Text(widget.remote ? 'PocketBase 试点 · 学习记录已同步' : '本机演示 · 学习记录未同步'),
+      child: Text(
+        widget.remote
+            ? 'PocketBase 试点 · 学习记录已同步'
+            : '${widget.localStorageName ?? '本机演示'} · 学习记录未同步',
+      ),
     ),
   );
 
