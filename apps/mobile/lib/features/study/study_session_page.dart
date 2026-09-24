@@ -75,7 +75,7 @@ class _StudySessionPageState extends State<StudySessionPage> {
     context: context,
     builder: (BuildContext context) => AlertDialog(
       title: Text('$title · 待接入'),
-      content: const Text('这里已预留前端操作入口。当前没有模型、文件解析或多人协作 API；不会生成虚假结果。'),
+      content: const Text('远程服务未接入。'),
       actions: <Widget>[
         TextButton(
           onPressed: () => Navigator.pop(context),
@@ -109,7 +109,12 @@ class _StudySessionPageState extends State<StudySessionPage> {
             child: Padding(
               padding: const EdgeInsets.all(12),
               child: Text(
-                '${widget.activity.course} · ${widget.activity.objective}\n学习记录保存在本机，尚未与学校课程服务同步。',
+                <String>[
+                  widget.activity.course,
+                  '本机记录',
+                  if (widget.activity.objective.isNotEmpty)
+                    widget.activity.objective,
+                ].join(' · '),
               ),
             ),
           ),
@@ -148,7 +153,7 @@ class _StudySessionPageState extends State<StudySessionPage> {
               ),
             ],
           ),
-          if (sources.isEmpty) const Text('还没有资料。添加标题、链接与说明，结论才有可追溯的依据。'),
+          if (sources.isEmpty) const Text('暂无来源资料'),
           for (final StudyEvidence source in sources)
             Card(
               child: ListTile(
@@ -264,18 +269,16 @@ class _StudySessionPageState extends State<StudySessionPage> {
             },
           ),
           const SizedBox(height: 14),
-          Text('学习助手 · 接入预留', style: Theme.of(context).textTheme.titleLarge),
+          Text('学习助手 · 未接入', style: Theme.of(context).textTheme.titleLarge),
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
             title: const Text('严格引用'),
-            subtitle: const Text('远程模型接入后要求回答注明来源'),
             value: strictCitation,
             onChanged: (bool value) => setState(() => strictCitation = value),
           ),
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
             title: const Text('自动画布'),
-            subtitle: const Text('远程生成图表时自动呈现'),
             value: autoCanvas,
             onChanged: (bool value) => setState(() => autoCanvas = value),
           ),
@@ -331,7 +334,7 @@ class _StudySessionPageState extends State<StudySessionPage> {
           Text('反馈', style: Theme.of(context).textTheme.titleLarge),
           Text(
             widget.session.feedback.isEmpty
-                ? '暂无教师反馈；远程反馈接口尚未接入。'
+                ? '教师反馈未接入'
                 : widget.session.feedback,
           ),
           const SizedBox(height: 18),

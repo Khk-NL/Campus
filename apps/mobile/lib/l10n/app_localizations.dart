@@ -221,7 +221,7 @@ abstract class AppLocalizations {
   /// No description provided for @dataSourceDemoExplanation.
   ///
   /// In zh, this message translates to:
-  /// **'课程、待办、活动与公告后端尚未提供接口，均来自内置演示数据。'**
+  /// **'课程、待办、活动、公告：演示数据'**
   String get dataSourceDemoExplanation;
 
   /// No description provided for @actionRetry.
@@ -371,7 +371,7 @@ abstract class AppLocalizations {
   /// No description provided for @stateOfflineBody.
   ///
   /// In zh, this message translates to:
-  /// **'无法连接 Campus 服务，正在使用内置演示数据。功能可正常浏览，改动不会同步。'**
+  /// **'使用本机演示数据，改动不会同步'**
   String get stateOfflineBody;
 
   /// No description provided for @stateOnline.
@@ -433,12 +433,6 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'快捷入口'**
   String get homeQuickAccess;
-
-  /// 首页核心表达（§12）/ the home screen's core question
-  ///
-  /// In zh, this message translates to:
-  /// **'今天学校里有什么事？'**
-  String get homeGreeting;
 
   /// No description provided for @homeOpenService.
   ///
@@ -596,12 +590,6 @@ abstract class AppLocalizations {
   /// **'搜索'**
   String get searchTitle;
 
-  /// No description provided for @searchEmptyPrompt.
-  ///
-  /// In zh, this message translates to:
-  /// **'输入关键词，搜索校园服务、学生应用与校园事务'**
-  String get searchEmptyPrompt;
-
   /// No description provided for @searchNoResults.
   ///
   /// In zh, this message translates to:
@@ -686,12 +674,6 @@ abstract class AppLocalizations {
   /// **'已记录你的反馈：{choice}'**
   String inboxFeedbackRecorded(Object choice);
 
-  /// §2.1 非目标说明 / points users to a real chat tool instead
-  ///
-  /// In zh, this message translates to:
-  /// **'Campus 不提供评论区，讨论请前往微信 / QQ / 飞书。'**
-  String get inboxNoComment;
-
   /// No description provided for @inboxViewDetail.
   ///
   /// In zh, this message translates to:
@@ -739,12 +721,6 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'应用'**
   String get appsTitle;
-
-  /// 点一下直接打开，长按看详情 / tap opens directly, long-press shows details
-  ///
-  /// In zh, this message translates to:
-  /// **'校园服务入口：点一下直接打开，长按查看详情。'**
-  String get appsIntro;
 
   /// 学校自己的官方聚合入口分组 / the school's own official hub group
   ///
@@ -863,7 +839,7 @@ abstract class AppLocalizations {
   /// 群号的失效提示（§7 入口会失效）+ 说明它来自演示数据 / the staleness note plus a demo-data disclosure
   ///
   /// In zh, this message translates to:
-  /// **'群号来自演示数据（后端服务目录没有该字段），且群号会失效；如已失效请反馈。'**
+  /// **'演示群号，可能已失效'**
   String get contactGroupNumberStaleHint;
 
   /// 配合 demoDataNotice 用：群号 · 演示数据 / pairs with demoDataNotice
@@ -881,25 +857,25 @@ abstract class AppLocalizations {
   /// No description provided for @launchWebViewFailed.
   ///
   /// In zh, this message translates to:
-  /// **'这个页面在内置浏览器里打不开（可能是网络问题，或该网站不允许被嵌入）。'**
+  /// **'页面无法在应用内打开'**
   String get launchWebViewFailed;
 
   /// 装了微信、但本版本未接入 OpenSDK / WeChat is present but this build has not wired the SDK
   ///
   /// In zh, this message translates to:
-  /// **'本版本还没有接入微信唤起小程序（需要微信开放平台的移动应用 AppID）。装了微信也打不开，请等待后续版本。'**
+  /// **'微信小程序暂未接入'**
   String get launchMiniProgramNotWired;
 
   /// 设备未安装微信 / WeChat is not installed on this device
   ///
   /// In zh, this message translates to:
-  /// **'这台设备没有安装微信，无法拉起小程序；该入口也没有可用的网页兜底。'**
+  /// **'未安装微信，无法打开小程序'**
   String get launchMiniProgramNoWeChat;
 
   /// No description provided for @launchCampusAppUnsupported.
   ///
   /// In zh, this message translates to:
-  /// **'Campus 应用需要插件运行时（Phase 4），暂不支持。'**
+  /// **'暂不支持打开 Campus 应用'**
   String get launchCampusAppUnsupported;
 
   /// No description provided for @storeTitle.
@@ -907,12 +883,6 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'学生应用'**
   String get storeTitle;
-
-  /// No description provided for @storeIntro.
-  ///
-  /// In zh, this message translates to:
-  /// **'由学生开发者构建的校园工具。Phase 0 只做展示，安装与运行属于后续阶段。'**
-  String get storeIntro;
 
   /// No description provided for @storeEmpty.
   ///
@@ -967,12 +937,6 @@ abstract class AppLocalizations {
   /// In zh, this message translates to:
   /// **'该标签下暂无应用'**
   String get storeTagEmpty;
-
-  /// 说明筛选由后端完成 / notes that filtering happens server-side
-  ///
-  /// In zh, this message translates to:
-  /// **'点标签筛选，筛选在后端完成。'**
-  String get storeTagHint;
 
   /// 后端只发 developerId、不发名字时的诚实说法 / what to say when the backend sends no developer name
   ///
@@ -1112,12 +1076,6 @@ abstract class AppLocalizations {
   /// **'未登录'**
   String get profileNotSignedIn;
 
-  /// No description provided for @profileSignInHint.
-  ///
-  /// In zh, this message translates to:
-  /// **'登录与统一身份认证属于 Phase 6，本阶段使用演示身份。'**
-  String get profileSignInHint;
-
   /// No description provided for @profileSignIn.
   ///
   /// In zh, this message translates to:
@@ -1148,18 +1106,6 @@ abstract class AppLocalizations {
   /// **'设置'**
   String get profileSettings;
 
-  /// No description provided for @profileSettingsIntro.
-  ///
-  /// In zh, this message translates to:
-  /// **'语言、外观与数据源。设置会在本机保存。'**
-  String get profileSettingsIntro;
-
-  /// No description provided for @profileLoginIntro.
-  ///
-  /// In zh, this message translates to:
-  /// **'使用学校统一身份认证登录后，课程、事务与个人课表将与你的账号关联。'**
-  String get profileLoginIntro;
-
   /// No description provided for @profileLoginDialogTitle.
   ///
   /// In zh, this message translates to:
@@ -1169,7 +1115,7 @@ abstract class AppLocalizations {
   /// No description provided for @profileLoginDialogBody.
   ///
   /// In zh, this message translates to:
-  /// **'统一身份认证（SSO）属于 Phase 6。当前版本不保存任何学校密码（§19），仅提供演示身份用于浏览界面。'**
+  /// **'学校统一身份认证未接入。当前仅支持演示身份。'**
   String get profileLoginDialogBody;
 
   /// No description provided for @categoryOfficialHub.

@@ -45,9 +45,7 @@ Future<void> showTransactionDetails(
     context: context,
     isScrollControlled: true,
     showDragHandle: true,
-    builder: (BuildContext sheetContext) => TransactionDetailsSheet(
-      transaction: transaction,
-    ),
+    builder: (BuildContext sheetContext) => TransactionDetailsSheet(transaction: transaction),
   );
 }
 
@@ -90,25 +88,20 @@ class _TransactionDetailsSheetState extends State<TransactionDetailsSheet> {
                   TinyBadge(label: l10n.transactionKind(transaction.kind)),
                   const SizedBox(width: 8),
                   if (transaction is AnnouncementTransaction)
-                    TinyBadge(
-                      label: l10n.transactionAnnouncement,
-                      icon: Icons.priority_high,
-                    ),
+                    TinyBadge(label: l10n.transactionAnnouncement, icon: Icons.priority_high),
                 ],
               ),
               const SizedBox(height: 10),
               Text(
                 transaction.title,
-                style: theme.textTheme.titleLarge
-                    ?.copyWith(fontWeight: FontWeight.w700),
+                style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 10),
               ..._detailRows(context, transaction),
               const SizedBox(height: 16),
               Text(
                 l10n.inboxFeedbackLabel,
-                style: theme.textTheme.titleSmall
-                    ?.copyWith(fontWeight: FontWeight.w700),
+                style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 8),
               FeedbackBar(
@@ -133,31 +126,9 @@ class _TransactionDetailsSheetState extends State<TransactionDetailsSheet> {
                 const SizedBox(height: 10),
                 Text(
                   l10n.inboxFeedbackRecorded(_labelForSelection(l10n, transaction.kind)),
-                  style: theme.textTheme.bodySmall
-                      ?.copyWith(color: theme.colorScheme.primary),
+                  style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.primary),
                 ),
               ],
-              const SizedBox(height: 16),
-              // §2.1：明确告诉用户这里没有评论区，讨论请去现有沟通渠道。
-              // §2.1: state plainly that there is no comment thread here.
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Icon(
-                    Icons.forum_outlined,
-                    size: 16,
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      l10n.inboxNoComment,
-                      style: theme.textTheme.bodySmall
-                          ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-                    ),
-                  ),
-                ],
-              ),
             ],
           ),
         ),
@@ -203,10 +174,7 @@ class _TransactionDetailsSheetState extends State<TransactionDetailsSheet> {
           if (announcement.body.isNotEmpty)
             Text(announcement.body, style: theme.textTheme.bodyMedium),
           const SizedBox(height: 8),
-          _MetaRow(
-            label: l10n.inboxSourceLabel,
-            value: announcement.sourceName ?? '—',
-          ),
+          _MetaRow(label: l10n.inboxSourceLabel, value: announcement.sourceName ?? '—'),
         ];
       case EventTransaction(:final CampusEvent event):
         return <Widget>[
@@ -250,8 +218,7 @@ class _MetaRow extends StatelessWidget {
             width: 72,
             child: Text(
               label,
-              style: theme.textTheme.bodySmall
-                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
             ),
           ),
           Expanded(child: Text(value, style: theme.textTheme.bodyMedium)),

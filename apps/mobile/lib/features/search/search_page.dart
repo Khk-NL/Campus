@@ -65,34 +65,26 @@ class _SearchPageState extends State<SearchPage> {
     // read 而非 of：本方法可能在帧后回调里执行，且不订阅仓库变化。
     // read, not of: this may run from a post-frame callback and subscribes to nothing.
     final CampusRepository repository = CampusRepositoryScope.read(context);
-    final String universityId =
-        UniversityConfigs.defaultConfig.universityId;
+    final String universityId = UniversityConfigs.defaultConfig.universityId;
     final String languageCode = Localizations.localeOf(context).languageCode;
     final AppLocalizations l10n = AppLocalizations.of(context);
 
     final List<CampusService> services = await repository.listServices(
       CampusServicesQuery(universityId: universityId),
     );
-    final List<CampusApp> apps = await repository.fetchCampusApps(
-      const CampusAppsQuery(),
-    );
+    final List<CampusApp> apps = await repository.fetchCampusApps(const CampusAppsQuery());
     final List<Course> courses = await repository.fetchCourses();
     final List<Announcement> announcements = await repository.fetchAnnouncements();
     final List<CampusEvent> events = await repository.fetchEvents();
     final List<CampusTask> tasks = await repository.fetchTasks();
     final Map<String, LocalizedText> names = await repository.fetchServiceNames();
-    final Map<String, LocalizedText> descriptions =
-        await repository.fetchServiceDescriptions();
+    final Map<String, LocalizedText> descriptions = await repository.fetchServiceDescriptions();
 
     final SearchIndex index = buildSearchIndex(
       services: services,
       apps: apps,
       courses: courses,
-      transactions: mergeTransactions(
-        announcements: announcements,
-        events: events,
-        tasks: tasks,
-      ),
+      transactions: mergeTransactions(announcements: announcements, events: events, tasks: tasks),
       languageCode: languageCode,
       serviceNames: names,
       serviceDescriptions: descriptions,
@@ -155,7 +147,7 @@ class _SearchPageState extends State<SearchPage> {
     final SearchIndex? index = _index;
     if (index == null) return const LoadingView();
     if (_query.trim().isEmpty) {
-      return EmptyStateView(message: l10n.searchEmptyPrompt, icon: Icons.search);
+      return const SizedBox.shrink();
     }
 
     List<SearchItem> results = index.search(_query);
@@ -172,8 +164,7 @@ class _SearchPageState extends State<SearchPage> {
       return EmptyStateView(message: l10n.searchNoResults, icon: Icons.search_off);
     }
 
-    final Map<SearchCategory, List<SearchItem>> grouped =
-        SearchIndex.groupBy(results);
+    final Map<SearchCategory, List<SearchItem>> grouped = SearchIndex.groupBy(results);
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
       children: <Widget>[
@@ -250,8 +241,7 @@ class _SearchPageState extends State<SearchPage> {
       await showServiceDetails(
         context,
         service: payload,
-        contactGroupNumber:
-            UniversityConfigs.defaultConfig.contactGroupNumbers[payload.sourceId],
+        contactGroupNumber: UniversityConfigs.defaultConfig.contactGroupNumbers[payload.sourceId],
       );
       return;
     }

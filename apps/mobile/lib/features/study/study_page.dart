@@ -166,6 +166,7 @@ class _StudyPageState extends State<StudyPage> {
               Tab(text: '学习足迹'),
             ],
           ),
+          _banner(),
           Expanded(
             child: workspace == null
                 ? Center(
@@ -205,11 +206,11 @@ class _StudyPageState extends State<StudyPage> {
     );
   }
 
-  Widget _banner() => Card(
-    color: Theme.of(context).colorScheme.secondaryContainer,
-    child: const Padding(
-      padding: EdgeInsets.all(12),
-      child: Text('学习记录仅保存在本机；AI、文件解析与共享尚未连接远程服务。'),
+  Widget _banner() => const Padding(
+    padding: EdgeInsets.fromLTRB(16, 8, 16, 0),
+    child: Align(
+      alignment: Alignment.centerLeft,
+      child: Text('本机演示 · 学习记录未同步'),
     ),
   );
 
@@ -266,8 +267,6 @@ class _StudyPageState extends State<StudyPage> {
   Widget _activityTab(StudyWorkspace workspace) => ListView(
     padding: const EdgeInsets.all(16),
     children: <Widget>[
-      _banner(),
-      const SizedBox(height: 12),
       Align(
         alignment: Alignment.centerLeft,
         child: TextButton.icon(
@@ -321,8 +320,6 @@ class _StudyPageState extends State<StudyPage> {
   Widget _sessionTab(StudyWorkspace workspace) => ListView(
     padding: const EdgeInsets.all(16),
     children: <Widget>[
-      _banner(),
-      const SizedBox(height: 12),
       if (_sessionsFor(workspace).isEmpty)
         const _EmptyCard('还没有学习记录。请从“学习任务”开始。'),
       for (final StudySession session in _sessionsFor(workspace).reversed)
@@ -356,10 +353,7 @@ class _StudyPageState extends State<StudyPage> {
   Widget _knowledgeTab(StudyWorkspace workspace) => ListView(
     padding: const EdgeInsets.all(16),
     children: <Widget>[
-      _banner(),
-      const SizedBox(height: 12),
       Text('知识库', style: Theme.of(context).textTheme.titleLarge),
-      const Text('先整理知识库名称；上传、切片、向量检索需接入远程服务。'),
       Align(
         alignment: Alignment.centerLeft,
         child: TextButton.icon(
@@ -373,7 +367,7 @@ class _StudyPageState extends State<StudyPage> {
         Card(
           child: ListTile(
             title: Text(base.name),
-            subtitle: const Text('0 个远程文件 · 本地演示'),
+            subtitle: const Text('文件未接入'),
             trailing: TextButton(
               onPressed: () => _remoteNotice('文件上传与 RAG 检索'),
               child: const Text('上传文件'),
@@ -443,10 +437,7 @@ class _StudyPageState extends State<StudyPage> {
   Widget _agentTab(StudyWorkspace workspace) => ListView(
     padding: const EdgeInsets.all(16),
     children: <Widget>[
-      _banner(),
-      const SizedBox(height: 12),
       Text('智能体草稿', style: Theme.of(context).textTheme.titleLarge),
-      const Text('可配置指令、工具和温度参数；预览调用、班级共享需远程服务。'),
       Align(
         alignment: Alignment.centerLeft,
         child: TextButton.icon(
@@ -485,10 +476,7 @@ class _StudyPageState extends State<StudyPage> {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: <Widget>[
-        _banner(),
-        const SizedBox(height: 12),
-        Text('学习足迹 · 可追溯事实', style: Theme.of(context).textTheme.titleLarge),
-        const Text('只统计本地记录，不生成能力分或自动评语。'),
+        Text('学习足迹', style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(height: 12),
         Wrap(
           spacing: 8,
@@ -525,7 +513,7 @@ class _StudyPageState extends State<StudyPage> {
     context: context,
     builder: (BuildContext context) => AlertDialog(
       title: Text('$capability · 待接入'),
-      content: const Text('前端入口已预留。当前演示未连接远程 API，也不会模拟 AI 结果或宣称已上传。'),
+      content: const Text('远程服务未接入。'),
       actions: <Widget>[
         TextButton(
           onPressed: () => Navigator.pop(context),

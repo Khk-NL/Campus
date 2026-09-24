@@ -185,6 +185,7 @@ void main() {
     await tester.pumpAndSettle();
 
     final AppLocalizations l10n = l10nOf(tester);
+    expect(find.textContaining('点一下直接打开'), findsNothing);
 
     // 三个子列表都在，而且各自带条数。
     for (final String title in <String>[

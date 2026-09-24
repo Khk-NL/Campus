@@ -75,7 +75,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dataSourceDemoExplanation =>
-      'Courses, tasks, events and notices have no backend endpoint yet; they all come from the built-in demo dataset.';
+      'Courses, tasks, events, notices: demo data';
 
   @override
   String get actionRetry => 'Retry';
@@ -151,7 +151,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get stateOfflineBody =>
-      'The Campus API is unreachable, so built-in demo data is being shown. Everything is browsable, but changes are not synced.';
+      'Using local demo data; changes are not synced';
 
   @override
   String get stateOnline => 'Connected to the backend';
@@ -182,9 +182,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get homeQuickAccess => 'Quick access';
-
-  @override
-  String get homeGreeting => 'What is happening on campus today?';
 
   @override
   String get homeOpenService => 'Open service';
@@ -297,10 +294,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get searchTitle => 'Search';
 
   @override
-  String get searchEmptyPrompt =>
-      'Type a keyword to search campus services, student apps and campus transactions';
-
-  @override
   String get searchNoResults => 'No matching results';
 
   @override
@@ -345,10 +338,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get inboxNoComment =>
-      'Campus has no comment threads. Take the discussion to WeChat, QQ or Feishu.';
-
-  @override
   String get inboxViewDetail => 'View details';
 
   @override
@@ -373,10 +362,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get appsTitle => 'Apps';
-
-  @override
-  String get appsIntro =>
-      'Campus entry points. Tap one to open it; long-press for details.';
 
   @override
   String get appsGroupOfficialWorkbench => 'Official workbench';
@@ -441,7 +426,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get contactGroupNumberStaleHint =>
-      'This is demo data: the backend catalogue has no group-number field, and a group number does go stale. Please report it if it no longer works.';
+      'Demo group number; it may be outdated';
 
   @override
   String get dataSourceLabelContactGroupNumber => 'Group number';
@@ -450,27 +435,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get launchOpenInBrowser => 'Open in browser';
 
   @override
-  String get launchWebViewFailed =>
-      'This page will not open in the in-app browser (a network problem, or the site blocks embedding).';
+  String get launchWebViewFailed => 'This page cannot open in the app';
 
   @override
   String get launchMiniProgramNotWired =>
-      'This build does not launch WeChat mini programs yet (it needs an Open Platform mobile-app AppID). Having WeChat installed will not help until that lands.';
+      'WeChat mini programs are not connected yet';
 
   @override
   String get launchMiniProgramNoWeChat =>
-      'WeChat is not installed on this device, so the mini program cannot be launched, and this entry has no web fallback.';
+      'Install WeChat to open this mini program';
 
   @override
-  String get launchCampusAppUnsupported =>
-      'A Campus app needs the plugin runtime (Phase 4) and cannot run yet.';
+  String get launchCampusAppUnsupported => 'Campus apps cannot be opened yet';
 
   @override
   String get storeTitle => 'Student apps';
-
-  @override
-  String get storeIntro =>
-      'Campus tools built by student developers. Phase 0 only displays them; installing and running them comes later.';
 
   @override
   String get storeEmpty => 'The store is empty';
@@ -498,10 +477,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get storeTagEmpty => 'No apps carry this tag';
-
-  @override
-  String get storeTagHint =>
-      'Tap a tag to filter; the filter runs on the backend.';
 
   @override
   String get storeDeveloperUnknown => 'Not published';
@@ -574,10 +549,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileNotSignedIn => 'Not signed in';
 
   @override
-  String get profileSignInHint =>
-      'Sign-in and SSO arrive in Phase 6; this phase uses a demo identity.';
-
-  @override
   String get profileSignIn => 'Sign in';
 
   @override
@@ -593,19 +564,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileSettings => 'Settings';
 
   @override
-  String get profileSettingsIntro =>
-      'Language, appearance and data source. Settings are stored on this device.';
-
-  @override
-  String get profileLoginIntro =>
-      'Signing in with the university\'s single sign-on links courses, transactions and your timetable to your account.';
-
-  @override
   String get profileLoginDialogTitle => 'Sign in';
 
   @override
   String get profileLoginDialogBody =>
-      'Single sign-on belongs to Phase 6. This version stores no school password at all (§19); it offers a demo identity for browsing the interface.';
+      'University sign-in is not connected yet. Demo identity only.';
 
   @override
   String get categoryOfficialHub => 'Official hub';

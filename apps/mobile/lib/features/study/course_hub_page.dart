@@ -73,8 +73,6 @@ class _CourseHubPageState extends State<CourseHubPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
                   Text('我的课程', style: Theme.of(context).textTheme.titleLarge),
-                  const SizedBox(height: 6),
-                  const Text('从课程进入学习记录；需要看上课时间时，再打开课表。'),
                   const SizedBox(height: 12),
                   OutlinedButton.icon(
                     onPressed: _openTimetable,
@@ -86,7 +84,7 @@ class _CourseHubPageState extends State<CourseHubPage> {
             ),
           ),
           const SizedBox(height: 12),
-          if (demo) const Text('以下课程为演示数据，尚未同步学校教务系统。'),
+          if (demo) const Text('演示课程 · 未同步'),
           FutureBuilder<List<Course>>(
             future: _courses,
             builder:
@@ -114,12 +112,7 @@ class _CourseHubPageState extends State<CourseHubPage> {
                   final List<Course> courses =
                       snapshot.data ?? const <Course>[];
                   if (courses.isEmpty) {
-                    return const Card(
-                      child: ListTile(
-                        title: Text('暂无课程'),
-                        subtitle: Text('课程同步后会显示在这里；课表仍可单独查看。'),
-                      ),
-                    );
+                    return const Card(child: ListTile(title: Text('暂无课程')));
                   }
                   return Column(
                     children: <Widget>[

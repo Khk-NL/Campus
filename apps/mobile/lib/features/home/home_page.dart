@@ -48,13 +48,14 @@ class _HomePageState extends State<HomePage> {
   // LateInitializationError even if dependencies are not ready yet — each section simply
   // shows its loading state.
   Future<List<Course>> _courses = Future<List<Course>>.value(const <Course>[]);
-  Future<List<CampusEvent>> _events =
-      Future<List<CampusEvent>>.value(const <CampusEvent>[]);
+  Future<List<CampusEvent>> _events = Future<List<CampusEvent>>.value(const <CampusEvent>[]);
   Future<List<CampusTask>> _tasks = Future<List<CampusTask>>.value(const <CampusTask>[]);
-  Future<List<Announcement>> _announcements =
-      Future<List<Announcement>>.value(const <Announcement>[]);
-  Future<List<CampusService>> _quickAccess =
-      Future<List<CampusService>>.value(const <CampusService>[]);
+  Future<List<Announcement>> _announcements = Future<List<Announcement>>.value(
+    const <Announcement>[],
+  );
+  Future<List<CampusService>> _quickAccess = Future<List<CampusService>>.value(
+    const <CampusService>[],
+  );
 
   /// 首次加载已经排过队了吗。/ whether the first load has already been queued.
   bool _loadQueued = false;
@@ -111,7 +112,6 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    final AppLocalizations l10n = AppLocalizations.of(context);
     // 本页只返回内容：顶部栏（含通知 / 搜索入口）由 AppShell 统一提供，所以四个 Tab
     // 的顶部栏完全一致。全页只有一条滚动列表，因此只留一个 RefreshIndicator。
     // This screen returns content only: the shell owns the top bar (with the notifications
@@ -122,8 +122,6 @@ class _HomePageState extends State<HomePage> {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
         children: <Widget>[
-          _Greeting(text: l10n.homeGreeting),
-          const SizedBox(height: 12),
           _todaySection(),
           const SizedBox(height: 16),
           _tasksSection(),
@@ -143,10 +141,8 @@ class _HomePageState extends State<HomePage> {
       icon: Icons.today_outlined,
       trailing: const DemoSourceBadge(source: DataSourceSource.courses),
       future: Future.wait<Object>(<Future<Object>>[_courses, _events]).then(
-        (List<Object> results) => (
-          courses: results[0] as List<Course>,
-          events: results[1] as List<CampusEvent>,
-        ),
+        (List<Object> results) =>
+            (courses: results[0] as List<Course>, events: results[1] as List<CampusEvent>),
       ),
       emptyMessage: l10n.homeNoTodayItems,
       builder: (BuildContext context, ({List<Course> courses, List<CampusEvent> events}) data) {
@@ -156,13 +152,12 @@ class _HomePageState extends State<HomePage> {
         // The teaching week comes from the **same** term calendar as the timetable; the two no
         // longer each compute their own from a rolling anchor, which could disagree on the same
         // day.
-        final int week =
-            UniversityConfigs.defaultConfig.termCalendar(now).currentWeekOf(now) ?? 1;
+        final int week = UniversityConfigs.defaultConfig.termCalendar(now).currentWeekOf(now) ?? 1;
         // 节次 → 时刻同理：从配置/后端来的作息表回答，首页不再自带一套"08:00 + 45 分钟"。
         // Period → clock time likewise comes from the configured schedule; Home no longer carries
         // its own "08:00 plus 45 minutes".
-        final PeriodSchedule schedule = AppScope.of(context).university?.config
-                .periodSchedule ??
+        final PeriodSchedule schedule =
+            AppScope.of(context).university?.config.periodSchedule ??
             UniversityConfigs.defaultConfig.periodSchedule;
         final List<HomeTodayItem> items = <HomeTodayItem>[
           // §12 的 Today 是"今天的课"：只有真在今天上、且本周确实结课的课程才算数，
@@ -184,9 +179,7 @@ class _HomePageState extends State<HomePage> {
         sortTodayItems(items);
         if (items.isEmpty) return const SizedBox.shrink();
         return Column(
-          children: <Widget>[
-            for (final HomeTodayItem item in items) _TodayTile(item: item),
-          ],
+          children: <Widget>[for (final HomeTodayItem item in items) _TodayTile(item: item)],
         );
       },
     );
@@ -216,9 +209,7 @@ class _HomePageState extends State<HomePage> {
           return left.compareTo(right);
         });
         return Column(
-          children: <Widget>[
-            for (final CampusTask task in open.take(4)) TaskTile(task: task),
-          ],
+          children: <Widget>[for (final CampusTask task in open.take(4)) TaskTile(task: task)],
         );
       },
     );
@@ -260,27 +251,8 @@ class _HomePageState extends State<HomePage> {
       future: _quickAccess,
       emptyMessage: l10n.stateEmpty,
       builder: (BuildContext context, List<CampusService> services) {
-        return QuickAccessGrid(
-          services: services,
-          repository: CampusRepositoryScope.of(context),
-        );
+        return QuickAccessGrid(services: services, repository: CampusRepositoryScope.of(context));
       },
-    );
-  }
-}
-
-/// 首屏问候语 / the greeting line.
-class _Greeting extends StatelessWidget {
-  const _Greeting({required this.text});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    return Text(
-      text,
-      style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
     );
   }
 }
@@ -317,8 +289,9 @@ class _TodayTile extends StatelessWidget {
                 if (item.subtitle.isNotEmpty)
                   Text(
                     item.subtitle,
-                    style: theme.textTheme.bodySmall
-                        ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                   ),
               ],
             ),

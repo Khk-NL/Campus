@@ -102,13 +102,13 @@ class _ProfilePageState extends State<ProfilePage> {
                     children: <Widget>[
                       Text(
                         name,
-                        style: theme.textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.w700),
+                        style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
                       ),
                       Text(
                         university,
-                        style: theme.textTheme.bodySmall
-                            ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
                       ),
                     ],
                   ),
@@ -118,12 +118,6 @@ class _ProfilePageState extends State<ProfilePage> {
             const SizedBox(height: 12),
             _InfoRow(label: l10n.profileUniversity, value: university),
             _InfoRow(label: l10n.profileRole, value: roles),
-            const SizedBox(height: 10),
-            Text(
-              user == null ? l10n.profileLoginIntro : l10n.profileSignInHint,
-              style: theme.textTheme.bodySmall
-                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-            ),
             const SizedBox(height: 12),
             // 登录入口：主按钮用标准色实色块（官方"反白应用"），当前是未登录 → 登录；
             // 已登录 → 退出登录。两种状态都有明确动作，不做只有文案的死按钮。
@@ -181,12 +175,6 @@ class _ProfilePageState extends State<ProfilePage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
             SectionHeader(title: l10n.profileSettings),
-            Text(
-              l10n.profileSettingsIntro,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-            ),
             const SizedBox(height: 12),
             _languageBlock(l10n, state),
             const SizedBox(height: 12),
@@ -207,10 +195,8 @@ class _ProfilePageState extends State<ProfilePage> {
       children: <Widget>[
         Text(
           l10n.profileLanguage,
-          style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                color: Theme.of(context).colorScheme.primary,
-                fontWeight: FontWeight.w700,
-              ),
+          style: Theme.of(context).textTheme.labelLarge
+              ?.copyWith(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 8),
         Wrap(
@@ -246,10 +232,8 @@ class _ProfilePageState extends State<ProfilePage> {
       children: <Widget>[
         Text(
           l10n.profileAppearance,
-          style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                color: Theme.of(context).colorScheme.primary,
-                fontWeight: FontWeight.w700,
-              ),
+          style: Theme.of(context).textTheme.labelLarge
+              ?.copyWith(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 8),
         Wrap(
@@ -296,18 +280,15 @@ class _ProfilePageState extends State<ProfilePage> {
       DataSourceSource.tasks,
       DataSourceSource.events,
       DataSourceSource.announcements,
-    ].every((DataSourceSource source) =>
-        state.sourceMode(source) == DataSourceMode.mock);
+    ].every((DataSourceSource source) => state.sourceMode(source) == DataSourceMode.mock);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         Text(
           l10n.profileDataSource,
-          style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                color: Theme.of(context).colorScheme.primary,
-                fontWeight: FontWeight.w700,
-              ),
+          style: Theme.of(context).textTheme.labelLarge
+              ?.copyWith(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w700),
         ),
         const SizedBox(height: 6),
         _InfoRow(
@@ -320,18 +301,16 @@ class _ProfilePageState extends State<ProfilePage> {
           const SizedBox(height: 4),
           Text(
             l10n.dataSourceDemoExplanation,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
+            style: Theme.of(context).textTheme.bodySmall
+                ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
         ],
         if (services != DataSourceMode.remote) ...<Widget>[
           const SizedBox(height: 6),
           Text(
             l10n.stateOfflineBody,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
+            style: Theme.of(context).textTheme.bodySmall
+                ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
           ),
           const SizedBox(height: 8),
           Align(
@@ -366,11 +345,7 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   /// 高校名：优先后端返回值，其次本地配置。/ the university name: backend first, config second.
-  static String _universityName(
-    BuildContext context,
-    AppLocalizations l10n,
-    AppState state,
-  ) {
+  static String _universityName(BuildContext context, AppLocalizations l10n, AppState state) {
     final University? university = state.university;
     if (university != null) return university.name;
     // 兜底走配置目录，通用代码里不出现校名。
@@ -398,8 +373,7 @@ class _InfoRow extends StatelessWidget {
             width: 88,
             child: Text(
               label,
-              style: theme.textTheme.bodySmall
-                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
             ),
           ),
           Expanded(child: Text(value, style: theme.textTheme.bodyMedium)),

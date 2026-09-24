@@ -72,7 +72,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get dataSourceCatalogueOnline => '服务目录来自后端 API';
 
   @override
-  String get dataSourceDemoExplanation => '课程、待办、活动与公告后端尚未提供接口，均来自内置演示数据。';
+  String get dataSourceDemoExplanation => '课程、待办、活动、公告：演示数据';
 
   @override
   String get actionRetry => '重试';
@@ -147,7 +147,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get stateOfflineTitle => '离线演示数据';
 
   @override
-  String get stateOfflineBody => '无法连接 Campus 服务，正在使用内置演示数据。功能可正常浏览，改动不会同步。';
+  String get stateOfflineBody => '使用本机演示数据，改动不会同步';
 
   @override
   String get stateOnline => '已连接后端服务';
@@ -178,9 +178,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get homeQuickAccess => '快捷入口';
-
-  @override
-  String get homeGreeting => '今天学校里有什么事？';
 
   @override
   String get homeOpenService => '打开服务';
@@ -289,9 +286,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get searchTitle => '搜索';
 
   @override
-  String get searchEmptyPrompt => '输入关键词，搜索校园服务、学生应用与校园事务';
-
-  @override
   String get searchNoResults => '没有匹配的结果';
 
   @override
@@ -336,9 +330,6 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get inboxNoComment => 'Campus 不提供评论区，讨论请前往微信 / QQ / 飞书。';
-
-  @override
   String get inboxViewDetail => '查看详情';
 
   @override
@@ -363,9 +354,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get appsTitle => '应用';
-
-  @override
-  String get appsIntro => '校园服务入口：点一下直接打开，长按查看详情。';
 
   @override
   String get appsGroupOfficialWorkbench => '官方工作台';
@@ -429,8 +417,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get contactGroupNumberCopied => '群号已复制到剪贴板';
 
   @override
-  String get contactGroupNumberStaleHint =>
-      '群号来自演示数据（后端服务目录没有该字段），且群号会失效；如已失效请反馈。';
+  String get contactGroupNumberStaleHint => '演示群号，可能已失效';
 
   @override
   String get dataSourceLabelContactGroupNumber => '群号';
@@ -439,23 +426,19 @@ class AppLocalizationsZh extends AppLocalizations {
   String get launchOpenInBrowser => '用浏览器打开';
 
   @override
-  String get launchWebViewFailed => '这个页面在内置浏览器里打不开（可能是网络问题，或该网站不允许被嵌入）。';
+  String get launchWebViewFailed => '页面无法在应用内打开';
 
   @override
-  String get launchMiniProgramNotWired =>
-      '本版本还没有接入微信唤起小程序（需要微信开放平台的移动应用 AppID）。装了微信也打不开，请等待后续版本。';
+  String get launchMiniProgramNotWired => '微信小程序暂未接入';
 
   @override
-  String get launchMiniProgramNoWeChat => '这台设备没有安装微信，无法拉起小程序；该入口也没有可用的网页兜底。';
+  String get launchMiniProgramNoWeChat => '未安装微信，无法打开小程序';
 
   @override
-  String get launchCampusAppUnsupported => 'Campus 应用需要插件运行时（Phase 4），暂不支持。';
+  String get launchCampusAppUnsupported => '暂不支持打开 Campus 应用';
 
   @override
   String get storeTitle => '学生应用';
-
-  @override
-  String get storeIntro => '由学生开发者构建的校园工具。Phase 0 只做展示，安装与运行属于后续阶段。';
 
   @override
   String get storeEmpty => '应用商店暂无内容';
@@ -483,9 +466,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get storeTagEmpty => '该标签下暂无应用';
-
-  @override
-  String get storeTagHint => '点标签筛选，筛选在后端完成。';
 
   @override
   String get storeDeveloperUnknown => '未公开';
@@ -558,9 +538,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get profileNotSignedIn => '未登录';
 
   @override
-  String get profileSignInHint => '登录与统一身份认证属于 Phase 6，本阶段使用演示身份。';
-
-  @override
   String get profileSignIn => '登录';
 
   @override
@@ -576,17 +553,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get profileSettings => '设置';
 
   @override
-  String get profileSettingsIntro => '语言、外观与数据源。设置会在本机保存。';
-
-  @override
-  String get profileLoginIntro => '使用学校统一身份认证登录后，课程、事务与个人课表将与你的账号关联。';
-
-  @override
   String get profileLoginDialogTitle => '登录';
 
   @override
-  String get profileLoginDialogBody =>
-      '统一身份认证（SSO）属于 Phase 6。当前版本不保存任何学校密码（§19），仅提供演示身份用于浏览界面。';
+  String get profileLoginDialogBody => '学校统一身份认证未接入。当前仅支持演示身份。';
 
   @override
   String get categoryOfficialHub => '官方入口';
