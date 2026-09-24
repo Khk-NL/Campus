@@ -117,6 +117,10 @@
   "courseWeeksRange": "Weeks {start}–{end}",
 
   "appsTitle": "Apps",
+  "appsQuickAccess": "Quick access",
+  "appsForge": "Campus projects",
+  "appsForgeEmpty": "No student projects yet",
+  "appsForgeSearch": "Search student projects",
   "@appsTitle": { "description": "「应用」Tab 的标题（底部栏叫「应用」，内容是校园服务入口）/ the Apps tab title" },
   "appsGroupOfficialWorkbench": "Official workbench",
   "@appsGroupOfficialWorkbench": { "description": "学校自己的官方聚合入口分组 / the school's own official hub group" },

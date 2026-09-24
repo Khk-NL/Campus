@@ -195,16 +195,38 @@ class PocketBaseCampusRepository
       const {};
 
   @override
-  Future<List<Course>> fetchCourses() => _withFallback(
-    DataSourceSource.courses,
-    () async => Course.listFromJson(
-      (await _read(
-        'course',
-        DataSourceSource.courses,
-      )).map((_ContentRow row) => row.payload).toList(),
-    ),
-    _fallback.fetchCourses,
-  );
+  Future<List<Course>> fetchCourses() =>
+      _withFallback(DataSourceSource.courses, () async {
+        final List<Course> publicCourses = Course.listFromJson(
+          (await _read(
+            'course',
+            DataSourceSource.courses,
+          )).map((_ContentRow row) => row.payload).toList(),
+        );
+        final String? owner = client.authStore.record?.id;
+        if (owner == null || !client.authStore.isValid) return publicCourses;
+        final List<RecordModel> records = await client
+            .collection('user_courses')
+            .getFullList(
+              filter: client.filter('owner = {:owner}', <String, dynamic>{
+                'owner': owner,
+              }),
+            );
+        final List<Course> personalCourses = Course.listFromJson(
+          <Map<String, dynamic>>[
+            for (final RecordModel record in records)
+              if (record.data['payload'] is Map)
+                <String, dynamic>{
+                  ...Map<String, dynamic>.from(record.data['payload'] as Map),
+                  'id': record.id,
+                },
+          ],
+        );
+        if (personalCourses.isNotEmpty) {
+          _setSource(DataSourceSource.courses, DataSourceMode.remote);
+        }
+        return <Course>[...publicCourses, ...personalCourses];
+      }, _fallback.fetchCourses);
 
   @override
   Future<List<Announcement>> fetchAnnouncements() => _withFallback(

@@ -1,29 +1,6 @@
-/// 「应用」Tab：校园服务与学生应用放在同一张列表里 / one list for services and student apps.
-///
-/// 产品规则（用户原话）：**学生应用与官方服务是等价值的，混在同一张列表里，官方的只是多一个
-/// 特殊标识**。因此这一页：
-///
-///   * 把 `/api/services` 与 `/api/apps` 两个来源映射成同一种 [CampusEntry]，再按**从哪进去**
-///     分成官方工作台 / Web / 小程序三个**子列表**（学生做的 Web 工具就在 Web 里，学生做的
-///     小程序就在小程序里——与官方入口并排）；
-///   * **每个子列表各有自己的搜索与排序**（按名称 / 按热度 / 按最近更新），互不干扰；
-///   * `origin` 只做徽章：官方条目多一个**校徽**，学生 / 开源 / 外部各有自己的标识；
-///   * 点一下**直接打开**，长按或「更多」看详情，星标在本子列表内置顶。
-///
-/// The product rule, in the user's words: student apps and official services are peers in one
-/// list, and being official only adds a special badge. So this screen maps both endpoints into
-/// one [CampusEntry], splits them **by how they open** into three sub-lists (a student-built web
-/// tool sits in Web next to the registrar's page), and gives **each sub-list its own search and
-/// ordering**. `origin` is only a badge, and a tap opens directly.
-///
-/// 归并只发生在展示层：详情与打开仍然各走各的路径（`showServiceDetails` / `showAppDetails`），
-/// 因为两类数据的维护方式、审核状态与责任人是不同的。
-/// The merge happens in the presentation layer only: details and launching still take their own
-/// path, because the two kinds differ in who maintains them, whether they are reviewed, and who
-/// answers for them.
-///
-/// 分组规则本身不在这里：它是一件纯函数的事，见 `service_grouping.dart` 的 `classify`（唯一实现）。
-/// The grouping rule itself is a pure function in `service_grouping.dart`.
+/// 「应用」分成快捷使用与校园作品两种视角，共用同一批入口和收藏状态。
+/// 快捷使用按启动方式分组，学生作品也可在其中启动；校园作品只筛学生项目。
+/// 详情与打开仍分别走服务或应用路径，保持来源与维护责任清晰。
 library;
 
 import 'dart:async';
@@ -52,6 +29,8 @@ import 'package:campus_mobile/features/store/widgets/app_details_sheet.dart';
 import 'package:campus_mobile/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 
+enum _AppsSurface { quick, forge }
+
 /// 「应用」Tab / the Apps tab.
 class AppsPage extends StatefulWidget {
   const AppsPage({super.key});
@@ -62,7 +41,11 @@ class AppsPage extends StatefulWidget {
 
 /// 一次取齐的数据 / everything one load needs.
 class _Catalogue {
-  const _Catalogue({required this.entries, required this.names, required this.descriptions});
+  const _Catalogue({
+    required this.entries,
+    required this.names,
+    required this.descriptions,
+  });
 
   /// 两个来源合并后的条目 / both sources, merged.
   final List<CampusEntry> entries;
@@ -76,6 +59,8 @@ class _Catalogue {
 }
 
 class _AppsPageState extends State<AppsPage> {
+  _AppsSurface _surface = _AppsSurface.quick;
+  String _forgeQuery = '';
   // 空 future 而不是 `late`：首帧永远不会读到未初始化字段。
   // An empty future rather than a `late` field: the first build never reads something
   // uninitialised.
@@ -96,15 +81,18 @@ class _AppsPageState extends State<AppsPage> {
   };
 
   /// **每个子列表各自的**排序口径 / one ordering per sub-list.
-  final Map<ServiceGroup, CampusEntrySort> _sorts = <ServiceGroup, CampusEntrySort>{
-    for (final ServiceGroup group in ServiceGroup.values) group: CampusEntrySort.name,
-  };
+  final Map<ServiceGroup, CampusEntrySort> _sorts =
+      <ServiceGroup, CampusEntrySort>{
+        for (final ServiceGroup group in ServiceGroup.values)
+          group: CampusEntrySort.name,
+      };
 
   /// 搜索框控制器（每个子列表一个，切回来时原来输入的词还在）。
   /// One controller per sub-list, so switching back keeps what was typed.
   final Map<ServiceGroup, TextEditingController> _controllers =
       <ServiceGroup, TextEditingController>{
-        for (final ServiceGroup group in ServiceGroup.values) group: TextEditingController(),
+        for (final ServiceGroup group in ServiceGroup.values)
+          group: TextEditingController(),
       };
 
   /// 话题（标签）筛选（`null` = 全部）/ the topic filter, null for "all".
@@ -173,7 +161,9 @@ class _AppsPageState extends State<AppsPage> {
         sort: ServiceSortOrder.name,
       ),
     );
-    final List<CampusApp> apps = await repository.fetchCampusApps(CampusAppsQuery(tag: topic));
+    final List<CampusApp> apps = await repository.fetchCampusApps(
+      CampusAppsQuery(tag: topic),
+    );
 
     if (!_topicsLoaded) {
       final List<CampusService> allServices = topic == null
@@ -187,7 +177,9 @@ class _AppsPageState extends State<AppsPage> {
       final List<CampusApp> allApps = topic == null
           ? apps
           : await repository.fetchCampusApps(const CampusAppsQuery());
-      _topics = _collectTopics(CampusEntries.merge(services: allServices, apps: allApps));
+      _topics = _collectTopics(
+        CampusEntries.merge(services: allServices, apps: allApps),
+      );
       _topicsLoaded = true;
     }
 
@@ -238,9 +230,80 @@ class _AppsPageState extends State<AppsPage> {
               descriptions: <String, LocalizedText>{},
             );
 
-        final Map<ServiceGroup, List<CampusEntry>> grouped = <ServiceGroup, List<CampusEntry>>{
-          for (final ServiceGroup group in ServiceGrouping.orderedGroups) group: <CampusEntry>[],
-        };
+        final FavoritesController favorites = AppScope.of(context).favorites;
+        if (_surface == _AppsSurface.forge) {
+          final List<CampusEntry> projects = CampusEntries.sorted(
+            CampusEntries.search(
+              catalogue.entries
+                  .where((CampusEntry entry) => entry.isStudentProject)
+                  .toList(),
+              _forgeQuery,
+            ),
+            CampusEntrySort.name,
+          );
+          return RefreshIndicator(
+            onRefresh: () async => _load(),
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+              children: <Widget>[
+                _header(context, l10n),
+                const SizedBox(height: 12),
+                _surfaceSwitcher(l10n),
+                if (_topics.isNotEmpty) _topicFilter(context, l10n),
+                const SizedBox(height: 12),
+                TextField(
+                  decoration: InputDecoration(
+                    prefixIcon: const Icon(Icons.search),
+                    hintText: l10n.appsForgeSearch,
+                  ),
+                  onChanged: (String value) =>
+                      setState(() => _forgeQuery = value),
+                ),
+                const SizedBox(height: 12),
+                if (projects.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 32),
+                    child: EmptyStateView(
+                      message: _forgeQuery.isEmpty
+                          ? l10n.appsForgeEmpty
+                          : l10n.appsSearchEmpty,
+                      icon: Icons.code_outlined,
+                    ),
+                  )
+                else
+                  for (final CampusEntry entry in projects)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: _EntryTile(
+                        entry: entry,
+                        name: _nameOf(catalogue, entry),
+                        description: _descriptionOf(catalogue, entry),
+                        isFavorite: favorites.contains(
+                          ServiceGrouping.favoriteBoardOf(
+                            ServiceGrouping.groupOfEntry(entry),
+                          ),
+                          entry.key,
+                        ),
+                        onToggleFavorite: () => favorites.toggle(
+                          ServiceGrouping.favoriteBoardOf(
+                            ServiceGrouping.groupOfEntry(entry),
+                          ),
+                          entry.key,
+                        ),
+                        onOpen: () => _open(context, entry),
+                        onDetails: () => _showDetails(context, entry),
+                      ),
+                    ),
+              ],
+            ),
+          );
+        }
+
+        final Map<ServiceGroup, List<CampusEntry>> grouped =
+            <ServiceGroup, List<CampusEntry>>{
+              for (final ServiceGroup group in ServiceGrouping.orderedGroups)
+                group: <CampusEntry>[],
+            };
         for (final CampusEntry entry in catalogue.entries) {
           grouped[ServiceGrouping.groupOfEntry(entry)]!.add(entry);
         }
@@ -249,12 +312,15 @@ class _AppsPageState extends State<AppsPage> {
           grouped[_group]!,
           _queries[_group]!,
         );
-        final List<CampusEntry> ordered = CampusEntries.sorted(searched, _sorts[_group]!);
-        final FavoritesController favorites = AppScope.of(context).favorites;
+        final List<CampusEntry> ordered = CampusEntries.sorted(
+          searched,
+          _sorts[_group]!,
+        );
         final String boardId = ServiceGrouping.favoriteBoardOf(_group);
         final List<CampusEntry> visible = ServiceGrouping.favoritesFirstEntries(
           ordered,
-          isFavorite: (CampusEntry entry) => favorites.contains(boardId, entry.key),
+          isFavorite: (CampusEntry entry) =>
+              favorites.contains(boardId, entry.key),
         );
 
         return RefreshIndicator(
@@ -263,11 +329,17 @@ class _AppsPageState extends State<AppsPage> {
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
             children: <Widget>[
               _header(context, l10n),
+              const SizedBox(height: 12),
+              _surfaceSwitcher(l10n),
               if (_topics.isNotEmpty) _topicFilter(context, l10n),
               const SizedBox(height: 12),
               _subListSwitcher(context, l10n, grouped),
               const SizedBox(height: 8),
-              _searchAndSort(context, l10n, hasHeat: CampusEntries.hasHeat(catalogue.entries)),
+              _searchAndSort(
+                context,
+                l10n,
+                hasHeat: CampusEntries.hasHeat(catalogue.entries),
+              ),
               const SizedBox(height: 8),
               if (visible.isEmpty)
                 Padding(
@@ -276,7 +348,9 @@ class _AppsPageState extends State<AppsPage> {
                     // 两种"空"分开说：这个子列表本来就没有入口 vs 搜索没命中。
                     // Two kinds of empty, told apart: nothing in this sub-list versus no match
                     // for what was typed.
-                    message: grouped[_group]!.isEmpty ? l10n.appsGroupEmpty : l10n.appsSearchEmpty,
+                    message: grouped[_group]!.isEmpty
+                        ? l10n.appsGroupEmpty
+                        : l10n.appsSearchEmpty,
                     icon: Icons.filter_alt_off_outlined,
                   ),
                 )
@@ -289,7 +363,8 @@ class _AppsPageState extends State<AppsPage> {
                       name: _nameOf(catalogue, entry),
                       description: _descriptionOf(catalogue, entry),
                       isFavorite: favorites.contains(boardId, entry.key),
-                      onToggleFavorite: () => favorites.toggle(boardId, entry.key),
+                      onToggleFavorite: () =>
+                          favorites.toggle(boardId, entry.key),
                       onOpen: () => _open(context, entry),
                       onDetails: () => _showDetails(context, entry),
                     ),
@@ -301,18 +376,42 @@ class _AppsPageState extends State<AppsPage> {
     );
   }
 
+  Widget _surfaceSwitcher(AppLocalizations l10n) =>
+      SegmentedButton<_AppsSurface>(
+        segments: <ButtonSegment<_AppsSurface>>[
+          ButtonSegment<_AppsSurface>(
+            value: _AppsSurface.quick,
+            label: Text(l10n.appsQuickAccess),
+            icon: const Icon(Icons.bolt_outlined),
+          ),
+          ButtonSegment<_AppsSurface>(
+            value: _AppsSurface.forge,
+            label: Text(l10n.appsForge),
+            icon: const Icon(Icons.code_outlined),
+          ),
+        ],
+        selected: <_AppsSurface>{_surface},
+        onSelectionChanged: (Set<_AppsSurface> selected) =>
+            setState(() => _surface = selected.first),
+      );
+
   /// 服务可能带双语名 / a service may carry a bilingual name.
   String _nameOf(_Catalogue catalogue, CampusEntry entry) {
     final String? id = entry.service?.id;
     if (id == null) return entry.name;
-    return catalogue.names[id]?.resolve(Localizations.localeOf(context).languageCode) ?? entry.name;
+    return catalogue.names[id]?.resolve(
+          Localizations.localeOf(context).languageCode,
+        ) ??
+        entry.name;
   }
 
   /// 服务可能带双语描述 / a service may carry a bilingual description.
   String _descriptionOf(_Catalogue catalogue, CampusEntry entry) {
     final String? id = entry.service?.id;
     if (id == null) return entry.description;
-    return catalogue.descriptions[id]?.resolve(Localizations.localeOf(context).languageCode) ??
+    return catalogue.descriptions[id]?.resolve(
+          Localizations.localeOf(context).languageCode,
+        ) ??
         entry.description;
   }
 
@@ -344,7 +443,9 @@ class _AppsPageState extends State<AppsPage> {
             children: <Widget>[
               Text(
                 l10n.storeTagFilter,
-                style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ],
           ),
@@ -364,7 +465,8 @@ class _AppsPageState extends State<AppsPage> {
                   selected: _topic == topic,
                   // 原样发回后端：归一化只有服务端一份。
                   // Sent back verbatim: normalisation exists server-side only.
-                  onSelected: (bool selected) => _selectTopic(selected ? topic : null),
+                  onSelected: (bool selected) =>
+                      _selectTopic(selected ? topic : null),
                 ),
             ],
           ),
@@ -383,9 +485,15 @@ class _AppsPageState extends State<AppsPage> {
       scrollDirection: Axis.horizontal,
       child: Row(
         children: <Widget>[
-          for (final ServiceGroup group in ServiceGrouping.orderedGroups) ...<Widget>[
+          for (final ServiceGroup group
+              in ServiceGrouping.orderedGroups) ...<Widget>[
             ChoiceChip(
-              label: Text(l10n.appsSubListLabel(_groupTitle(l10n, group), grouped[group]!.length)),
+              label: Text(
+                l10n.appsSubListLabel(
+                  _groupTitle(l10n, group),
+                  grouped[group]!.length,
+                ),
+              ),
               selected: _group == group,
               onSelected: (bool _) => setState(() => _group = group),
             ),
@@ -397,7 +505,11 @@ class _AppsPageState extends State<AppsPage> {
   }
 
   /// 当前子列表的搜索框 + 排序 / this sub-list's own search box and ordering.
-  Widget _searchAndSort(BuildContext context, AppLocalizations l10n, {required bool hasHeat}) {
+  Widget _searchAndSort(
+    BuildContext context,
+    AppLocalizations l10n, {
+    required bool hasHeat,
+  }) {
     final ThemeData theme = Theme.of(context);
     final CampusEntrySort current = _sorts[_group]!;
     final TextEditingController controller = _controllers[_group]!;
@@ -410,7 +522,8 @@ class _AppsPageState extends State<AppsPage> {
             key: ValueKey<ServiceGroup>(_group),
             controller: controller,
             textInputAction: TextInputAction.search,
-            onChanged: (String value) => setState(() => _queries[_group] = value),
+            onChanged: (String value) =>
+                setState(() => _queries[_group] = value),
             decoration: InputDecoration(
               isDense: true,
               hintText: l10n.appsSearchHint,
@@ -433,31 +546,33 @@ class _AppsPageState extends State<AppsPage> {
         PopupMenuButton<CampusEntrySort>(
           tooltip: l10n.appsSortLabel,
           initialValue: current,
-          onSelected: (CampusEntrySort value) => setState(() => _sorts[_group] = value),
-          itemBuilder: (BuildContext context) => <PopupMenuEntry<CampusEntrySort>>[
-            CheckedPopupMenuItem<CampusEntrySort>(
-              value: CampusEntrySort.name,
-              checked: current == CampusEntrySort.name,
-              child: Text(l10n.appsSortName),
-            ),
-            // 热度只在真的有计数时才给出来：全是 0 的时候点它，看到的是名称顺序——
-            // 一个"看起来在工作、其实没有信息"的控件，本项目一贯拒绝这种东西。
-            //
-            // The heat option appears only once counts really exist: with every count at 0 it
-            // would show name order under a heat label, a control that looks like it works and
-            // carries nothing.
-            if (hasHeat)
-              CheckedPopupMenuItem<CampusEntrySort>(
-                value: CampusEntrySort.heat,
-                checked: current == CampusEntrySort.heat,
-                child: Text(l10n.appsSortHeat),
-              ),
-            CheckedPopupMenuItem<CampusEntrySort>(
-              value: CampusEntrySort.recentlyUpdated,
-              checked: current == CampusEntrySort.recentlyUpdated,
-              child: Text(l10n.appsSortRecent),
-            ),
-          ],
+          onSelected: (CampusEntrySort value) =>
+              setState(() => _sorts[_group] = value),
+          itemBuilder: (BuildContext context) =>
+              <PopupMenuEntry<CampusEntrySort>>[
+                CheckedPopupMenuItem<CampusEntrySort>(
+                  value: CampusEntrySort.name,
+                  checked: current == CampusEntrySort.name,
+                  child: Text(l10n.appsSortName),
+                ),
+                // 热度只在真的有计数时才给出来：全是 0 的时候点它，看到的是名称顺序——
+                // 一个"看起来在工作、其实没有信息"的控件，本项目一贯拒绝这种东西。
+                //
+                // The heat option appears only once counts really exist: with every count at 0 it
+                // would show name order under a heat label, a control that looks like it works and
+                // carries nothing.
+                if (hasHeat)
+                  CheckedPopupMenuItem<CampusEntrySort>(
+                    value: CampusEntrySort.heat,
+                    checked: current == CampusEntrySort.heat,
+                    child: Text(l10n.appsSortHeat),
+                  ),
+                CheckedPopupMenuItem<CampusEntrySort>(
+                  value: CampusEntrySort.recentlyUpdated,
+                  checked: current == CampusEntrySort.recentlyUpdated,
+                  child: Text(l10n.appsSortRecent),
+                ),
+              ],
           child: Chip(
             avatar: const Icon(Icons.sort, size: 16),
             label: Text(_sortLabel(l10n, current)),
@@ -501,8 +616,14 @@ class _AppsPageState extends State<AppsPage> {
   /// and the primary action must never be blocked by bookkeeping.
   Future<void> _open(BuildContext context, CampusEntry entry) async {
     final CampusRepository repository = CampusRepositoryScope.read(context);
-    final LaunchOutcome outcome = await launchServiceFrom(context, target: entry.launchTarget);
-    if (outcome != LaunchOutcome.handedOff && outcome != LaunchOutcome.openedInApp) return;
+    final LaunchOutcome outcome = await launchServiceFrom(
+      context,
+      target: entry.launchTarget,
+    );
+    if (outcome != LaunchOutcome.handedOff &&
+        outcome != LaunchOutcome.openedInApp) {
+      return;
+    }
     final CampusService? service = entry.service;
     final String? appId = entry.app?.id;
     if (service != null) {
@@ -524,7 +645,8 @@ class _AppsPageState extends State<AppsPage> {
     showServiceDetails(
       context,
       service: service,
-      contactGroupNumber: UniversityConfigs.defaultConfig.contactGroupNumbers[service.sourceId],
+      contactGroupNumber:
+          UniversityConfigs.defaultConfig.contactGroupNumbers[service.sourceId],
     );
   }
 }
@@ -573,7 +695,11 @@ class _EntryTile extends StatelessWidget {
                   color: theme.colorScheme.primaryContainer,
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(_leadingIcon(entry), size: 20, color: theme.colorScheme.primary),
+                child: Icon(
+                  _leadingIcon(entry),
+                  size: 20,
+                  color: theme.colorScheme.primary,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -597,7 +723,8 @@ class _EntryTile extends StatelessWidget {
                         if (entry.isOfficial) ...<Widget>[
                           const SizedBox(width: 6),
                           UniversityBrandMark(
-                            assetPath: UniversityConfigs.defaultConfig.brandMarkAsset,
+                            assetPath:
+                                UniversityConfigs.defaultConfig.brandMarkAsset,
                             height: 14,
                             semanticLabel: l10n.originOfficial,
                           ),
@@ -650,12 +777,18 @@ class _EntryTile extends StatelessWidget {
                 IconButton(
                   icon: const Icon(Icons.code),
                   tooltip: l10n.storeRepository,
-                  onPressed: () => unawaited(openUrlExternally(Uri.parse(entry.repositoryUrl!))),
+                  onPressed: () => unawaited(
+                    openUrlExternally(Uri.parse(entry.repositoryUrl!)),
+                  ),
                 ),
               IconButton(
                 icon: Icon(isFavorite ? Icons.star : Icons.star_border),
-                color: isFavorite ? theme.colorScheme.primary : theme.colorScheme.outline,
-                tooltip: isFavorite ? l10n.appsFavoriteRemove : l10n.appsFavoriteAdd,
+                color: isFavorite
+                    ? theme.colorScheme.primary
+                    : theme.colorScheme.outline,
+                tooltip: isFavorite
+                    ? l10n.appsFavoriteRemove
+                    : l10n.appsFavoriteAdd,
                 onPressed: onToggleFavorite,
               ),
               IconButton(

@@ -356,6 +356,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get appsTitle => '应用';
 
   @override
+  String get appsQuickAccess => '快速入口';
+
+  @override
+  String get appsForge => '校园作品';
+
+  @override
+  String get appsForgeEmpty => '暂无学生作品';
+
+  @override
+  String get appsForgeSearch => '搜索学生作品';
+
+  @override
   String get appsGroupOfficialWorkbench => '官方工作台';
 
   @override

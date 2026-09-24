@@ -14,6 +14,21 @@ import 'package:campus_mobile/data/models/course.dart';
 import 'package:campus_mobile/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 
+class _CourseMeeting {
+  const _CourseMeeting({
+    required this.course,
+    required this.key,
+    required this.day,
+    required this.start,
+    required this.end,
+    required this.location,
+  });
+  final Course course;
+  final String key;
+  final int day, start, end;
+  final String location;
+}
+
 /// 课程表网格 / the timetable grid.
 class TimetableGrid extends StatelessWidget {
   const TimetableGrid({
@@ -56,35 +71,67 @@ class TimetableGrid extends StatelessWidget {
 
   /// 在 [week] 周上课的课程 / the courses meeting in [week].
   static List<Course> coursesInWeek(List<Course> all, int week) => <Course>[
-        for (final Course course in all)
-          if (course.meetsInWeek(week)) course,
-      ];
+    for (final Course course in all)
+      if (course.meetsInWeek(week)) course,
+  ];
 
   /// 网格需要画到第几节；没有能放进网格的课程时返回 0。
   /// The last period the grid needs; 0 when nothing can be placed on it.
   static int lastPeriod(Iterable<Course> courses) {
     int last = 0;
     for (final Course course in courses) {
-      if (!course.isScheduled) continue;
-      final int end = course.endPeriod ?? 0;
-      if (end > last) last = end;
+      for (final CourseScheduleRule rule
+          in course.scheduleRules ?? const <CourseScheduleRule>[]) {
+        if (rule.periodEnd > last) last = rule.periodEnd;
+      }
+      if (course.scheduleRules == null &&
+          course.isScheduled &&
+          course.endPeriod! > last) {
+        last = course.endPeriod!;
+      }
     }
     return last;
+  }
+
+  static Iterable<_CourseMeeting> _meetings(Course course, int week) sync* {
+    final List<CourseScheduleRule>? rules = course.scheduleRules;
+    if (rules != null) {
+      for (int i = 0; i < rules.length; i++) {
+        final CourseScheduleRule rule = rules[i];
+        if (!ruleAppliesInWeek(rule, week)) continue;
+        yield _CourseMeeting(
+          course: course,
+          key: '${course.id}:$i',
+          day: rule.dayOfWeek,
+          start: rule.periodStart,
+          end: rule.periodEnd,
+          location: rule.location ?? course.location,
+        );
+      }
+    } else if (course.isScheduled) {
+      yield _CourseMeeting(
+        course: course,
+        key: course.id,
+        day: course.weekday!,
+        start: course.startPeriod!,
+        end: course.endPeriod!,
+        location: course.location,
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final List<Course> weekCourses = coursesInWeek(courses, week);
-    final List<Course> scheduled = <Course>[
-      for (final Course course in weekCourses)
-        if (course.isScheduled) course,
+    final List<_CourseMeeting> scheduled = <_CourseMeeting>[
+      for (final Course course in weekCourses) ..._meetings(course, week),
     ];
     // 没有结构化排课的课程不硬塞进格子，单独列出来（`isScheduled` 的文档说明了原因）。
     // Courses without structured scheduling are listed separately rather than guessed into
     // a cell (see the documentation on `isScheduled`).
     final List<Course> unscheduled = <Course>[
       for (final Course course in weekCourses)
-        if (!course.isScheduled) course,
+        if (!course.isScheduled && course.scheduleRules == null) course,
     ];
 
     return Column(
@@ -97,7 +144,7 @@ class TimetableGrid extends StatelessWidget {
   }
 
   /// 可横向滚动的网格本体 / the horizontally scrollable grid itself.
-  Widget _grid(BuildContext context, List<Course> scheduled) {
+  Widget _grid(BuildContext context, List<_CourseMeeting> scheduled) {
     final ThemeData theme = Theme.of(context);
     final double totalWidth = periodColumnWidth + 7 * dayColumnWidth;
     final double bodyHeight = periodCount * rowHeight;
@@ -165,8 +212,9 @@ class TimetableGrid extends StatelessWidget {
                     color: highlightWeekday == day
                         ? theme.colorScheme.primary
                         : theme.colorScheme.onSurfaceVariant,
-                    fontWeight:
-                        highlightWeekday == day ? FontWeight.w700 : FontWeight.w500,
+                    fontWeight: highlightWeekday == day
+                        ? FontWeight.w700
+                        : FontWeight.w500,
                   ),
                 ),
               ),
@@ -203,7 +251,9 @@ class TimetableGrid extends StatelessWidget {
     // Convert to a Sunday-based index and apply a circular offset by the locale's first day of
     // week. The eight-entry convention (empty string at index 0) is handled too, so the code
     // does not depend on a Flutter version's implementation detail.
-    final MaterialLocalizations localizations = MaterialLocalizations.of(context);
+    final MaterialLocalizations localizations = MaterialLocalizations.of(
+      context,
+    );
     final List<String> narrow = localizations.narrowWeekdays;
     if (narrow.isEmpty) return '';
 
@@ -257,8 +307,9 @@ class TimetableGrid extends StatelessWidget {
                 textAlign: TextAlign.center,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.labelSmall
-                    ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
               ),
             ),
           ),
@@ -267,20 +318,20 @@ class TimetableGrid extends StatelessWidget {
   }
 
   /// 把课程块放到 (星期, 节次) 上 / position every course block at (weekday, period).
-  List<Widget> _courseBlocks(List<Course> scheduled) {
+  List<Widget> _courseBlocks(List<_CourseMeeting> scheduled) {
     final List<Widget> blocks = <Widget>[];
     for (int day = DateTime.monday; day <= DateTime.sunday; day++) {
-      final List<Course> dayCourses = <Course>[
-        for (final Course course in scheduled)
-          if (course.weekday == day) course,
+      final List<_CourseMeeting> dayCourses = <_CourseMeeting>[
+        for (final _CourseMeeting meeting in scheduled)
+          if (meeting.day == day) meeting,
       ];
       if (dayCourses.isEmpty) continue;
 
-      final List<Course> ordered = List<Course>.of(dayCourses)
-        ..sort((Course a, Course b) {
-          final int byStart = (a.startPeriod ?? 0).compareTo(b.startPeriod ?? 0);
+      final List<_CourseMeeting> ordered = List<_CourseMeeting>.of(dayCourses)
+        ..sort((_CourseMeeting a, _CourseMeeting b) {
+          final int byStart = a.start.compareTo(b.start);
           if (byStart != 0) return byStart;
-          return a.id.compareTo(b.id);
+          return a.key.compareTo(b.key);
         });
 
       // 同一天里互相重叠的课程各占一条"泳道"，否则两个课块会叠在一起。
@@ -288,9 +339,9 @@ class TimetableGrid extends StatelessWidget {
       // overlap; a day with no conflict still gets the full column width.
       final Map<String, int> lanes = <String, int>{};
       final List<int> laneEnds = <int>[];
-      for (final Course course in ordered) {
-        final int start = course.startPeriod ?? 1;
-        final int end = course.endPeriod ?? start;
+      for (final _CourseMeeting meeting in ordered) {
+        final int start = meeting.start;
+        final int end = meeting.end;
         int lane = laneEnds.indexWhere((int lastEnd) => lastEnd < start);
         if (lane < 0) {
           lane = laneEnds.length;
@@ -298,23 +349,28 @@ class TimetableGrid extends StatelessWidget {
         } else {
           laneEnds[lane] = end;
         }
-        lanes[course.id] = lane;
+        lanes[meeting.key] = lane;
       }
 
       final double laneWidth = dayColumnWidth / laneEnds.length;
-      for (final Course course in ordered) {
-        final int start = course.startPeriod ?? 1;
-        final int end = course.endPeriod ?? start;
-        final int lane = lanes[course.id] ?? 0;
+      for (final _CourseMeeting meeting in ordered) {
+        final int start = meeting.start;
+        final int end = meeting.end;
+        final int lane = lanes[meeting.key] ?? 0;
         blocks.add(
           Positioned(
-            left: periodColumnWidth + (day - 1) * dayColumnWidth + lane * laneWidth,
+            left:
+                periodColumnWidth +
+                (day - 1) * dayColumnWidth +
+                lane * laneWidth,
             top: (start - 1) * rowHeight,
             width: laneWidth,
             height: (end - start + 1) * rowHeight,
             child: _CourseBlock(
-              course: course,
-              onTap: onCourseTap == null ? null : () => onCourseTap!(course),
+              meeting: meeting,
+              onTap: onCourseTap == null
+                  ? null
+                  : () => onCourseTap!(meeting.course),
             ),
           ),
         );
@@ -358,7 +414,10 @@ class TimetableGrid extends StatelessWidget {
                 // Mobile first: a tappable row stays at least 44dp tall.
                 constraints: const BoxConstraints(minHeight: 44),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 4,
+                    vertical: 6,
+                  ),
                   child: Row(
                     children: <Widget>[
                       Expanded(
@@ -376,8 +435,9 @@ class TimetableGrid extends StatelessWidget {
                             course.location,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.bodySmall
-                                ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
                           ),
                         ),
                       ],
@@ -394,9 +454,9 @@ class TimetableGrid extends StatelessWidget {
 
 /// 一个课块 / one course block on the grid.
 class _CourseBlock extends StatelessWidget {
-  const _CourseBlock({required this.course, this.onTap});
+  const _CourseBlock({required this.meeting, this.onTap});
 
-  final Course course;
+  final _CourseMeeting meeting;
   final VoidCallback? onTap;
 
   @override
@@ -424,7 +484,7 @@ class _CourseBlock extends StatelessWidget {
                   child: Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
-                      course.name,
+                      meeting.course.name,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.labelSmall?.copyWith(
@@ -435,9 +495,9 @@ class _CourseBlock extends StatelessWidget {
                     ),
                   ),
                 ),
-                if (course.location.isNotEmpty)
+                if (meeting.location.isNotEmpty)
                   Text(
-                    course.location,
+                    meeting.location,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.labelSmall?.copyWith(

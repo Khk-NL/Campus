@@ -722,6 +722,30 @@ abstract class AppLocalizations {
   /// **'应用'**
   String get appsTitle;
 
+  /// No description provided for @appsQuickAccess.
+  ///
+  /// In zh, this message translates to:
+  /// **'快速入口'**
+  String get appsQuickAccess;
+
+  /// No description provided for @appsForge.
+  ///
+  /// In zh, this message translates to:
+  /// **'校园作品'**
+  String get appsForge;
+
+  /// No description provided for @appsForgeEmpty.
+  ///
+  /// In zh, this message translates to:
+  /// **'暂无学生作品'**
+  String get appsForgeEmpty;
+
+  /// No description provided for @appsForgeSearch.
+  ///
+  /// In zh, this message translates to:
+  /// **'搜索学生作品'**
+  String get appsForgeSearch;
+
   /// 学校自己的官方聚合入口分组 / the school's own official hub group
   ///
   /// In zh, this message translates to:

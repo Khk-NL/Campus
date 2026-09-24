@@ -130,6 +130,10 @@
   "@courseWeeksRange": { "description": "教学周范围（§9）/ the teaching week range" },
 
   "appsTitle": "应用",
+  "appsQuickAccess": "快速入口",
+  "appsForge": "校园作品",
+  "appsForgeEmpty": "暂无学生作品",
+  "appsForgeSearch": "搜索学生作品",
   "@appsTitle": { "description": "「应用」Tab 的标题（底部栏叫「应用」，内容是校园服务入口）/ the Apps tab title" },
   "appsGroupOfficialWorkbench": "官方工作台",
   "@appsGroupOfficialWorkbench": { "description": "学校自己的官方聚合入口分组 / the school's own official hub group" },

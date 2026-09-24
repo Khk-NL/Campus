@@ -61,7 +61,9 @@ class _TimetablePageState extends State<TimetablePage> {
   // Empty futures rather than `late`: the first frame never reads something
   // uninitialised.
   Future<List<Course>> _courses = Future<List<Course>>.value(const <Course>[]);
-  Future<List<CampusTask>> _tasks = Future<List<CampusTask>>.value(const <CampusTask>[]);
+  Future<List<CampusTask>> _tasks = Future<List<CampusTask>>.value(
+    const <CampusTask>[],
+  );
 
   /// 通知的原始输入（公告 / 活动 / 课程），合并留给 build 按当前周计算。
   /// The raw notice inputs; the merge happens in build, filtered by the week on screen.
@@ -112,7 +114,8 @@ class _TimetablePageState extends State<TimetablePage> {
     final CampusRepository repository = CampusRepositoryScope.read(context);
     final Future<List<Course>> courses = repository.fetchCourses();
     final Future<List<CampusTask>> tasks = repository.fetchTasks();
-    final Future<List<Announcement>> announcements = repository.fetchAnnouncements();
+    final Future<List<Announcement>> announcements = repository
+        .fetchAnnouncements();
     final Future<List<CampusEvent>> events = repository.fetchEvents();
     // 判断公告有没有提到某门课需要课程名，因此等三者都到齐再合并。
     // Matching an announcement against a course needs the course names, so the merge waits
@@ -127,13 +130,14 @@ class _TimetablePageState extends State<TimetablePage> {
     // used to be a one-shot `Future`, which left `concernsWeek` with no opportunity to run — an
     // unused contract field is the same as no field.
     final Future<_NoticeInputs> noticeInputs =
-        Future.wait<Object>(<Future<Object>>[announcements, events, courses]).then(
-      (List<Object> results) => _NoticeInputs(
-        announcements: results[0] as List<Announcement>,
-        events: results[1] as List<CampusEvent>,
-        courses: results[2] as List<Course>,
-      ),
-    );
+        Future.wait<Object>(<Future<Object>>[announcements, events, courses])
+            .then(
+              (List<Object> results) => _NoticeInputs(
+                announcements: results[0] as List<Announcement>,
+                events: results[1] as List<CampusEvent>,
+                courses: results[2] as List<Course>,
+              ),
+            );
     if (!mounted) {
       _courses = courses;
       _tasks = tasks;
@@ -175,7 +179,8 @@ class _TimetablePageState extends State<TimetablePage> {
         if (event.relatedCourseId != null && event.concernsWeek(week))
           EventTransaction(event),
       for (final Announcement announcement in announcements)
-        if (_mentionsCourse(announcement, names)) AnnouncementTransaction(announcement),
+        if (_mentionsCourse(announcement, names))
+          AnnouncementTransaction(announcement),
     ];
     notices.sort(
       (CampusTransaction a, CampusTransaction b) =>
@@ -286,7 +291,11 @@ class _TimetablePageState extends State<TimetablePage> {
   }
 
   /// 教学周切换条 / the teaching-week switcher.
-  Widget _weekSwitcher(BuildContext context, AppLocalizations l10n, ThemeData theme) {
+  Widget _weekSwitcher(
+    BuildContext context,
+    AppLocalizations l10n,
+    ThemeData theme,
+  ) {
     // "本周"只在**确实落在学期内**时才显示：锚点未核实、或今天在学期之外时，把某一周
     // 标成"本周"就是在编。
     // "This week" only when today really falls inside the term: with an unverified anchor, or a
@@ -309,8 +318,9 @@ class _TimetablePageState extends State<TimetablePage> {
                   Text(
                     l10n.timetableWeekLabel(_week),
                     textAlign: TextAlign.center,
-                    style: theme.textTheme.titleMedium
-                        ?.copyWith(fontWeight: FontWeight.w700),
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                   const SizedBox(height: 2),
                   // 具体日期区间：只有"第几周"的话，用户没法把它和真实日期对上。
@@ -321,15 +331,17 @@ class _TimetablePageState extends State<TimetablePage> {
                       material.formatMediumDate(_term.sundayOfWeek(_week)),
                     ),
                     textAlign: TextAlign.center,
-                    style: theme.textTheme.bodySmall
-                        ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     l10n.timetableTermWeeks(_term.weeks),
                     textAlign: TextAlign.center,
-                    style: theme.textTheme.bodySmall
-                        ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                   ),
                   if (!_term.isVerified) ...<Widget>[
                     const SizedBox(height: 6),
@@ -390,7 +402,10 @@ class _TimetablePageState extends State<TimetablePage> {
         final Object? error = snapshot.error;
         if (error != null) return _SectionError(message: error.toString());
         final List<Course> all = snapshot.data ?? const <Course>[];
-        final List<Course> weekCourses = TimetableGrid.coursesInWeek(all, _week);
+        final List<Course> weekCourses = TimetableGrid.coursesInWeek(
+          all,
+          _week,
+        );
         if (weekCourses.isEmpty) {
           return _SectionEmpty(message: l10n.timetableNoCourses);
         }
@@ -399,7 +414,8 @@ class _TimetablePageState extends State<TimetablePage> {
           courses: all,
           periodCount: TimetableGrid.lastPeriod(weekCourses),
           highlightWeekday: _highlightWeekday(),
-          onCourseTap: (Course course) => showCourseDetails(context, course: course),
+          onCourseTap: (Course course) =>
+              showCourseDetails(context, course: course),
         );
       },
     );
@@ -409,30 +425,34 @@ class _TimetablePageState extends State<TimetablePage> {
   Widget _tasksBody(BuildContext context, AppLocalizations l10n) {
     return FutureBuilder<List<CampusTask>>(
       future: _tasks,
-      builder: (BuildContext context, AsyncSnapshot<List<CampusTask>> snapshot) {
-        if (snapshot.connectionState != ConnectionState.done) {
-          return const _SectionLoading();
-        }
-        final Object? error = snapshot.error;
-        if (error != null) return _SectionError(message: error.toString());
-        final List<CampusTask> tasks = <CampusTask>[
-          for (final CampusTask task in snapshot.data ?? const <CampusTask>[])
-            if (task.relatedCourseId != null && task.isOpen) task,
-        ];
-        if (tasks.isEmpty) return _SectionEmpty(message: l10n.timetableNoCourseTasks);
-        return Column(
-          children: <Widget>[
-            for (final CampusTask task in tasks)
-              TaskTile(
-                task: task,
-                onTap: () => showTransactionDetails(
-                  context,
-                  transaction: TaskTransaction(task),
-                ),
-              ),
-          ],
-        );
-      },
+      builder:
+          (BuildContext context, AsyncSnapshot<List<CampusTask>> snapshot) {
+            if (snapshot.connectionState != ConnectionState.done) {
+              return const _SectionLoading();
+            }
+            final Object? error = snapshot.error;
+            if (error != null) return _SectionError(message: error.toString());
+            final List<CampusTask> tasks = <CampusTask>[
+              for (final CampusTask task
+                  in snapshot.data ?? const <CampusTask>[])
+                if (task.relatedCourseId != null && task.isOpen) task,
+            ];
+            if (tasks.isEmpty) {
+              return _SectionEmpty(message: l10n.timetableNoCourseTasks);
+            }
+            return Column(
+              children: <Widget>[
+                for (final CampusTask task in tasks)
+                  TaskTile(
+                    task: task,
+                    onTap: () => showTransactionDetails(
+                      context,
+                      transaction: TaskTransaction(task),
+                    ),
+                  ),
+              ],
+            );
+          },
     );
   }
 
@@ -444,16 +464,14 @@ class _TimetablePageState extends State<TimetablePage> {
   Widget _noticesBody(BuildContext context, AppLocalizations l10n) {
     return FutureBuilder<_NoticeInputs>(
       future: _noticeInputs,
-      builder: (
-        BuildContext context,
-        AsyncSnapshot<_NoticeInputs> snapshot,
-      ) {
+      builder: (BuildContext context, AsyncSnapshot<_NoticeInputs> snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
           return const _SectionLoading();
         }
         final Object? error = snapshot.error;
         if (error != null) return _SectionError(message: error.toString());
-        final _NoticeInputs inputs = snapshot.data ??
+        final _NoticeInputs inputs =
+            snapshot.data ??
             const _NoticeInputs(
               announcements: <Announcement>[],
               events: <CampusEvent>[],
@@ -531,8 +549,9 @@ class _TimetableSection extends StatelessWidget {
                     title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.titleMedium
-                        ?.copyWith(fontWeight: FontWeight.w700),
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
                 for (final Widget badge in badges) ...<Widget>[
@@ -578,8 +597,9 @@ class _SectionEmpty extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: Text(
         message,
-        style: theme.textTheme.bodyMedium
-            ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+        style: theme.textTheme.bodyMedium?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
       ),
     );
   }
@@ -608,8 +628,9 @@ class _SectionError extends StatelessWidget {
           Expanded(
             child: Text(
               message,
-              style: theme.textTheme.bodySmall
-                  ?.copyWith(color: theme.colorScheme.error),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.error,
+              ),
             ),
           ),
         ],

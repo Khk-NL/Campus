@@ -364,6 +364,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appsTitle => 'Apps';
 
   @override
+  String get appsQuickAccess => 'Quick access';
+
+  @override
+  String get appsForge => 'Campus projects';
+
+  @override
+  String get appsForgeEmpty => 'No student projects yet';
+
+  @override
+  String get appsForgeSearch => 'Search student projects';
+
+  @override
   String get appsGroupOfficialWorkbench => 'Official workbench';
 
   @override

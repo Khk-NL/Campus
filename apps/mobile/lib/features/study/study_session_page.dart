@@ -7,6 +7,7 @@ class StudySessionPage extends StatefulWidget {
     required this.session,
     required this.workspace,
     required this.onSave,
+    this.remote = false,
     super.key,
   });
 
@@ -14,6 +15,7 @@ class StudySessionPage extends StatefulWidget {
   final StudySession session;
   final StudyWorkspace workspace;
   final Future<void> Function() onSave;
+  final bool remote;
 
   @override
   State<StudySessionPage> createState() => _StudySessionPageState();
@@ -55,8 +57,9 @@ class _StudySessionPageState extends State<StudySessionPage> {
       ..updatedAt = DateTime.now().toIso8601String();
     await widget.onSave();
     if (mounted) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('学习记录已保存到本机')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(widget.remote ? '学习记录已同步' : '学习记录已保存到本机')),
+      );
     }
   }
 
@@ -68,6 +71,7 @@ class _StudySessionPageState extends State<StudySessionPage> {
     );
     if (item == null) return;
     widget.workspace.evidence.add(item);
+    setState(() {});
     await widget.onSave();
   }
 
@@ -111,7 +115,7 @@ class _StudySessionPageState extends State<StudySessionPage> {
               child: Text(
                 <String>[
                   widget.activity.course,
-                  '本机记录',
+                  widget.remote ? '试点账号' : '本机记录',
                   if (widget.activity.objective.isNotEmpty)
                     widget.activity.objective,
                 ].join(' · '),
@@ -119,223 +123,293 @@ class _StudySessionPageState extends State<StudySessionPage> {
             ),
           ),
           const SizedBox(height: 14),
-          Text('输入与问题', style: Theme.of(context).textTheme.titleLarge),
-          TextField(
-            controller: question,
-            maxLines: 2,
-            decoration: const InputDecoration(
-              labelText: '本次要解决什么问题？',
-              border: OutlineInputBorder(),
-            ),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: notes,
-            maxLines: 4,
-            decoration: const InputDecoration(
-              labelText: '过程笔记与观察',
-              border: OutlineInputBorder(),
-            ),
-          ),
-          const SizedBox(height: 20),
-          Row(
-            children: <Widget>[
-              Expanded(
-                child: Text(
-                  '证据与资料',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-              ),
-              TextButton.icon(
-                onPressed: _addEvidence,
-                icon: const Icon(Icons.add_link),
-                label: const Text('添加出处'),
-              ),
-            ],
-          ),
-          if (sources.isEmpty) const Text('暂无来源资料'),
-          for (final StudyEvidence source in sources)
-            Card(
-              child: ListTile(
-                title: Text(source.title),
-                subtitle: Text(
-                  '${source.url}\n${source.note}',
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ),
-          const SizedBox(height: 10),
-          Text('资料关联方式', style: Theme.of(context).textTheme.titleMedium),
-          Wrap(
-            spacing: 6,
-            children: <Widget>[
-              for (final (String id, String label) in <(String, String)>[
-                ('rag', '知识库 RAG'),
-                ('context', '附件全文'),
-                ('csv', 'CSV 数据集'),
-                ('wiki', '知识条目'),
-              ])
-                ChoiceChip(
-                  label: Text(label),
-                  selected: widget.session.referenceMode == id,
-                  onSelected: (_) {
-                    setState(() => widget.session.referenceMode = id);
-                    widget.onSave();
-                  },
-                ),
-            ],
-          ),
-          if (widget.session.referenceMode == 'wiki')
-            DropdownButtonFormField<String?>(
-              initialValue: widget.session.wikiEntryId,
-              decoration: const InputDecoration(
-                labelText: '关联知识条目',
-                border: OutlineInputBorder(),
-              ),
-              items: <DropdownMenuItem<String?>>[
-                const DropdownMenuItem<String?>(
-                  value: null,
-                  child: Text('不关联'),
-                ),
-                for (final StudyWikiEntry entry
-                    in widget.workspace.wikiEntries.where(
-                      (StudyWikiEntry entry) =>
-                          entry.courseId == widget.activity.courseId,
-                    ))
-                  DropdownMenuItem<String?>(
-                    value: entry.id,
-                    child: Text(entry.title),
+          Card(
+            child: ExpansionTile(
+              title: const Text('问题与观察'),
+              initiallyExpanded: true,
+              children: <Widget>[
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: <Widget>[
+                      TextField(
+                        controller: question,
+                        maxLines: 2,
+                        decoration: const InputDecoration(
+                          labelText: '本次要解决什么问题？',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: notes,
+                        maxLines: 4,
+                        decoration: const InputDecoration(
+                          labelText: '过程笔记与观察',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                    ],
                   ),
-              ],
-              onChanged: (String? id) {
-                widget.session.wikiEntryId = id;
-                widget.onSave();
-              },
-            )
-          else
-            DropdownButtonFormField<String?>(
-              initialValue: widget.session.knowledgeBaseId,
-              decoration: InputDecoration(
-                labelText: widget.session.referenceMode == 'rag'
-                    ? '关联知识库（仅本地关联）'
-                    : '选择资料库（文件需远程上传）',
-                border: const OutlineInputBorder(),
-              ),
-              items: <DropdownMenuItem<String?>>[
-                const DropdownMenuItem<String?>(
-                  value: null,
-                  child: Text('不关联'),
                 ),
-                for (final StudyKnowledgeBase base
-                    in widget.workspace.knowledgeBases.where(
-                      (StudyKnowledgeBase base) =>
-                          base.courseId == widget.activity.courseId,
-                    ))
-                  DropdownMenuItem<String?>(
-                    value: base.id,
-                    child: Text(base.name),
+              ],
+            ),
+          ),
+          Card(
+            child: ExpansionTile(
+              title: Text('证据与资料 · ${sources.length}'),
+              children: <Widget>[
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: <Widget>[
+                      Row(
+                        children: <Widget>[
+                          Expanded(
+                            child: Text(
+                              '证据与资料',
+                              style: Theme.of(context).textTheme.titleLarge,
+                            ),
+                          ),
+                          TextButton.icon(
+                            onPressed: _addEvidence,
+                            icon: const Icon(Icons.add_link),
+                            label: const Text('添加出处'),
+                          ),
+                        ],
+                      ),
+                      if (sources.isEmpty) const Text('暂无来源资料'),
+                      for (final StudyEvidence source in sources)
+                        Card(
+                          child: ListTile(
+                            title: Text(source.title),
+                            subtitle: Text(
+                              '${source.url}\n${source.note}',
+                              maxLines: 3,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ),
+                      const SizedBox(height: 10),
+                      Text(
+                        '资料关联方式',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      Wrap(
+                        spacing: 6,
+                        children: <Widget>[
+                          for (final (String id, String label)
+                              in <(String, String)>[
+                                ('rag', '知识库 RAG'),
+                                ('context', '附件全文'),
+                                ('csv', 'CSV 数据集'),
+                                ('wiki', '知识条目'),
+                              ])
+                            ChoiceChip(
+                              label: Text(label),
+                              selected: widget.session.referenceMode == id,
+                              onSelected: (_) {
+                                setState(
+                                  () => widget.session.referenceMode = id,
+                                );
+                                widget.onSave();
+                              },
+                            ),
+                        ],
+                      ),
+                      if (widget.session.referenceMode == 'wiki')
+                        DropdownButtonFormField<String?>(
+                          initialValue: widget.session.wikiEntryId,
+                          decoration: const InputDecoration(
+                            labelText: '关联知识条目',
+                            border: OutlineInputBorder(),
+                          ),
+                          items: <DropdownMenuItem<String?>>[
+                            const DropdownMenuItem<String?>(
+                              value: null,
+                              child: Text('不关联'),
+                            ),
+                            for (final StudyWikiEntry entry
+                                in widget.workspace.wikiEntries.where(
+                                  (StudyWikiEntry entry) =>
+                                      entry.courseId ==
+                                      widget.activity.courseId,
+                                ))
+                              DropdownMenuItem<String?>(
+                                value: entry.id,
+                                child: Text(entry.title),
+                              ),
+                          ],
+                          onChanged: (String? id) {
+                            widget.session.wikiEntryId = id;
+                            widget.onSave();
+                          },
+                        )
+                      else
+                        DropdownButtonFormField<String?>(
+                          initialValue: widget.session.knowledgeBaseId,
+                          decoration: InputDecoration(
+                            labelText: widget.session.referenceMode == 'rag'
+                                ? '关联知识库（仅本地关联）'
+                                : '选择资料库（文件需远程上传）',
+                            border: const OutlineInputBorder(),
+                          ),
+                          items: <DropdownMenuItem<String?>>[
+                            const DropdownMenuItem<String?>(
+                              value: null,
+                              child: Text('不关联'),
+                            ),
+                            for (final StudyKnowledgeBase base
+                                in widget.workspace.knowledgeBases.where(
+                                  (StudyKnowledgeBase base) =>
+                                      base.courseId == widget.activity.courseId,
+                                ))
+                              DropdownMenuItem<String?>(
+                                value: base.id,
+                                child: Text(base.name),
+                              ),
+                          ],
+                          onChanged: (String? id) {
+                            widget.session.knowledgeBaseId = id;
+                            widget.onSave();
+                          },
+                        ),
+                    ],
                   ),
-              ],
-              onChanged: (String? id) {
-                widget.session.knowledgeBaseId = id;
-                widget.onSave();
-              },
-            ),
-          const SizedBox(height: 12),
-          DropdownButtonFormField<String?>(
-            initialValue: widget.session.agentId,
-            decoration: const InputDecoration(
-              labelText: '选择智能体草稿',
-              border: OutlineInputBorder(),
-            ),
-            items: <DropdownMenuItem<String?>>[
-              const DropdownMenuItem<String?>(
-                value: null,
-                child: Text('通用助手（未接入）'),
-              ),
-              for (final StudyAgent agent in widget.workspace.agents.where(
-                (StudyAgent agent) =>
-                    agent.courseId == widget.activity.courseId,
-              ))
-                DropdownMenuItem<String?>(
-                  value: agent.id,
-                  child: Text(agent.name),
                 ),
-            ],
-            onChanged: (String? id) {
-              widget.session.agentId = id;
-              widget.onSave();
-            },
-          ),
-          const SizedBox(height: 14),
-          Text('学习助手 · 未接入', style: Theme.of(context).textTheme.titleLarge),
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            title: const Text('严格引用'),
-            value: strictCitation,
-            onChanged: (bool value) => setState(() => strictCitation = value),
-          ),
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            title: const Text('自动画布'),
-            value: autoCanvas,
-            onChanged: (bool value) => setState(() => autoCanvas = value),
-          ),
-          TextField(
-            controller: aiPrompt,
-            maxLines: 2,
-            decoration: const InputDecoration(
-              labelText: '学习问题（远程模型未接入）',
-              border: OutlineInputBorder(),
+              ],
             ),
           ),
-          Wrap(
-            spacing: 8,
-            children: <Widget>[
-              OutlinedButton(
-                onPressed: () => _remoteNotice('AI 学习助手与画布'),
-                child: const Text('向 AI 求助'),
-              ),
-              OutlinedButton(
-                onPressed: () => _remoteNotice('多人协作'),
-                child: const Text('群聊协作'),
-              ),
-              OutlinedButton(
-                onPressed: () => _remoteNotice('学习记录分享'),
-                child: const Text('分享记录'),
-              ),
-              OutlinedButton(
-                onPressed: () => _remoteNotice('附件与 CSV 数据集'),
-                child: const Text('附件 / 数据集'),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Text('行动与结论', style: Theme.of(context).textTheme.titleLarge),
-          TextField(
-            controller: conclusion,
-            maxLines: 3,
-            decoration: const InputDecoration(
-              labelText: '当前结论',
-              border: OutlineInputBorder(),
+          Card(
+            child: ExpansionTile(
+              title: const Text('智能体与学习助手'),
+              children: <Widget>[
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: <Widget>[
+                      DropdownButtonFormField<String?>(
+                        initialValue: widget.session.agentId,
+                        decoration: const InputDecoration(
+                          labelText: '选择智能体草稿',
+                          border: OutlineInputBorder(),
+                        ),
+                        items: <DropdownMenuItem<String?>>[
+                          const DropdownMenuItem<String?>(
+                            value: null,
+                            child: Text('通用助手（未接入）'),
+                          ),
+                          for (final StudyAgent agent
+                              in widget.workspace.agents.where(
+                                (StudyAgent agent) =>
+                                    agent.courseId == widget.activity.courseId,
+                              ))
+                            DropdownMenuItem<String?>(
+                              value: agent.id,
+                              child: Text(agent.name),
+                            ),
+                        ],
+                        onChanged: (String? id) {
+                          widget.session.agentId = id;
+                          widget.onSave();
+                        },
+                      ),
+                      const SizedBox(height: 14),
+                      Text(
+                        '学习助手 · 未接入',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('严格引用'),
+                        value: strictCitation,
+                        onChanged: (bool value) =>
+                            setState(() => strictCitation = value),
+                      ),
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('自动画布'),
+                        value: autoCanvas,
+                        onChanged: (bool value) =>
+                            setState(() => autoCanvas = value),
+                      ),
+                      TextField(
+                        controller: aiPrompt,
+                        maxLines: 2,
+                        decoration: const InputDecoration(
+                          labelText: '学习问题（远程模型未接入）',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                      Wrap(
+                        spacing: 8,
+                        children: <Widget>[
+                          OutlinedButton(
+                            onPressed: () => _remoteNotice('AI 学习助手与画布'),
+                            child: const Text('向 AI 求助'),
+                          ),
+                          OutlinedButton(
+                            onPressed: () => _remoteNotice('多人协作'),
+                            child: const Text('群聊协作'),
+                          ),
+                          OutlinedButton(
+                            onPressed: () => _remoteNotice('学习记录分享'),
+                            child: const Text('分享记录'),
+                          ),
+                          OutlinedButton(
+                            onPressed: () => _remoteNotice('附件与 CSV 数据集'),
+                            child: const Text('附件 / 数据集'),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: openQuestions,
-            maxLines: 2,
-            decoration: const InputDecoration(
-              labelText: '待验证问题 / 下一步行动',
-              border: OutlineInputBorder(),
+          Card(
+            child: ExpansionTile(
+              title: const Text('结论与下一步'),
+              initiallyExpanded: true,
+              children: <Widget>[
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: <Widget>[
+                      TextField(
+                        controller: conclusion,
+                        maxLines: 3,
+                        decoration: const InputDecoration(
+                          labelText: '当前结论',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: openQuestions,
+                        maxLines: 2,
+                        decoration: const InputDecoration(
+                          labelText: '待验证问题 / 下一步行动',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      Text('反馈', style: Theme.of(context).textTheme.titleLarge),
+                      Text(
+                        widget.session.feedback.isEmpty
+                            ? '教师反馈未接入'
+                            : widget.session.feedback,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ),
-          const SizedBox(height: 14),
-          Text('反馈', style: Theme.of(context).textTheme.titleLarge),
-          Text(
-            widget.session.feedback.isEmpty
-                ? '教师反馈未接入'
-                : widget.session.feedback,
           ),
           const SizedBox(height: 18),
           FilledButton.icon(

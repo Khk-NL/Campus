@@ -176,6 +176,26 @@ void main() {
   /// both a service name and a tag), in the search field's own text, and in subtitles.
   Finder row(String name) => find.widgetWithText(Card, name);
 
+  testWidgets('快速入口与校园作品是两层视角，作品仍可在快速入口使用',
+      (WidgetTester tester) async {
+    useTallViewport(tester);
+    final RecordingCampusRepository repository = RecordingCampusRepository();
+    final AppState state = await buildState(repository);
+    await tester.pumpWidget(wrap(state));
+    await tester.pumpAndSettle();
+    final AppLocalizations l10n = l10nOf(tester);
+    await tester.tap(find.text(l10n.appsForge));
+    await tester.pumpAndSettle();
+    expect(row('空教室查询'), findsOneWidget);
+    expect(row('教务处'), findsNothing);
+    await tester.tap(find.text(l10n.appsQuickAccess));
+    await tester.pumpAndSettle();
+    await switchTo(tester, subListLabel(l10n, tester, l10n.appsGroupWeb));
+    expect(row('空教室查询'), findsOneWidget);
+    expect(row('教务处'), findsOneWidget);
+    state.dispose();
+  });
+
   testWidgets('三个子列表平级，学生应用不再藏在推入页 / three peer sub-lists',
       (WidgetTester tester) async {
     useTallViewport(tester);

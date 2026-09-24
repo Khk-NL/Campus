@@ -66,6 +66,8 @@ void main() {
     expect(find.byType(StudySessionPage), findsOneWidget);
 
     await tester.enterText(find.byType(TextField).first, '校园服务在哪里可以查询？');
+    await tester.tap(find.text('证据与资料 · 0'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('添加出处'));
     await tester.pumpAndSettle();
     final Finder dialogFields = find.descendant(

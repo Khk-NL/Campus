@@ -105,6 +105,7 @@ class _StudyPageState extends State<StudyPage> {
           activity: activity,
           session: session!,
           workspace: workspace,
+          remote: widget.remote,
           onSave: _save,
         ),
       ),
