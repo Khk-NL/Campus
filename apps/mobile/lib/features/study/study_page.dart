@@ -1,7 +1,10 @@
 import 'package:campus_mobile/data/models/course.dart';
+import 'package:campus_mobile/core/config/app_config.dart';
+import 'package:campus_mobile/core/pocketbase_session.dart';
 import 'package:campus_mobile/features/study/course_note_repository.dart';
 import 'package:campus_mobile/features/study/course_notes_page.dart';
 import 'package:campus_mobile/features/study/course_notebook_view.dart';
+import 'package:campus_mobile/features/study/eduwork_gateway_probe.dart';
 import 'package:campus_mobile/features/study/study_repository.dart';
 import 'package:campus_mobile/features/study/study_session_page.dart';
 import 'package:flutter/material.dart';
@@ -237,6 +240,48 @@ class _StudyPageState extends State<StudyPage> {
     return true;
   }
 
+  Future<void> _checkEduWorkGateway() async {
+    final String url = AppConfig.configuredEduWorkGatewayUrl;
+    String title;
+    String detail;
+    if (url.isEmpty) {
+      title = 'EduWork 网关未配置';
+      detail = '请先在本机配置文件中填写 CAMPUS_EDUWORK_GATEWAY_URL 并重新构建应用。';
+    } else {
+      try {
+        final PocketBaseSession? session = PocketBaseSession.instance;
+        final EduWorkGatewayStatus status =
+            await EduWorkGatewayProbe(baseUrl: url).check(
+              pocketBaseToken: session?.signedIn == true
+                  ? session!.client.authStore.token
+                  : null,
+            );
+        title = status.ready ? '网关已就绪' : '网关在线，EduWork 尚未就绪';
+        detail =
+            '契约：${EduWorkGatewayProbe.contract}\n'
+            'EduWork 版本：${status.eduWorkRevision.isEmpty ? '未报告' : status.eduWorkRevision}\n'
+            '可用能力：${status.capabilityIds.isEmpty ? '未报告' : status.capabilityIds.join('、')}';
+      } on Exception catch (error) {
+        title = '网关连接失败';
+        detail = '$error';
+      }
+    }
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (BuildContext context) => AlertDialog(
+        title: Text(title),
+        content: Text(detail),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('知道了'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final StudyWorkspace? workspace = _workspace;
@@ -304,6 +349,12 @@ class _StudyPageState extends State<StudyPage> {
       appBar: AppBar(
         title: Text(widget.course == null ? '课程空间' : '学习空间'),
         actions: <Widget>[
+          if (widget.course != null)
+            IconButton(
+              tooltip: '检测 EduWork 网关',
+              onPressed: _checkEduWorkGateway,
+              icon: const Icon(Icons.cloud_outlined),
+            ),
           if (widget.course != null)
             IconButton(
               tooltip: '课程笔记',

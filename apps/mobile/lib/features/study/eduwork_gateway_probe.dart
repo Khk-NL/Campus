@@ -1,0 +1,90 @@
+import 'dart:convert';
+
+import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
+
+/// Campus-owned gateway handshake. This is NOT an EduWork native HTTP endpoint.
+class EduWorkGatewayProbe {
+  EduWorkGatewayProbe({required this.baseUrl, this.client});
+
+  static const String contract = 'campus-eduwork-gateway/v1';
+
+  final String baseUrl;
+  final http.Client? client;
+
+  Uri get statusUri {
+    final Uri base = Uri.parse(baseUrl.trim());
+    final bool localDebug =
+        kDebugMode &&
+        base.scheme == 'http' &&
+        <String>{'localhost', '127.0.0.1', '10.0.2.2'}.contains(base.host);
+    if (base.host.isEmpty ||
+        (base.scheme != 'https' && !localDebug) ||
+        base.userInfo.isNotEmpty ||
+        base.hasQuery ||
+        base.hasFragment) {
+      throw const FormatException(
+        '网关地址应为 HTTPS；本机调试仅允许 localhost、127.0.0.1 或 10.0.2.2',
+      );
+    }
+    return base.replace(
+      pathSegments: <String>[
+        ...base.pathSegments.where((String segment) => segment.isNotEmpty),
+        'v1',
+        'status',
+      ],
+    );
+  }
+
+  Future<EduWorkGatewayStatus> check({String? pocketBaseToken}) async {
+    if (baseUrl.trim().isEmpty) throw StateError('尚未配置 EduWork 网关地址');
+    final http.Client requestClient = client ?? http.Client();
+    try {
+      final http.Response response = await requestClient
+          .get(
+            statusUri,
+            headers: <String, String>{
+              'Accept': 'application/json',
+              if (pocketBaseToken != null && pocketBaseToken.isNotEmpty)
+                'Authorization': 'Bearer $pocketBaseToken',
+            },
+          )
+          .timeout(const Duration(seconds: 8));
+      if (response.statusCode == 401 || response.statusCode == 403) {
+        throw StateError('网关拒绝了当前账号，请检查登录和授权配置');
+      }
+      if (response.statusCode != 200) {
+        throw StateError('网关检测失败：HTTP ${response.statusCode}');
+      }
+      final Object? decoded = jsonDecode(response.body);
+      if (decoded is! Map<String, dynamic> || decoded['contract'] != contract) {
+        throw const FormatException('响应不是 Campus EduWork 网关 v1 契约');
+      }
+      return EduWorkGatewayStatus(
+        ready: decoded['ready'] == true,
+        eduWorkRevision: decoded['eduworkRevision'] is String
+            ? decoded['eduworkRevision'] as String
+            : '',
+        capabilityIds: <String>{
+          if (decoded['capabilities'] is List)
+            for (final Object? item in decoded['capabilities'] as List)
+              if (item is String) item,
+        },
+      );
+    } finally {
+      if (client == null) requestClient.close();
+    }
+  }
+}
+
+class EduWorkGatewayStatus {
+  const EduWorkGatewayStatus({
+    required this.ready,
+    required this.eduWorkRevision,
+    required this.capabilityIds,
+  });
+
+  final bool ready;
+  final String eduWorkRevision;
+  final Set<String> capabilityIds;
+}

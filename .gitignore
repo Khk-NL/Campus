@@ -23,6 +23,7 @@ out/
 .env.*
 !.env.example
 password.env
+apps/mobile/config/eduwork.local.json
 
 # ---------- 日志 / Logs ----------
 *.log

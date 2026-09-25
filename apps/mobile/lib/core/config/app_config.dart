@@ -15,6 +15,7 @@ class AppConfig {
     required this.appVersion,
     required this.requestTimeout,
     this.weChatAppId = '',
+    this.eduWorkGatewayUrl = '',
   });
 
   /// 由 `--dart-define=CAMPUS_API_BASE_URL=...` 覆盖的后端地址。
@@ -41,6 +42,12 @@ class AppConfig {
   /// empty the client honestly reports "not wired in this build" rather than claiming it can.
   final String weChatAppId;
 
+  /// Campus 自建的移动网关地址，不是 EduWork 桌面 Host 的 RPC 地址。
+  /// 只允许填写公开的 HTTPS URL；模型密钥与机构凭据不得编进 APK。
+  final String eduWorkGatewayUrl;
+
+  bool get hasEduWorkGateway => eduWorkGatewayUrl.trim().isNotEmpty;
+
   /// 小程序唤起是否已接入 / whether mini-program launching is really wired.
   bool get hasWeChatAppId => weChatAppId.isNotEmpty;
 
@@ -64,6 +71,11 @@ class AppConfig {
     defaultValue: '',
   );
 
+  static const String configuredEduWorkGatewayUrl = String.fromEnvironment(
+    'CAMPUS_EDUWORK_GATEWAY_URL',
+    defaultValue: '',
+  );
+
   /// 默认配置。可用 `--dart-define` 覆盖任意一项。
   /// The default configuration; any field can be overridden with `--dart-define`.
   factory AppConfig.defaults() {
@@ -72,10 +84,11 @@ class AppConfig {
       appVersion: configuredAppVersion,
       requestTimeout: Duration(seconds: 5),
       weChatAppId: configuredWeChatAppId,
+      eduWorkGatewayUrl: configuredEduWorkGatewayUrl,
     );
   }
 
   @override
   String toString() =>
-      'AppConfig(apiBaseUrl: $apiBaseUrl, weChatWired: $hasWeChatAppId)';
+      'AppConfig(apiBaseUrl: $apiBaseUrl, weChatWired: $hasWeChatAppId, eduWorkGatewayConfigured: $hasEduWorkGateway)';
 }

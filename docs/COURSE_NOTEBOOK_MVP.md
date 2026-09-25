@@ -9,3 +9,5 @@
 课程笔记正文仍由 Campus 的 `CourseNoteRepository` 管理，学习问题由 `StudyRepository` 管理；引用关系仅记录 `wiki:<id>` / `note:<id>`，不会把笔记正文复制进问题。未来接 EduWork 时，网关应按当前用户和课程权限读取选中资料，并将生成回答和引用作为新的派生记录；不应把 EduWork 工作区当作 Campus 笔记的唯一存储。详见 [开源项目参考与使用说明](OPEN_SOURCE_USAGE.md)。
 
 当前没有支持 PDF、网页、音视频自动摄取，也没有 NotebookLM 的即时问答、摘要和产物生成能力。若演示时展示本页，应称为“资料驱动的课程学习空间 MVP”，而非“已接入 NotebookLM/EduWork”。
+
+远程连接的公开地址与检测入口已预留，填写步骤及与 EduWork 原生 RPC 的区别见 [EduWork 远程接入准备](EDUWORK_REMOTE_SETUP.md)。

@@ -13,6 +13,8 @@
 
 EduWork 的公开 Knowledge Studio 实现是依赖 DSH 宿主、工作区注册表、文件系统、模型和产物服务的 `TypertRemoteService`，提供 `listCapabilities`、`invokeStudio`、`listArtifacts`、`readArtifact`、`updateArtifactInteraction` 等方法。它不是可从 Android 直接访问的公共 HTTP API。Campus 不应把 EduWork 的本地路径、模型密钥或桌面进程协议直接放进 APK。
 
+当前源码版本、完整接口表及 Campus 网关配置步骤见 [EduWork 远程接入准备](EDUWORK_REMOTE_SETUP.md)。
+
 可落地的接入方式是部署经授权的服务端网关：Campus 登录用户 → 网关鉴权和课程/智能体授权 → EduWork 宿主/服务 → 返回答案、引用和产物状态。网关须维护 Campus 业务 ID 与 EduWork workspace/session/artifact ID 的映射；学习记录与笔记正文仍以 Campus/PocketBase 为准，AI 索引及产物作为派生数据。至少先验收单课程问答、引用回链、失败重试和撤销授权，再接测验、闪卡、导图等产物。没有可访问的网关和模型配置前，界面只能显示“未接入”，不能生成假答案或声称已同步。
 
 `dire.muedu.org/student` 是功能组织参考，不是 Campus 的数据源或已验证的 API。Campus 当前新增的“按智能体”只是对同一份学习空间记录的另一种视角，不复制该站名称或内容，也不代表已经与该站互联。

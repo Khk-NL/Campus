@@ -175,6 +175,11 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('检测 EduWork 网关'));
+    await tester.pumpAndSettle();
+    expect(find.text('EduWork 网关未配置'), findsOneWidget);
+    await tester.tap(find.text('知道了'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('工作台'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('学习任务'));
