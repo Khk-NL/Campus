@@ -171,6 +171,9 @@ abstract class CampusRepository {
 /// 可选能力：未来更换后端时由新适配器实现，页面不依赖具体服务商。
 abstract class CampusAccountRepository {
   Future<void> signIn(String email, String password);
+  Future<void> register(String email, String password);
+  Future<void> requestVerification(String email);
+  Future<void> requestPasswordReset(String email);
   void signOut();
 }
 

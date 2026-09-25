@@ -62,6 +62,32 @@ class PocketBaseCampusRepository
   }
 
   @override
+  Future<void> register(String email, String password) async {
+    await client
+        .collection('users')
+        .create(
+          body: <String, dynamic>{
+            'email': email,
+            'password': password,
+            'passwordConfirm': password,
+          },
+        );
+    try {
+      await requestVerification(email);
+    } on Exception {
+      throw StateError('账号已创建，但验证邮件未发送；请稍后点击重发验证邮件。');
+    }
+  }
+
+  @override
+  Future<void> requestVerification(String email) =>
+      client.collection('users').requestVerification(email);
+
+  @override
+  Future<void> requestPasswordReset(String email) =>
+      client.collection('users').requestPasswordReset(email);
+
+  @override
   void signOut() => client.authStore.clear();
 
   @override
@@ -75,7 +101,7 @@ class PocketBaseCampusRepository
       id: record.id,
       universityId: UniversityConfigs.defaultConfig.universityId,
       externalUserId: '',
-      name: name.isNotEmpty ? name : (email.isNotEmpty ? email : '试点用户'),
+      name: name.isNotEmpty ? name : (email.isNotEmpty ? email : 'Campus 用户'),
       roles: const <PlatformRole>[PlatformRole.user],
     );
   }

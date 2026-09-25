@@ -259,6 +259,7 @@ class _StudyPageState extends State<StudyPage> {
         title = status.ready ? '网关已就绪' : '网关在线，EduWork 尚未就绪';
         detail =
             '契约：${EduWorkGatewayProbe.contract}\n'
+            '课程问答：${status.aiReady ? '已配置' : '未配置'}\n'
             'EduWork 版本：${status.eduWorkRevision.isEmpty ? '未报告' : status.eduWorkRevision}\n'
             '可用能力：${status.capabilityIds.isEmpty ? '未报告' : status.capabilityIds.join('、')}';
       } on Exception catch (error) {
@@ -363,7 +364,7 @@ class _StudyPageState extends State<StudyPage> {
             ),
           if (widget.onSignOut != null)
             IconButton(
-              tooltip: '退出试点账号',
+              tooltip: '退出 Campus 账号',
               onPressed: widget.onSignOut,
               icon: const Icon(Icons.logout),
             ),
@@ -379,7 +380,7 @@ class _StudyPageState extends State<StudyPage> {
       alignment: Alignment.centerLeft,
       child: Text(
         widget.remote
-            ? 'PocketBase 试点 · 学习记录已同步'
+            ? 'PocketBase · 学习记录已同步'
             : '${widget.localStorageName ?? '本机演示'} · 学习记录未同步',
       ),
     ),

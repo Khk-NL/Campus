@@ -1,0 +1,17 @@
+[Unit]
+Description=Campus PocketBase
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=campus
+Group=campus
+WorkingDirectory=/opt/campus/pocketbase
+ExecStart=/opt/campus/pocketbase/pocketbase serve --http=127.0.0.1:8090
+Restart=on-failure
+RestartSec=5
+LimitNOFILE=4096
+
+[Install]
+WantedBy=multi-user.target

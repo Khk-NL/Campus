@@ -1,7 +1,7 @@
 import 'package:campus_mobile/features/study/study_repository.dart';
 import 'package:pocketbase/pocketbase.dart';
 
-/// 每位试点用户一份课程空间快照；权限由 PocketBase collection rules 强制执行。
+/// 每位用户一份课程空间快照；权限由 PocketBase collection rules 强制执行。
 class PocketBaseStudyRepository implements StudyRepository {
   PocketBaseStudyRepository(this.client);
 
@@ -11,7 +11,7 @@ class PocketBaseStudyRepository implements StudyRepository {
   String get _ownerId {
     final String? id = client.authStore.record?.id;
     if (id == null || id.isEmpty || !client.authStore.isValid) {
-      throw StateError('请先登录课程空间试点账号');
+      throw StateError('请先登录 Campus 账号');
     }
     return id;
   }

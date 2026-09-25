@@ -1,0 +1,8 @@
+# Replace these example domains with DNS names you control.
+pb.example.com {
+    reverse_proxy 127.0.0.1:8090
+}
+
+ai.example.com {
+    reverse_proxy 127.0.0.1:8787
+}

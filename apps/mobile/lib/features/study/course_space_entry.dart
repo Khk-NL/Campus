@@ -30,13 +30,13 @@ class _CourseSpaceEntryState extends State<CourseSpaceEntry> {
     super.dispose();
   }
 
-  Future<void> _signIn(PocketBaseSession pilot) async {
+  Future<void> _signIn(PocketBaseSession account) async {
     setState(() {
       _busy = true;
       _error = null;
     });
     try {
-      await pilot.signIn(_email.text.trim(), _password.text);
+      await account.signIn(_email.text.trim(), _password.text);
       _password.clear();
       if (mounted) await AppScope.read(context).loadIdentity();
       if (mounted) setState(() {});
@@ -49,8 +49,8 @@ class _CourseSpaceEntryState extends State<CourseSpaceEntry> {
 
   @override
   Widget build(BuildContext context) {
-    final PocketBaseSession? pilot = PocketBaseSession.instance;
-    if (pilot == null) {
+    final PocketBaseSession? account = PocketBaseSession.instance;
+    if (account == null) {
       const String storage = String.fromEnvironment('STUDY_STORAGE');
       return StudyPage(
         course: widget.course,
@@ -58,15 +58,15 @@ class _CourseSpaceEntryState extends State<CourseSpaceEntry> {
         localStorageName: storage == 'sqlite' ? 'SQLite 本机' : null,
       );
     }
-    if (pilot.signedIn) {
+    if (account.signedIn) {
       return StudyPage(
-        key: ValueKey<String>(pilot.client.authStore.record!.id),
+        key: ValueKey<String>(account.client.authStore.record!.id),
         course: widget.course,
-        repository: PocketBaseStudyRepository(pilot.client),
-        noteRepository: PocketBaseCourseNoteRepository(pilot.client),
+        repository: PocketBaseStudyRepository(account.client),
+        noteRepository: PocketBaseCourseNoteRepository(account.client),
         remote: true,
         onSignOut: () {
-          pilot.signOut();
+          account.signOut();
           AppScope.read(context).loadIdentity();
           setState(() {});
         },
@@ -81,9 +81,9 @@ class _CourseSpaceEntryState extends State<CourseSpaceEntry> {
             shrinkWrap: true,
             padding: const EdgeInsets.all(24),
             children: <Widget>[
-              Text('课程空间试点登录', style: Theme.of(context).textTheme.titleLarge),
+              Text('Campus 账号登录', style: Theme.of(context).textTheme.titleLarge),
               const SizedBox(height: 8),
-              const Text('使用单独创建的试点账号；此处不是学校统一身份认证。'),
+              const Text('首次使用请先到「我的」注册并验证邮箱；此处不是学校统一身份认证。'),
               const SizedBox(height: 20),
               TextField(
                 controller: _email,
@@ -96,7 +96,7 @@ class _CourseSpaceEntryState extends State<CourseSpaceEntry> {
                 obscureText: true,
                 autofillHints: const <String>[AutofillHints.password],
                 decoration: const InputDecoration(labelText: '密码'),
-                onSubmitted: (_) => _busy ? null : _signIn(pilot),
+                onSubmitted: (_) => _busy ? null : _signIn(account),
               ),
               if (_error != null) ...<Widget>[
                 const SizedBox(height: 12),
@@ -107,7 +107,7 @@ class _CourseSpaceEntryState extends State<CourseSpaceEntry> {
               ],
               const SizedBox(height: 20),
               FilledButton(
-                onPressed: _busy ? null : () => _signIn(pilot),
+                onPressed: _busy ? null : () => _signIn(account),
                 child: Text(_busy ? '登录中…' : '登录'),
               ),
             ],

@@ -3,7 +3,8 @@ import 'dart:typed_data';
 import 'package:campus_mobile/features/study/study_repository.dart';
 
 /// Campus 产品层的远程能力端口，不是 EduWork Knowledge Studio 的原生 RPC。
-/// 当前只实现网关握手检测；问答和产物调用需服务端适配后才能实现。
+/// 课程记录页已另接 Campus 网关的 ChatECNU 问答；此完整产品端口和
+/// EduWork 产物调用仍需服务端适配后实现。
 /// 不得用本地假结果冒充服务端响应，也不得在 Flutter 保存学校平台密钥。
 abstract class StudyRemoteGateway {
   Future<List<StudyActivity>> listActivities(String courseId);

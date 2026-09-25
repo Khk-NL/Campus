@@ -9,6 +9,47 @@ import 'package:http/testing.dart';
 import 'package:pocketbase/pocketbase.dart';
 
 void main() {
+  test('普通用户注册后请求邮箱验证，密码重置走 users 集合', () async {
+    final List<String> paths = <String>[];
+    final MockClient transport = MockClient((http.Request request) async {
+      paths.add(request.url.path);
+      if (request.url.path.endsWith('/records')) {
+        final Map<String, dynamic> body =
+            jsonDecode(request.body) as Map<String, dynamic>;
+        expect(body['email'], 'student@example.test');
+        expect(body['password'], body['passwordConfirm']);
+        return http.Response(
+          jsonEncode(<String, Object>{
+            'id': 'newstudent12345',
+            'collectionId': 'users1234567890',
+            'collectionName': 'users',
+          }),
+          200,
+          headers: <String, String>{'content-type': 'application/json'},
+        );
+      }
+      return http.Response('', 204);
+    });
+    final PocketBaseCampusRepository repository = PocketBaseCampusRepository(
+      client: PocketBase(
+        'http://example.test',
+        httpClientFactory: () => transport,
+      ),
+    );
+    try {
+      await repository.register('student@example.test', 'test-password');
+      await repository.requestPasswordReset('student@example.test');
+      expect(paths, <String>[
+        '/api/collections/users/records',
+        '/api/collections/users/request-verification',
+        '/api/collections/users/request-password-reset',
+      ]);
+    } finally {
+      repository.dispose();
+      transport.close();
+    }
+  });
+
   test('PocketBase 内容适配器解析课程与服务，并标识演示来源', () async {
     final MockClient transport = MockClient((http.Request request) async {
       final String filter = request.url.queryParameters['filter'] ?? '';

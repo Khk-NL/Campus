@@ -198,6 +198,30 @@ class AppState extends ChangeNotifier {
     await loadIdentity();
   }
 
+  Future<void> registerWithPassword(String email, String password) async {
+    final Object current = repository;
+    if (current is! CampusAccountRepository) {
+      throw StateError('当前后端不支持账号注册');
+    }
+    await current.register(email, password);
+  }
+
+  Future<void> requestPasswordReset(String email) async {
+    final Object current = repository;
+    if (current is! CampusAccountRepository) {
+      throw StateError('当前后端不支持密码重置');
+    }
+    await current.requestPasswordReset(email);
+  }
+
+  Future<void> requestVerification(String email) async {
+    final Object current = repository;
+    if (current is! CampusAccountRepository) {
+      throw StateError('当前后端不支持邮箱验证');
+    }
+    await current.requestVerification(email);
+  }
+
   /// 退出登录：清空本地身份，但**不动**任何服务数据。
   /// Sign out: clears the local identity and touches no service data.
   Future<void> signOut() async {

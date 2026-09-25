@@ -28,13 +28,14 @@ EduWork 官方资料：[总 README](https://github.com/ECNU/EduWork/blob/68eb286
 ```json
 {
   "contract": "campus-eduwork-gateway/v1",
-  "ready": true,
-  "eduworkRevision": "68eb286e9b5150783f5fe50227e0e41b2c1427a6",
-  "capabilities": ["quiz", "flashcards", "mindmap", "report"]
+  "ready": false,
+  "aiReady": true,
+  "eduworkRevision": "",
+  "capabilities": ["chat"]
 }
 ```
 
-有 PocketBase 普通用户登录态时，检测请求附 `Authorization: Bearer <该用户令牌>`；无登录态则不带此头。正式网关应拒绝未授权访问，不能仅凭客户端提交的 `userId` 或 `courseId` 授权。若响应非此契约、HTTP 失败或 `ready=false`，Campus 会如实显示未就绪。**当前只完成配置入口和握手检测，没有部署网关，也没有把提问或产物按钮接到远程生成。填写 URL 不能单独让 AI 生效。**
+当前已新增 `apps/ai-gateway` 的 Campus 自建网关代码：检测和 `POST /v1/ask` 都要求 PocketBase 已验证普通用户令牌；网关重新读取所选课程资料并检查归属，使用服务端 ChatECNU Key 调用模型。`aiReady` 表示模型 Key 已配置，`ready` 专指 EduWork Studio 是否真正可用。目前 `ready=false`、`eduworkRevision` 为空；**服务器尚未部署，真实模型调用及 EduWork 成果生成未验收**。无登录态的检测请求会被拒绝；填写 URL 不会自动让尚未部署的服务生效。完整上线顺序见 [远程后端部署手册](REMOTE_DEPLOYMENT.md)。
 
 建议网关依次实现：验证 PocketBase 身份及课程权限 → 读取用户明确选中的 Campus 资料副本 → 映射 Campus 课程/会话 ID 与 EduWork workspace/session → 以受限工作区调用 DSH Host → 返回答案、引用和异步成果状态 → 支持撤销、超时和清理。EduWork 本机 Host 不应直接暴露公网，模型 Key、学校登录 Token、Host 私有 URL 留在服务端。Campus 的课程笔记和学习记录继续由 PocketBase 保存，AI 索引与成果是派生数据。
 
@@ -42,7 +43,7 @@ EduWork 官方资料：[总 README](https://github.com/ECNU/EduWork/blob/68eb286
 
 1. 确认本机 PocketBase 可用；普通试点账号登录 Campus。不要使用 `password.env` 中的 PocketBase 管理员账号作为手机端身份。Node.js 本机已检测为 v24.21.0，满足 EduWork 公版构建文档的 Node 24 基线；Campus 移动端无需安装 EduWork npm 包。
 2. 打开已替你创建的 `D:\Code\Campus\apps\mobile\config\eduwork.local.json`（仓库中另有可复制的 `eduwork.example.json`）。本机配置已被 Git 忽略。按设备修改 `POCKETBASE_URL`：Android 模拟器访问本机服务可用 `http://10.0.2.2:8090`；真机需使用手机可访问的 HTTPS 地址。
-3. 等你有**自己部署的 Campus–EduWork 网关**后，把其公开 HTTPS 基址填进 `CAMPUS_EDUWORK_GATEWAY_URL`，如 `https://campus-ai.example.edu`，不要填 GitHub 地址、EduWork 桌面本机端口、ChatECNU 模型地址、带登录令牌的私有 URL，也不要填 Key。仅调试构建允许 `http://10.0.2.2`、`http://127.0.0.1` 或 `http://localhost`。
+3. 按 [远程后端部署手册](REMOTE_DEPLOYMENT.md)部署 Campus 网关后，把其公开 HTTPS 基址填进 `CAMPUS_EDUWORK_GATEWAY_URL`，如 `https://campus-ai.example.edu`，不要填 GitHub 地址、EduWork 桌面本机端口、ChatECNU 模型地址、带登录令牌的私有 URL，也不要填 Key。仅调试构建允许 `http://10.0.2.2`、`http://127.0.0.1` 或 `http://localhost`。
 4. 在 PowerShell 中运行：
 
    ```powershell
@@ -51,7 +52,7 @@ EduWork 官方资料：[总 README](https://github.com/ECNU/EduWork/blob/68eb286
    ```
 
    修改 JSON 后需重新运行/构建，热重载不会改变编译期常量。构建模拟器调试 APK 用 `D:\flutter\bin\flutter.bat build apk --debug --dart-define-from-file=config/eduwork.local.json`；正式包只用 HTTPS 地址，且不要将任何私密值编入 APK。
-5. 打开某门课程的学习空间，点右上角“检测 EduWork 网关”。未填地址应显示“未配置”；填了但网关未部署应显示连接失败；网关实现并返回上面契约后才显示“已就绪”。这只证明握手，**不等于问答和成果生成已经验收**。
+5. 登录普通账号，打开某门课程的学习空间，点右上角“检测 EduWork 网关”。未填地址显示“未配置”；填了但网关未部署显示连接失败；当前网关在线时显示课程问答配置状态与 EduWork 未就绪。问答须实际向模型提问验收；EduWork 成果仍需另外适配。
 
 如果你只有学校 ChatECNU / [开发者平台](https://developer.ecnu.edu.cn/) 的模型权限，而没有 Campus–EduWork 网关，先不要把模型接口地址填进本字段。EduWork 的学校登录/模型配置遵循其 [机构配置说明](https://github.com/ECNU/EduWork/blob/68eb286e9b5150783f5fe50227e0e41b2c1427a6/config/desktop/examples/organization.jsonc) 和具体发行版本；它负责桌面 EduWork 的身份与模型访问，不能代替 Campus 的多用户工作区网关。
 

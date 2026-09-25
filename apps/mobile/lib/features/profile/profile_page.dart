@@ -185,15 +185,15 @@ class _ProfilePageState extends State<ProfilePage> {
   ) async {
     final TextEditingController email = TextEditingController();
     final TextEditingController password = TextEditingController();
-    final ({String email, String password})? credentials =
-        await showDialog<({String email, String password})>(
+    final ({String action, String email, String password})? choice =
+        await showDialog<({String action, String email, String password})>(
           context: context,
           builder: (BuildContext dialogContext) => AlertDialog(
-            title: const Text('试点账号登录'),
+            title: const Text('Campus 账号登录'),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
-                const Text('使用 PocketBase 试点账号，不是学校统一身份认证。'),
+                const Text('使用 Campus 账号，不是学校统一身份认证。'),
                 TextField(
                   controller: email,
                   keyboardType: TextInputType.emailAddress,
@@ -211,9 +211,36 @@ class _ProfilePageState extends State<ProfilePage> {
                 onPressed: () => Navigator.of(dialogContext).pop(),
                 child: const Text('取消'),
               ),
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop((
+                  action: 'verify',
+                  email: email.text.trim(),
+                  password: '',
+                )),
+                child: const Text('重发验证邮件'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop((
+                  action: 'reset',
+                  email: email.text.trim(),
+                  password: '',
+                )),
+                child: const Text('忘记密码'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop((
+                  action: 'register',
+                  email: email.text.trim(),
+                  password: '',
+                )),
+                child: const Text('注册'),
+              ),
               FilledButton(
-                onPressed: () => Navigator.of(dialogContext)
-                    .pop((email: email.text.trim(), password: password.text)),
+                onPressed: () => Navigator.of(dialogContext).pop((
+                  action: 'login',
+                  email: email.text.trim(),
+                  password: password.text,
+                )),
                 child: const Text('登录'),
               ),
             ],
@@ -221,13 +248,181 @@ class _ProfilePageState extends State<ProfilePage> {
         );
     email.dispose();
     password.dispose();
-    if (credentials == null) return;
+    if (choice == null || !context.mounted) return;
+    if (choice.action == 'register') {
+      await _showPocketBaseRegisterDialog(context, state, choice.email);
+      return;
+    }
+    if (choice.action == 'reset') {
+      await _showPocketBaseResetDialog(context, state, choice.email);
+      return;
+    }
+    if (choice.action == 'verify') {
+      if (!choice.email.contains('@')) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('请先填写注册邮箱。')));
+        return;
+      }
+      try {
+        await state.requestVerification(choice.email);
+        if (context.mounted) {
+          ScaffoldMessenger.of(context)
+              .showSnackBar(const SnackBar(content: Text('如果该邮箱已注册，请查收验证邮件。')));
+        }
+      } on Exception {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context)
+              .showSnackBar(const SnackBar(content: Text('邮件发送失败，请稍后重试。')));
+        }
+      }
+      return;
+    }
     try {
-      await state.signInWithPassword(credentials.email, credentials.password);
+      await state.signInWithPassword(choice.email, choice.password);
+    } on Exception {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('登录失败，请检查账号、邮箱验证状态与服务连接。')),
+        );
+      }
+    }
+  }
+
+  Future<void> _showPocketBaseRegisterDialog(
+    BuildContext context,
+    AppState state,
+    String initialEmail,
+  ) async {
+    final TextEditingController email = TextEditingController(
+      text: initialEmail,
+    );
+    final TextEditingController password = TextEditingController();
+    final TextEditingController confirm = TextEditingController();
+    final bool? submitted = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext dialogContext) => AlertDialog(
+        title: const Text('注册 Campus 账号'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              const Text('注册后请打开验证邮件完成确认，再返回登录。'),
+              TextField(
+                controller: email,
+                keyboardType: TextInputType.emailAddress,
+                decoration: const InputDecoration(labelText: '邮箱'),
+              ),
+              TextField(
+                controller: password,
+                obscureText: true,
+                decoration: const InputDecoration(labelText: '密码'),
+              ),
+              TextField(
+                controller: confirm,
+                obscureText: true,
+                decoration: const InputDecoration(labelText: '确认密码'),
+              ),
+            ],
+          ),
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('提交注册'),
+          ),
+        ],
+      ),
+    );
+    if (submitted != true || !context.mounted) {
+      email.dispose();
+      password.dispose();
+      confirm.dispose();
+      return;
+    }
+    final String address = email.text.trim();
+    final String secret = password.text;
+    final String confirmation = confirm.text;
+    email.dispose();
+    password.dispose();
+    confirm.dispose();
+    if (!address.contains('@') || secret.length < 8 || secret != confirmation) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('请填写有效邮箱、至少 8 位密码，并确认两次密码一致。')),
+      );
+      return;
+    }
+    try {
+      await state.registerWithPassword(address, secret);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('注册成功，验证邮件已发送；请完成邮箱验证后登录。')),
+        );
+      }
+    } on StateError catch (error) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('$error')));
+      }
+    } on Exception {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('注册或验证邮件发送失败，请检查邮箱及服务配置。')),
+        );
+      }
+    }
+  }
+
+  Future<void> _showPocketBaseResetDialog(
+    BuildContext context,
+    AppState state,
+    String initialEmail,
+  ) async {
+    final TextEditingController email = TextEditingController(
+      text: initialEmail,
+    );
+    final bool? submitted = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext dialogContext) => AlertDialog(
+        title: const Text('重置密码'),
+        content: TextField(
+          controller: email,
+          keyboardType: TextInputType.emailAddress,
+          decoration: const InputDecoration(labelText: '注册邮箱'),
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('发送邮件'),
+          ),
+        ],
+      ),
+    );
+    final String address = email.text.trim();
+    email.dispose();
+    if (submitted != true || !context.mounted) return;
+    if (!address.contains('@')) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('请填写注册邮箱。')));
+      return;
+    }
+    try {
+      await state.requestPasswordReset(address);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('如果该邮箱已注册，请查收密码重置邮件。')));
+      }
     } on Exception {
       if (context.mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('登录失败，请检查试点账号与服务连接。')));
+            .showSnackBar(const SnackBar(content: Text('邮件发送失败，请稍后重试。')));
       }
     }
   }

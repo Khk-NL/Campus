@@ -1,0 +1,17 @@
+[Unit]
+Description=Campus AI Gateway
+After=network-online.target campus-pocketbase.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=campus
+Group=campus
+WorkingDirectory=/opt/campus/ai-gateway
+EnvironmentFile=/etc/campus/ai.env
+ExecStart=/usr/bin/node /opt/campus/ai-gateway/src/server.mjs
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

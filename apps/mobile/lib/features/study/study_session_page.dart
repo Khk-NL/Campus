@@ -1,4 +1,7 @@
 import 'package:campus_mobile/features/study/study_repository.dart';
+import 'package:campus_mobile/core/config/app_config.dart';
+import 'package:campus_mobile/core/pocketbase_session.dart';
+import 'package:campus_mobile/features/study/eduwork_gateway_probe.dart';
 import 'package:flutter/material.dart';
 
 class StudySessionPage extends StatefulWidget {
@@ -39,6 +42,8 @@ class _StudySessionPageState extends State<StudySessionPage> {
   final TextEditingController aiPrompt = TextEditingController();
   bool strictCitation = false;
   bool autoCanvas = true;
+  String? _aiAnswer;
+  bool _asking = false;
 
   @override
   void dispose() {
@@ -91,6 +96,35 @@ class _StudySessionPageState extends State<StudySessionPage> {
     ),
   );
 
+  Future<void> _askAi() async {
+    final String url = AppConfig.configuredEduWorkGatewayUrl;
+    final PocketBaseSession? session = PocketBaseSession.instance;
+    final String? courseId = widget.activity.courseId;
+    final String prompt = aiPrompt.text.trim();
+    if (url.isEmpty || session?.signedIn != true || courseId == null) {
+      _remoteNotice('AI 学习助手');
+      return;
+    }
+    if (prompt.isEmpty) return;
+    setState(() => _asking = true);
+    try {
+      final CampusAiAnswer result = await EduWorkGatewayProbe(baseUrl: url).ask(
+        pocketBaseToken: session!.client.authStore.token,
+        courseId: courseId,
+        question: prompt,
+        sourceIds: widget.session.sourceIds,
+      );
+      if (mounted) setState(() => _aiAnswer = result.text);
+    } on Exception catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('回答失败：$error')));
+      }
+    } finally {
+      if (mounted) setState(() => _asking = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final List<StudyEvidence> sources = widget.workspace.evidence
@@ -117,7 +151,7 @@ class _StudySessionPageState extends State<StudySessionPage> {
               child: Text(
                 <String>[
                   widget.activity.course,
-                  widget.remote ? '试点账号' : '本机记录',
+                  widget.remote ? 'Campus 账号' : '本机记录',
                   if (widget.activity.objective.isNotEmpty)
                     widget.activity.objective,
                 ].join(' · '),
@@ -342,7 +376,9 @@ class _StudySessionPageState extends State<StudySessionPage> {
                       ),
                       const SizedBox(height: 14),
                       Text(
-                        '学习助手 · 未接入',
+                        AppConfig.configuredEduWorkGatewayUrl.isEmpty
+                            ? '学习助手 · 未配置'
+                            : '学习助手',
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
                       SwitchListTile(
@@ -363,7 +399,7 @@ class _StudySessionPageState extends State<StudySessionPage> {
                         controller: aiPrompt,
                         maxLines: 2,
                         decoration: const InputDecoration(
-                          labelText: '学习问题（远程模型未接入）',
+                          labelText: '学习问题',
                           border: OutlineInputBorder(),
                         ),
                       ),
@@ -371,8 +407,8 @@ class _StudySessionPageState extends State<StudySessionPage> {
                         spacing: 8,
                         children: <Widget>[
                           OutlinedButton(
-                            onPressed: () => _remoteNotice('AI 学习助手与画布'),
-                            child: const Text('向 AI 求助'),
+                            onPressed: _asking ? null : _askAi,
+                            child: Text(_asking ? '回答中…' : '向 AI 求助'),
                           ),
                           OutlinedButton(
                             onPressed: () => _remoteNotice('多人协作'),
@@ -388,6 +424,12 @@ class _StudySessionPageState extends State<StudySessionPage> {
                           ),
                         ],
                       ),
+                      if (_aiAnswer != null) ...<Widget>[
+                        const SizedBox(height: 12),
+                        SelectableText(_aiAnswer!),
+                        const SizedBox(height: 6),
+                        const Text('AI 生成内容仅供参考；请核对来源。当前回答未保存。'),
+                      ],
                     ],
                   ),
                 ),

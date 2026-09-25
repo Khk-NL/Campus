@@ -62,6 +62,7 @@ class EduWorkGatewayProbe {
       }
       return EduWorkGatewayStatus(
         ready: decoded['ready'] == true,
+        aiReady: decoded['aiReady'] == true,
         eduWorkRevision: decoded['eduworkRevision'] is String
             ? decoded['eduworkRevision'] as String
             : '',
@@ -75,16 +76,72 @@ class EduWorkGatewayProbe {
       if (client == null) requestClient.close();
     }
   }
+
+  Future<CampusAiAnswer> ask({
+    required String pocketBaseToken,
+    required String courseId,
+    required String question,
+    required List<String> sourceIds,
+  }) async {
+    final http.Client requestClient = client ?? http.Client();
+    try {
+      final Uri uri = statusUri.replace(
+        pathSegments: <String>[
+          ...statusUri.pathSegments.take(statusUri.pathSegments.length - 1),
+          'ask',
+        ],
+      );
+      final http.Response response = await requestClient
+          .post(
+            uri,
+            headers: <String, String>{
+              'Authorization': 'Bearer $pocketBaseToken',
+              'Content-Type': 'application/json',
+            },
+            body: jsonEncode(<String, Object>{
+              'courseId': courseId,
+              'question': question,
+              'sourceIds': sourceIds,
+            }),
+          )
+          .timeout(const Duration(seconds: 55));
+      final Object? decoded = jsonDecode(response.body);
+      if (decoded is! Map<String, dynamic>) {
+        throw const FormatException('网关响应格式错误');
+      }
+      if (response.statusCode != 200) {
+        throw StateError(
+          decoded['error'] is String
+              ? decoded['error'] as String
+              : '网关请求失败：HTTP ${response.statusCode}',
+        );
+      }
+      final Object? answer = decoded['answer'];
+      if (answer is! String || answer.trim().isEmpty) {
+        throw const FormatException('网关没有返回答案');
+      }
+      return CampusAiAnswer(answer);
+    } finally {
+      if (client == null) requestClient.close();
+    }
+  }
+}
+
+class CampusAiAnswer {
+  const CampusAiAnswer(this.text);
+  final String text;
 }
 
 class EduWorkGatewayStatus {
   const EduWorkGatewayStatus({
     required this.ready,
+    required this.aiReady,
     required this.eduWorkRevision,
     required this.capabilityIds,
   });
 
   final bool ready;
+  final bool aiReady;
   final String eduWorkRevision;
   final Set<String> capabilityIds;
 }

@@ -171,7 +171,7 @@ class _CourseNotebookViewState extends State<CourseNotebookView> {
                     ?.copyWith(color: colors.onSurfaceVariant),
               ),
               Text(
-                widget.remote ? '试点账号已同步' : '本机保存',
+                widget.remote ? '账号已同步' : '本机保存',
                 style: Theme.of(context).textTheme.labelSmall
                     ?.copyWith(color: colors.onSurfaceVariant),
               ),

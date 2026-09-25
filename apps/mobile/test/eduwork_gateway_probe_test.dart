@@ -44,4 +44,31 @@ void main() {
       throwsFormatException,
     );
   });
+
+  test('课程提问只发送普通用户令牌、课程和选中资料', () async {
+    final MockClient client = MockClient((http.Request request) async {
+      expect(request.url.toString(), 'https://school.example/v1/ask');
+      expect(request.headers['authorization'], 'Bearer user-token');
+      expect(request.method, 'POST');
+      expect(request.body, contains('note:one'));
+      return http.Response(
+        '{"answer":"根据资料回答"}',
+        200,
+        headers: <String, String>{
+          'content-type': 'application/json; charset=utf-8',
+        },
+      );
+    });
+    final CampusAiAnswer answer =
+        await EduWorkGatewayProbe(
+          baseUrl: 'https://school.example',
+          client: client,
+        ).ask(
+          pocketBaseToken: 'user-token',
+          courseId: 'course-1',
+          question: '解释一下',
+          sourceIds: <String>['note:one'],
+        );
+    expect(answer.text, '根据资料回答');
+  });
 }
