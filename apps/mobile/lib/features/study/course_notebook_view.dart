@@ -1,0 +1,528 @@
+import 'package:campus_mobile/data/models/course.dart';
+import 'package:campus_mobile/features/study/course_note_repository.dart';
+import 'package:campus_mobile/features/study/study_repository.dart';
+import 'package:flutter/material.dart';
+
+/// A mobile-first course workspace: sources, questions, then work products.
+/// AI output is intentionally absent until a real gateway is available.
+class CourseNotebookView extends StatefulWidget {
+  const CourseNotebookView({
+    super.key,
+    required this.course,
+    required this.workspace,
+    required this.notes,
+    required this.remote,
+    required this.onAddSource,
+    required this.onAddKnowledgeBase,
+    required this.onOpenNotes,
+    required this.onSubmitQuestion,
+    required this.onOpenSession,
+    required this.onAddActivity,
+    required this.onOpenActivity,
+    required this.onAddAgent,
+  });
+
+  final Course course;
+  final StudyWorkspace workspace;
+  final List<CourseNote> notes;
+  final bool remote;
+  final VoidCallback onAddSource;
+  final VoidCallback onAddKnowledgeBase;
+  final VoidCallback onOpenNotes;
+  final Future<bool> Function(String question, Set<String> sourceIds)
+  onSubmitQuestion;
+  final ValueChanged<StudySession> onOpenSession;
+  final VoidCallback onAddActivity;
+  final ValueChanged<StudyActivity> onOpenActivity;
+  final VoidCallback onAddAgent;
+
+  @override
+  State<CourseNotebookView> createState() => _CourseNotebookViewState();
+}
+
+class _CourseNotebookViewState extends State<CourseNotebookView> {
+  final TextEditingController _question = TextEditingController();
+  final Set<String> _selected = <String>{};
+  final Set<String> _knownIds = <String>{};
+  int _tab = 0;
+  bool _submitting = false;
+
+  String _wikiId(StudyWikiEntry source) => 'wiki:${source.id}';
+  String _noteId(CourseNote note) => 'note:${note.id}';
+
+  Set<String> _availableIds(CourseNotebookView view) => <String>{
+    for (final StudyWikiEntry source in view.workspace.wikiEntries)
+      if (source.courseId == view.course.id) _wikiId(source),
+    for (final CourseNote note in view.notes) _noteId(note),
+  };
+
+  @override
+  void initState() {
+    super.initState();
+    _knownIds.addAll(_availableIds(widget));
+    _selected.addAll(_knownIds);
+    _tab = _selected.isEmpty ? 0 : 1;
+  }
+
+  @override
+  void didUpdateWidget(CourseNotebookView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final Set<String> newIds = _availableIds(widget);
+    _selected.addAll(newIds.difference(_knownIds));
+    _selected.removeWhere((String id) => !newIds.contains(id));
+    _knownIds
+      ..clear()
+      ..addAll(newIds);
+  }
+
+  @override
+  void dispose() {
+    _question.dispose();
+    super.dispose();
+  }
+
+  List<StudyWikiEntry> get _sources => widget.workspace.wikiEntries
+      .where((StudyWikiEntry item) => item.courseId == widget.course.id)
+      .toList();
+
+  List<StudyActivity> get _activities => widget.workspace.activities
+      .where((StudyActivity item) => item.courseId == widget.course.id)
+      .toList();
+
+  List<StudySession> get _sessions {
+    final Set<String> ids = _activities.map((StudyActivity a) => a.id).toSet();
+    ids.add('course:${widget.course.id}:notes');
+    return widget.workspace.sessions
+        .where((StudySession item) => ids.contains(item.activityId))
+        .toList()
+      ..sort(
+        (StudySession a, StudySession b) => b.updatedAt.compareTo(a.updatedAt),
+      );
+  }
+
+  List<StudyKnowledgeBase> get _knowledgeBases => widget
+      .workspace
+      .knowledgeBases
+      .where((StudyKnowledgeBase item) => item.courseId == widget.course.id)
+      .toList();
+
+  List<StudyAgent> get _agents => widget.workspace.agents
+      .where((StudyAgent item) => item.courseId == widget.course.id)
+      .toList();
+
+  Future<void> _submit() async {
+    final String question = _question.text.trim();
+    if (question.isEmpty || _submitting) return;
+    setState(() => _submitting = true);
+    try {
+      final bool saved = await widget.onSubmitQuestion(question, _selected);
+      if (mounted && saved) _question.clear();
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
+
+  void _readSource(String title, String content) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (BuildContext context) => SafeArea(
+        child: FractionallySizedBox(
+          heightFactor: 0.7,
+          child: ListView(
+            padding: const EdgeInsets.all(20),
+            children: <Widget>[
+              Text(title, style: Theme.of(context).textTheme.titleLarge),
+              const SizedBox(height: 14),
+              SelectableText(content.isEmpty ? '暂无正文' : content),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ColorScheme colors = Theme.of(context).colorScheme;
+    return Column(
+      children: <Widget>[
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 14),
+          decoration: BoxDecoration(color: colors.surfaceContainerLow),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(
+                '课程学习空间',
+                style: Theme.of(context).textTheme.labelLarge
+                    ?.copyWith(color: colors.primary),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                widget.course.name,
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '${_sources.length + widget.notes.length} 份资料 · ${_sessions.length} 个问题 · ${_agents.length} 个智能体',
+                style: Theme.of(context).textTheme.bodyMedium
+                    ?.copyWith(color: colors.onSurfaceVariant),
+              ),
+              Text(
+                widget.remote ? '试点账号已同步' : '本机保存',
+                style: Theme.of(context).textTheme.labelSmall
+                    ?.copyWith(color: colors.onSurfaceVariant),
+              ),
+              const SizedBox(height: 14),
+              SizedBox(
+                width: double.infinity,
+                child: SegmentedButton<int>(
+                  segments: const <ButtonSegment<int>>[
+                    ButtonSegment<int>(
+                      value: 0,
+                      label: Text('资料'),
+                      icon: Icon(Icons.library_books_outlined),
+                    ),
+                    ButtonSegment<int>(
+                      value: 1,
+                      label: Text('提问'),
+                      icon: Icon(Icons.forum_outlined),
+                    ),
+                    ButtonSegment<int>(
+                      value: 2,
+                      label: Text('工作台'),
+                      icon: Icon(Icons.dashboard_customize_outlined),
+                    ),
+                  ],
+                  selected: <int>{_tab},
+                  onSelectionChanged: (Set<int> value) =>
+                      setState(() => _tab = value.first),
+                ),
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: switch (_tab) {
+            0 => _sourcePanel(context),
+            1 => _questionPanel(context),
+            _ => _studioPanel(context),
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _sourcePanel(BuildContext context) => ListView(
+    padding: const EdgeInsets.all(16),
+    children: <Widget>[
+      _sectionTitle(context, '我的资料', '选择资料后，可将其关联到下一条问题。'),
+      const SizedBox(height: 10),
+      Wrap(
+        spacing: 8,
+        runSpacing: 4,
+        children: <Widget>[
+          FilledButton.tonalIcon(
+            onPressed: widget.onAddSource,
+            icon: const Icon(Icons.add),
+            label: const Text('添加文字资料'),
+          ),
+          OutlinedButton.icon(
+            onPressed: widget.onOpenNotes,
+            icon: const Icon(Icons.note_alt_outlined),
+            label: const Text('课程笔记'),
+          ),
+        ],
+      ),
+      const SizedBox(height: 12),
+      if (_sources.isEmpty && widget.notes.isEmpty)
+        const _NotebookEmpty(
+          icon: Icons.library_add_outlined,
+          title: '先放入一份资料',
+          detail: '可以粘贴课堂摘录、阅读材料或自己的整理。',
+        ),
+      for (final StudyWikiEntry source in _sources)
+        Card(
+          child: CheckboxListTile(
+            value: _selected.contains(_wikiId(source)),
+            onChanged: (bool? selected) => setState(() {
+              if (selected == true) {
+                _selected.add(_wikiId(source));
+              } else {
+                _selected.remove(_wikiId(source));
+              }
+            }),
+            title: Text(source.title),
+            subtitle: Text(
+              '${source.topic.isEmpty ? '文字资料' : source.topic} · ${source.content}',
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            secondary: IconButton(
+              tooltip: '阅读资料',
+              icon: const Icon(Icons.open_in_new),
+              onPressed: () => _readSource(source.title, source.content),
+            ),
+          ),
+        ),
+      for (final CourseNote note in widget.notes)
+        Card(
+          child: CheckboxListTile(
+            value: _selected.contains(_noteId(note)),
+            onChanged: (bool? selected) => setState(() {
+              if (selected == true) {
+                _selected.add(_noteId(note));
+              } else {
+                _selected.remove(_noteId(note));
+              }
+            }),
+            title: Text(note.title),
+            subtitle: Text(
+              note.content,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            secondary: IconButton(
+              tooltip: '阅读笔记',
+              icon: const Icon(Icons.open_in_new),
+              onPressed: () => _readSource(note.title, note.content),
+            ),
+          ),
+        ),
+      const SizedBox(height: 20),
+      _sectionTitle(context, '资料集', '可先建立资料集；文件上传和检索仍需接入服务。'),
+      TextButton.icon(
+        onPressed: widget.onAddKnowledgeBase,
+        icon: const Icon(Icons.create_new_folder_outlined),
+        label: const Text('新建资料集'),
+      ),
+      for (final StudyKnowledgeBase base in _knowledgeBases)
+        ListTile(
+          leading: const Icon(Icons.folder_outlined),
+          title: Text(base.name),
+          subtitle: const Text('尚无可检索文件'),
+        ),
+    ],
+  );
+
+  Widget _questionPanel(BuildContext context) {
+    final List<StudyWikiEntry> chosen = _sources
+        .where((StudyWikiEntry source) => _selected.contains(_wikiId(source)))
+        .toList();
+    final List<CourseNote> chosenNotes = widget.notes
+        .where((CourseNote note) => _selected.contains(_noteId(note)))
+        .toList();
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: <Widget>[
+        _sectionTitle(
+          context,
+          '围绕这门课继续探究',
+          '先记录问题和引用范围；接入 EduWork 后再提供基于资料的回答。',
+        ),
+        const SizedBox(height: 14),
+        Card(
+          color: Theme.of(context).colorScheme.surfaceContainerLow,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                Row(
+                  children: <Widget>[
+                    const Icon(Icons.tune_outlined, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '引用范围 · 已选 ${chosen.length + chosenNotes.length} 份资料',
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () => setState(() => _tab = 0),
+                      child: const Text('选择资料'),
+                    ),
+                  ],
+                ),
+                if (chosen.isNotEmpty || chosenNotes.isNotEmpty)
+                  Wrap(
+                    spacing: 6,
+                    children: <Widget>[
+                      for (final StudyWikiEntry source in chosen)
+                        Chip(label: Text(source.title)),
+                      for (final CourseNote note in chosenNotes)
+                        Chip(label: Text(note.title)),
+                    ],
+                  ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: _question,
+                  maxLines: 3,
+                  decoration: const InputDecoration(
+                    labelText: '写下你想弄清的问题',
+                    hintText: '例如：这两个概念有什么区别？',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: FilledButton.icon(
+                    onPressed: _submitting ? null : _submit,
+                    icon: const Icon(Icons.arrow_forward),
+                    label: Text(_submitting ? '保存中…' : '记录问题'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 22),
+        _sectionTitle(context, '探究记录', '打开问题，继续补充证据、观察和结论。'),
+        const SizedBox(height: 8),
+        if (_sessions.isEmpty)
+          const _NotebookEmpty(
+            icon: Icons.question_answer_outlined,
+            title: '还没有问题',
+            detail: '提出第一个问题，从资料和自己的观察开始。',
+          ),
+        for (final StudySession session in _sessions)
+          Card(
+            child: ListTile(
+              leading: CircleAvatar(
+                child: Icon(
+                  session.conclusion.isEmpty ? Icons.help_outline : Icons.check,
+                ),
+              ),
+              title: Text(
+                session.question.isEmpty ? '学习过程记录' : session.question,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              subtitle: Text(
+                '${session.sourceIds.length} 份关联资料 · ${session.conclusion.isEmpty ? '继续探究' : '已有结论'}',
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => widget.onOpenSession(session),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _studioPanel(BuildContext context) => ListView(
+    padding: const EdgeInsets.all(16),
+    children: <Widget>[
+      _sectionTitle(context, '学习工作台', '将资料和问题沉淀成自己的成果。'),
+      const SizedBox(height: 10),
+      Card(
+        child: Column(
+          children: <Widget>[
+            ListTile(
+              leading: const Icon(Icons.note_alt_outlined),
+              title: const Text('课程笔记'),
+              subtitle: const Text('写作、整理与修改'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: widget.onOpenNotes,
+            ),
+            const Divider(height: 1),
+            ListTile(
+              leading: const Icon(Icons.add_task_outlined),
+              title: const Text('学习任务'),
+              subtitle: Text(
+                '已有 ${_activities.where((StudyActivity a) => a.source != 'personal-course').length} 项',
+              ),
+              trailing: const Icon(Icons.add),
+              onTap: widget.onAddActivity,
+            ),
+          ],
+        ),
+      ),
+      for (final StudyActivity activity in _activities.where(
+        (StudyActivity item) => item.source != 'personal-course',
+      ))
+        ListTile(
+          leading: const Icon(Icons.task_alt_outlined),
+          title: Text(activity.title),
+          subtitle: Text(activity.deadline),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => widget.onOpenActivity(activity),
+        ),
+      const SizedBox(height: 18),
+      _sectionTitle(context, '课程智能体', '当前可保存配置，远程对话尚未接通。'),
+      TextButton.icon(
+        onPressed: widget.onAddAgent,
+        icon: const Icon(Icons.add_circle_outline),
+        label: const Text('新建智能体'),
+      ),
+      for (final StudyAgent agent in _agents)
+        Card(
+          child: ListTile(
+            leading: const Icon(Icons.smart_toy_outlined),
+            title: Text(agent.name),
+            subtitle: Text(
+              agent.description.isEmpty ? '配置草稿' : agent.description,
+            ),
+          ),
+        ),
+      const SizedBox(height: 18),
+      _sectionTitle(context, '学习产物', '以下生成能力需 EduWork 服务端接入。'),
+      Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: const <Widget>[
+          _PendingProduct(Icons.quiz_outlined, '测验'),
+          _PendingProduct(Icons.style_outlined, '闪卡'),
+          _PendingProduct(Icons.account_tree_outlined, '思维导图'),
+          _PendingProduct(Icons.summarize_outlined, '学习指南'),
+        ],
+      ),
+    ],
+  );
+
+  Widget _sectionTitle(BuildContext context, String title, String detail) =>
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Text(title, style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 3),
+          Text(detail, style: Theme.of(context).textTheme.bodySmall),
+        ],
+      );
+}
+
+class _NotebookEmpty extends StatelessWidget {
+  const _NotebookEmpty({
+    required this.icon,
+    required this.title,
+    required this.detail,
+  });
+  final IconData icon;
+  final String title, detail;
+
+  @override
+  Widget build(BuildContext context) => Card(
+    child: Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        children: <Widget>[
+          Icon(icon, size: 32),
+          const SizedBox(height: 8),
+          Text(title, style: Theme.of(context).textTheme.titleMedium),
+          Text(detail, textAlign: TextAlign.center),
+        ],
+      ),
+    ),
+  );
+}
+
+class _PendingProduct extends StatelessWidget {
+  const _PendingProduct(this.icon, this.label);
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) =>
+      Chip(avatar: Icon(icon, size: 18), label: Text('$label · 待接入'));
+}

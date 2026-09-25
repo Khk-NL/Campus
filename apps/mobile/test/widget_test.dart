@@ -235,9 +235,11 @@ void main() {
     await tester.tap(courseInHub);
     await tester.pumpAndSettle();
     expect(find.byType(StudyPage), findsOneWidget);
-    expect(find.text('现代软件工程 · 课程空间'), findsOneWidget);
-    expect(find.text('学习过程记录'), findsOneWidget);
-    expect(find.text('课程笔记'), findsOneWidget);
+    expect(find.text('现代软件工程'), findsWidgets);
+    await tester.tap(find.text('提问'));
+    await tester.pumpAndSettle();
+    expect(find.text('围绕这门课继续探究'), findsOneWidget);
+    expect(find.text('引用范围 · 已选 0 份资料'), findsOneWidget);
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('查看课程表', skipOffstage: false));
@@ -255,7 +257,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('进入课程空间'));
     await tester.pumpAndSettle();
-    expect(find.text('现代软件工程 · 课程空间'), findsOneWidget);
+    expect(find.text('现代软件工程'), findsWidgets);
     state.dispose();
   });
 }

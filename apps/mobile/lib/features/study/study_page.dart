@@ -1,6 +1,7 @@
 import 'package:campus_mobile/data/models/course.dart';
 import 'package:campus_mobile/features/study/course_note_repository.dart';
 import 'package:campus_mobile/features/study/course_notes_page.dart';
+import 'package:campus_mobile/features/study/course_notebook_view.dart';
 import 'package:campus_mobile/features/study/study_repository.dart';
 import 'package:campus_mobile/features/study/study_session_page.dart';
 import 'package:flutter/material.dart';
@@ -31,6 +32,7 @@ class StudyPage extends StatefulWidget {
 class _StudyPageState extends State<StudyPage> {
   StudyRepository? _repository;
   StudyWorkspace? _workspace;
+  List<CourseNote> _notes = const <CourseNote>[];
   String? _error;
   String _wikiQuery = '';
   String? _wikiTopic;
@@ -47,10 +49,15 @@ class _StudyPageState extends State<StudyPage> {
           widget.repository ??
           LocalStudyRepository(await SharedPreferences.getInstance());
       final StudyWorkspace workspace = await repository.load();
+      final Course? course = widget.course;
+      final List<CourseNote> notes = course == null
+          ? const <CourseNote>[]
+          : await (await _noteStore()).list(course.id);
       if (!mounted) return;
       setState(() {
         _repository = repository;
         _workspace = workspace;
+        _notes = notes;
         _error = null;
       });
     } on Exception catch (error) {
@@ -74,6 +81,10 @@ class _StudyPageState extends State<StudyPage> {
   }
 
   String _id() => DateTime.now().microsecondsSinceEpoch.toString();
+
+  Future<CourseNoteRepository> _noteStore() async =>
+      widget.noteRepository ??
+      LocalCourseNoteRepository(await SharedPreferences.getInstance());
 
   Future<void> _openSession(StudyActivity activity) async {
     final StudyWorkspace workspace = _workspace!;
@@ -107,6 +118,11 @@ class _StudyPageState extends State<StudyPage> {
           workspace: workspace,
           remote: widget.remote,
           onSave: _save,
+          sourceLabels: <String, String>{
+            for (final StudyWikiEntry entry in workspace.wikiEntries)
+              'wiki:${entry.id}': entry.title,
+            for (final CourseNote note in _notes) 'note:${note.id}': note.title,
+          },
         ),
       ),
     );
@@ -124,9 +140,7 @@ class _StudyPageState extends State<StudyPage> {
   Future<void> _openNotes() async {
     final Course? course = widget.course;
     if (course == null) return;
-    final CourseNoteRepository repository =
-        widget.noteRepository ??
-        LocalCourseNoteRepository(await SharedPreferences.getInstance());
+    final CourseNoteRepository repository = await _noteStore();
     if (!mounted) return;
     await Navigator.of(context).push<void>(
       MaterialPageRoute<void>(
@@ -134,10 +148,15 @@ class _StudyPageState extends State<StudyPage> {
             CourseNotesPage(courseId: course.id, repository: repository),
       ),
     );
+    final List<CourseNote> notes = await repository.list(course.id);
+    if (mounted) setState(() => _notes = notes);
   }
 
   Future<void> _addKnowledgeBase() async {
-    final String? name = await _askText('新建知识库', '知识库名称');
+    final String? name = await _askText(
+      widget.course == null ? '新建知识库' : '新建资料集',
+      widget.course == null ? '知识库名称' : '资料集名称',
+    );
     if (name == null) return;
     _workspace!.knowledgeBases.add(
       StudyKnowledgeBase(id: _id(), name: name, courseId: widget.course?.id),
@@ -148,8 +167,10 @@ class _StudyPageState extends State<StudyPage> {
   Future<void> _addWikiEntry() async {
     final StudyWikiEntry? entry = await showDialog<StudyWikiEntry>(
       context: context,
-      builder: (BuildContext context) =>
-          _WikiEntryDialog(courseId: widget.course?.id),
+      builder: (BuildContext context) => _WikiEntryDialog(
+        courseId: widget.course?.id,
+        courseSource: widget.course != null,
+      ),
     );
     if (entry == null) return;
     _workspace!.wikiEntries.add(entry);
@@ -179,58 +200,109 @@ class _StudyPageState extends State<StudyPage> {
     await _save();
   }
 
+  Future<bool> _captureQuestion(String question, Set<String> sourceIds) async {
+    final StudyWorkspace workspace = _workspace!;
+    final Course course = widget.course!;
+    final StudyActivity activity = StudyActivity(
+      id: _id(),
+      courseId: course.id,
+      course: course.name,
+      title: question.length > 28 ? '${question.substring(0, 28)}…' : question,
+      objective: '',
+      deadline: '',
+      source: 'personal-course',
+    );
+    final StudySession session = StudySession(
+      id: _id(),
+      activityId: activity.id,
+      updatedAt: DateTime.now().toIso8601String(),
+      question: question,
+      sourceIds: sourceIds.toList(),
+    );
+    workspace.activities.add(activity);
+    workspace.sessions.add(session);
+    try {
+      await _repository!.save(workspace);
+    } on Exception {
+      workspace.activities.remove(activity);
+      workspace.sessions.remove(session);
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('问题保存失败，请重试')));
+      }
+      return false;
+    }
+    if (mounted) setState(() {});
+    if (mounted) await _openSession(activity);
+    return true;
+  }
+
   @override
   Widget build(BuildContext context) {
     final StudyWorkspace? workspace = _workspace;
-    final Widget content = DefaultTabController(
-      length: 5,
-      child: Column(
-        children: <Widget>[
-          const TabBar(
-            isScrollable: true,
-            tabs: <Tab>[
-              Tab(text: '学习任务'),
-              Tab(text: '学习记录'),
-              Tab(text: '资料夹'),
-              Tab(text: '智能体'),
-              Tab(text: '学习足迹'),
-            ],
-          ),
-          _banner(),
-          Expanded(
-            child: workspace == null
-                ? Center(
-                    child: _error == null
-                        ? const CircularProgressIndicator()
-                        : Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: <Widget>[
-                              Text(_error!),
-                              TextButton(
-                                onPressed: _load,
-                                child: const Text('重试'),
-                              ),
-                            ],
-                          ),
-                  )
-                : TabBarView(
-                    children: <Widget>[
-                      _activityTab(workspace),
-                      _sessionTab(workspace),
-                      _knowledgeTab(workspace),
-                      _agentTab(workspace),
-                      _analyticsTab(workspace),
-                    ],
-                  ),
-          ),
-        ],
-      ),
-    );
+    final Widget content = widget.course != null && workspace != null
+        ? CourseNotebookView(
+            course: widget.course!,
+            workspace: workspace,
+            notes: _notes,
+            remote: widget.remote,
+            onAddSource: _addWikiEntry,
+            onAddKnowledgeBase: _addKnowledgeBase,
+            onOpenNotes: _openNotes,
+            onSubmitQuestion: _captureQuestion,
+            onOpenSession: (StudySession session) =>
+                _openSession(_activityFor(workspace, session)),
+            onAddActivity: _addPersonalActivity,
+            onOpenActivity: _openSession,
+            onAddAgent: _addAgent,
+          )
+        : DefaultTabController(
+            length: 5,
+            child: Column(
+              children: <Widget>[
+                const TabBar(
+                  isScrollable: true,
+                  tabs: <Tab>[
+                    Tab(text: '学习任务'),
+                    Tab(text: '学习记录'),
+                    Tab(text: '资料夹'),
+                    Tab(text: '智能体'),
+                    Tab(text: '学习足迹'),
+                  ],
+                ),
+                _banner(),
+                Expanded(
+                  child: workspace == null
+                      ? Center(
+                          child: _error == null
+                              ? const CircularProgressIndicator()
+                              : Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: <Widget>[
+                                    Text(_error!),
+                                    TextButton(
+                                      onPressed: _load,
+                                      child: const Text('重试'),
+                                    ),
+                                  ],
+                                ),
+                        )
+                      : TabBarView(
+                          children: <Widget>[
+                            _activityTab(workspace),
+                            _sessionTab(workspace),
+                            _knowledgeTab(workspace),
+                            _agentTab(workspace),
+                            _analyticsTab(workspace),
+                          ],
+                        ),
+                ),
+              ],
+            ),
+          );
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          widget.course == null ? '课程空间' : '${widget.course!.name} · 课程空间',
-        ),
+        title: Text(widget.course == null ? '课程空间' : '学习空间'),
         actions: <Widget>[
           if (widget.course != null)
             IconButton(
@@ -719,8 +791,9 @@ class _ActivityDialogState extends State<_ActivityDialog> {
 }
 
 class _WikiEntryDialog extends StatefulWidget {
-  const _WikiEntryDialog({this.courseId});
+  const _WikiEntryDialog({this.courseId, this.courseSource = false});
   final String? courseId;
+  final bool courseSource;
   @override
   State<_WikiEntryDialog> createState() => _WikiEntryDialogState();
 }
@@ -741,7 +814,7 @@ class _WikiEntryDialogState extends State<_WikiEntryDialog> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-    title: const Text('新增知识条目'),
+    title: Text(widget.courseSource ? '添加文字资料' : '新增知识条目'),
     content: SingleChildScrollView(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -786,7 +859,7 @@ class _WikiEntryDialogState extends State<_WikiEntryDialog> {
             ),
           );
         },
-        child: const Text('保存条目'),
+        child: Text(widget.courseSource ? '保存资料' : '保存条目'),
       ),
     ],
   );

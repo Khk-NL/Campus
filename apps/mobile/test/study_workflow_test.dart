@@ -1,5 +1,6 @@
 import 'package:campus_mobile/data/models/course.dart';
 import 'package:campus_mobile/features/study/study_page.dart';
+import 'package:campus_mobile/features/study/course_note_repository.dart';
 import 'package:campus_mobile/features/study/study_repository.dart';
 import 'package:campus_mobile/features/study/study_session_page.dart';
 import 'package:flutter/material.dart';
@@ -174,7 +175,9 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('新建学习任务'));
+    await tester.tap(find.text('工作台'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('学习任务'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField).first, '课程甲的任务');
     await tester.tap(find.text('创建'));
@@ -190,6 +193,135 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('课程甲的任务'), findsNothing);
-    expect(find.text('学习过程记录'), findsOneWidget);
+    await tester.tap(find.text('提问'));
+    await tester.pumpAndSettle();
+    expect(find.text('围绕这门课继续探究'), findsOneWidget);
+  });
+
+  testWidgets('课程资料选择随问题保存并进入学习记录', (WidgetTester tester) async {
+    final _MemoryStudyRepository repository = _MemoryStudyRepository();
+    const Course course = Course(
+      id: 'notebook-course',
+      universityId: 'ecnu',
+      name: '资料研读',
+      teacher: '',
+      location: '',
+      startWeek: 1,
+      endWeek: 16,
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: StudyPage(repository: repository, course: course),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('资料'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('添加文字资料'));
+    await tester.pumpAndSettle();
+    final Finder fields = find.descendant(
+      of: find.byType(AlertDialog),
+      matching: find.byType(TextField),
+    );
+    await tester.enterText(fields.at(0), '课堂');
+    await tester.enterText(fields.at(1), '第一讲讲义');
+    await tester.enterText(fields.at(3), '重要概念');
+    await tester.tap(find.text('保存资料'));
+    await tester.pumpAndSettle();
+    expect(repository.workspace.wikiEntries.single.courseId, course.id);
+    await tester.tap(find.text('提问'));
+    await tester.pumpAndSettle();
+    expect(find.text('引用范围 · 已选 1 份资料'), findsOneWidget);
+    await tester.enterText(find.byType(TextField), '这两个概念有何区别？');
+    await tester.tap(find.text('记录问题'));
+    await tester.pumpAndSettle();
+    expect(find.byType(StudySessionPage), findsOneWidget);
+    expect(repository.workspace.sessions.single.question, '这两个概念有何区别？');
+    expect(repository.workspace.sessions.single.sourceIds, <String>[
+      'wiki:${repository.workspace.wikiEntries.single.id}',
+    ]);
+    await tester.tap(find.text('证据与资料 · 0'));
+    await tester.pumpAndSettle();
+    expect(find.text('本次引用范围'), findsOneWidget);
+    expect(find.text('第一讲讲义'), findsOneWidget);
+  });
+
+  testWidgets('课程笔记可作为问题的引用资料', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final SharedPreferences preferences = await SharedPreferences.getInstance();
+    final LocalCourseNoteRepository notes = LocalCourseNoteRepository(
+      preferences,
+    );
+    await notes.save(
+      CourseNote(
+        id: 'note-1',
+        courseId: 'course-with-note',
+        title: '课堂笔记',
+        content: '重点概念',
+        updatedAt: DateTime(2026),
+      ),
+    );
+    final _MemoryStudyRepository repository = _MemoryStudyRepository();
+    const Course course = Course(
+      id: 'course-with-note',
+      universityId: 'ecnu',
+      name: '笔记课程',
+      teacher: '',
+      location: '',
+      startWeek: 1,
+      endWeek: 16,
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: StudyPage(
+          repository: repository,
+          noteRepository: notes,
+          course: course,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('1 份资料 · 0 个问题 · 0 个智能体'), findsOneWidget);
+    expect(find.text('引用范围 · 已选 1 份资料'), findsOneWidget);
+    await tester.enterText(find.byType(TextField), '解释重点概念');
+    await tester.tap(find.text('记录问题'));
+    await tester.pumpAndSettle();
+    final StudySession saved = repository.workspace.sessions.single;
+    expect(saved.sourceIds, <String>['note:note-1']);
+    expect(StudySession.fromJson(saved.toJson()).sourceIds, <String>[
+      'note:note-1',
+    ]);
+    await tester.tap(find.text('证据与资料 · 0'));
+    await tester.pumpAndSettle();
+    expect(find.text('课堂笔记'), findsOneWidget);
+  });
+
+  testWidgets('课程学习空间在窄屏可切换三个面板', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    await tester.binding.setSurfaceSize(const Size(360, 780));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final _MemoryStudyRepository repository = _MemoryStudyRepository();
+    const Course course = Course(
+      id: 'narrow',
+      universityId: 'ecnu',
+      name: '窄屏课程',
+      teacher: '',
+      location: '',
+      startWeek: 1,
+      endWeek: 16,
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: StudyPage(repository: repository, course: course),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    await tester.tap(find.text('提问'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    await tester.tap(find.text('工作台'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
   });
 }

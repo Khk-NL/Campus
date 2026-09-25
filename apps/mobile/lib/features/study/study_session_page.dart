@@ -8,6 +8,7 @@ class StudySessionPage extends StatefulWidget {
     required this.workspace,
     required this.onSave,
     this.remote = false,
+    this.sourceLabels = const <String, String>{},
     super.key,
   });
 
@@ -16,6 +17,7 @@ class StudySessionPage extends StatefulWidget {
   final StudyWorkspace workspace;
   final Future<void> Function() onSave;
   final bool remote;
+  final Map<String, String> sourceLabels;
 
   @override
   State<StudySessionPage> createState() => _StudySessionPageState();
@@ -165,6 +167,27 @@ class _StudySessionPageState extends State<StudySessionPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: <Widget>[
+                      if (widget.session.sourceIds.isNotEmpty) ...<Widget>[
+                        Text(
+                          '本次引用范围',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        Wrap(
+                          spacing: 6,
+                          children: <Widget>[
+                            for (final String id in widget.session.sourceIds)
+                              Chip(
+                                label: Text(
+                                  widget.sourceLabels[id] ??
+                                      (id.startsWith('note:')
+                                          ? '课程笔记'
+                                          : '已移除的资料'),
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                      ],
                       Row(
                         children: <Widget>[
                           Expanded(

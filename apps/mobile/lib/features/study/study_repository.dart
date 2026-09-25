@@ -176,12 +176,14 @@ class StudySession {
     this.knowledgeBaseId,
     this.referenceMode = 'rag',
     this.wikiEntryId,
+    this.sourceIds = const <String>[],
   });
   final String id, activityId;
   String updatedAt, question, notes, conclusion, openQuestions, feedback;
   String? agentId, knowledgeBaseId;
   String referenceMode;
   String? wikiEntryId;
+  List<String> sourceIds;
   factory StudySession.fromJson(Map<String, dynamic> j) => StudySession(
     id: j['id'] as String? ?? '',
     activityId: j['activityId'] as String? ?? '',
@@ -195,6 +197,9 @@ class StudySession {
     knowledgeBaseId: j['knowledgeBaseId'] as String?,
     referenceMode: j['referenceMode'] as String? ?? 'rag',
     wikiEntryId: j['wikiEntryId'] as String?,
+    sourceIds: (j['sourceIds'] as List<dynamic>? ?? <dynamic>[])
+        .whereType<String>()
+        .toList(),
   );
   Map<String, dynamic> toJson() => <String, dynamic>{
     'id': id,
@@ -209,6 +214,7 @@ class StudySession {
     'knowledgeBaseId': knowledgeBaseId,
     'referenceMode': referenceMode,
     'wikiEntryId': wikiEntryId,
+    'sourceIds': sourceIds,
   };
 }
 

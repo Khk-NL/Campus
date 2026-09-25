@@ -165,6 +165,11 @@ class _AgentSpace extends StatelessWidget {
                       workspace: workspace,
                       remote: PocketBaseSession.instance != null,
                       onSave: () => repository.save(workspace),
+                      sourceLabels: <String, String>{
+                        for (final StudyWikiEntry entry
+                            in workspace.wikiEntries)
+                          'wiki:${entry.id}': entry.title,
+                      },
                     ),
                   ),
                 );
