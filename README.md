@@ -3,8 +3,7 @@
 > **让校园里的服务有一个入口，让校园里的想法有机会成为真正的应用。**
 > One entry point for campus services; a real chance for campus ideas to become apps.
 
-Campus 是一个面向高校学生的独立校园数字工作台。它不重新开发学校已有的全部系统，也不
-试图替代微信、学习通或学校官方平台，而是把散落在网站、微信小程序、独立 App 与官方工作台
+Campus 是一个面向高校学生的独立校园数字工作台, 把散落在网站、微信小程序、独立 App 与官方工作台
 中的校园服务重新组织，并在其上提供**结构化校园事务**与**学生开发者生态**。
 
 Campus is an independent digital workbench for university students. It does not
