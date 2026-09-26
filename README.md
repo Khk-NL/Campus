@@ -1,4 +1,4 @@
-# Campus
+# Campulse
 
 > **学习、服务、创新**
 > One entry point for campus services; a real chance for campus ideas to become apps.
