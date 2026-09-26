@@ -1,6 +1,6 @@
 # Campus
 
-> **让校园里的服务有一个入口，让校园里的想法有机会成为真正的应用。**
+> **学习、服务、创新**
 > One entry point for campus services; a real chance for campus ideas to become apps.
 
 Campus 是一个面向高校学生的独立校园数字工作台, 把散落在网站、微信小程序、独立 App 与官方工作台
