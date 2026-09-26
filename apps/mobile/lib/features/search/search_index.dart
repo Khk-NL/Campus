@@ -1,10 +1,10 @@
 /// 统一搜索 / unified search (§11).
 ///
-/// §11 的关键点是**跨来源**：校园服务、Campus App、Course、Announcement、Event、
+/// §11 的关键点是**跨来源**：校园服务、Campulse App、Course、Announcement、Event、
 /// Task 六类对象在同一处检索。因此这里不做"服务搜索页"，而是先建一份统一的
 /// [SearchItem] 索引，再按分组呈现。
 ///
-/// §11's point is **cross-source** search: services, Campus Apps, courses,
+/// §11's point is **cross-source** search: services, Campulse Apps, courses,
 /// announcements, events and tasks in one place. So this is not a "service search
 /// screen" but a unified [SearchItem] index rendered in groups.
 ///

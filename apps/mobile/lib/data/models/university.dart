@@ -1,10 +1,10 @@
 /// 高校 / a university (§6 University).
 ///
-/// `config` 描述这所学校的教学日历口径与已声明能力。Campus Core 只把它当数据用，
+/// `config` 描述这所学校的教学日历口径与已声明能力。Campulse Core 只把它当数据用，
 /// 不为任何一所学校写分支。
 ///
 /// `config` describes the school's calendar conventions and declared capabilities.
-/// Campus Core only reads it as data; it never branches on a specific school.
+/// Campulse Core only reads it as data; it never branches on a specific school.
 library;
 
 import 'package:campus_mobile/data/models/json_utils.dart';

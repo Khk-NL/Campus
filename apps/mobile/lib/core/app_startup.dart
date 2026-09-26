@@ -61,6 +61,7 @@ class AppStartup {
   /// store cannot be opened.
   static Future<AppBootstrap> bootstrap({AppConfig? config}) async {
     final AppConfig resolved = config ?? AppConfig.defaults();
+    await PocketBaseSession.initialize();
     final CampusRepository repository;
     final PocketBaseSession? pilot = PocketBaseSession.instance;
     if (pilot != null) {

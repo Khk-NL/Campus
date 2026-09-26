@@ -10,10 +10,10 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
-  String get appTitle => 'Campus';
+  String get appTitle => 'Campulse';
 
   @override
-  String get appTagline => 'Campus digital workbench';
+  String get appTagline => 'Campulse digital workbench';
 
   @override
   String get navHome => 'Home';
@@ -37,7 +37,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get navNotification => 'Notifications';
 
   @override
-  String get dataSourceLabelServices => 'Campus services';
+  String get dataSourceLabelServices => 'Campulse services';
 
   @override
   String get dataSourceLabelCourses => 'Courses';
@@ -175,7 +175,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get homeNoTasks => 'No pending tasks';
 
   @override
-  String get homeCampus => 'Campus';
+  String get homeCampus => 'Campulse';
 
   @override
   String get homeNoCampusItems => 'No announcements or service updates yet';
@@ -300,7 +300,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get searchSectionAll => 'All';
 
   @override
-  String get searchSectionServices => 'Campus services';
+  String get searchSectionServices => 'Campulse services';
 
   @override
   String get searchSectionApps => 'Student apps';
@@ -321,7 +321,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get searchFilterAll => 'All';
 
   @override
-  String get inboxTitle => 'Campus transactions';
+  String get inboxTitle => 'Campulse transactions';
 
   @override
   String get inboxFilterAll => 'All';
@@ -367,7 +367,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appsQuickAccess => 'Quick access';
 
   @override
-  String get appsForge => 'Campus projects';
+  String get appsForge => 'Campulse projects';
 
   @override
   String get appsForgeEmpty => 'No student projects yet';
@@ -458,7 +458,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Install WeChat to open this mini program';
 
   @override
-  String get launchCampusAppUnsupported => 'Campus apps cannot be opened yet';
+  String get launchCampusAppUnsupported => 'Campulse apps cannot be opened yet';
 
   @override
   String get storeTitle => 'Student apps';
@@ -555,7 +555,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get profileAboutBody =>
-      'Campus is a campus digital workbench for university students: it gathers services scattered across websites, mini programs and native apps into one entry point, and turns campus information into structured transactions.';
+      'Campulse is a campus digital workbench for university students: it gathers services scattered across websites, mini programs and native apps into one entry point, and turns campus information into structured transactions.';
 
   @override
   String get profileNotSignedIn => 'Not signed in';
@@ -592,7 +592,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get categoryLibrary => 'Library';
 
   @override
-  String get categoryCampusCard => 'Campus card';
+  String get categoryCampusCard => 'Campulse card';
 
   @override
   String get categoryVenue => 'Venues';
@@ -619,7 +619,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get serviceTypeNativeApp => 'Native app';
 
   @override
-  String get serviceTypeCampusApp => 'Campus app';
+  String get serviceTypeCampusApp => 'Campulse app';
 
   @override
   String get originOfficial => 'Official';

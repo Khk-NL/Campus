@@ -1,10 +1,10 @@
 /// 校园事务 / campus transactions (§8, §10).
 ///
-/// §2.1 是这条设计的来源：**微信负责交流，Campus 负责事务**。因此这里没有
+/// §2.1 是这条设计的来源：**微信负责交流，Campulse 负责事务**。因此这里没有
 /// Message/Body/Reply，只有三种结构化对象：Announcement、Event、Task，以及
 /// §10 规定的结构化反馈取值。
 ///
-/// This is where §2.1 lands: WeChat does conversation, Campus does transactions. So
+/// This is where §2.1 lands: WeChat does conversation, Campulse does transactions. So
 /// there is no Message, Body or Reply here — only three structured objects
 /// (announcement, event, task) plus the §10 feedback value sets.
 library;

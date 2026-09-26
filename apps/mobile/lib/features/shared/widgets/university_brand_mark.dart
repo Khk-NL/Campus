@@ -4,13 +4,13 @@
 /// 这个文件里既没有校名，也没有任何写死的资源路径——`assetPath` 为 null 时就什么都不画。
 ///
 /// §18：标识**只能**作为"归属"出现（「我的」页的所属高校行、官方工作台分组标题旁），
-/// 不能拿来当 Campus 自己的启动图标或闪屏，那等于把学生项目包装成学校官方产品。
+/// 不能拿来当 Campulse 自己的启动图标或闪屏，那等于把学生项目包装成学校官方产品。
 ///
 /// §3.1: the mark is university-specific, so its path comes from the university config and
 /// the generic widget only receives it as a parameter — this file names no school and hardcodes
 /// no asset path; a null `assetPath` simply draws nothing. §18: the mark is a *provenance*
 /// label only (the profile's university row, the official workbench group header) and never
-/// Campus's own launcher icon or splash, which would pass a student project off as an
+/// Campulse's own launcher icon or splash, which would pass a student project off as an
 /// official school product.
 library;
 

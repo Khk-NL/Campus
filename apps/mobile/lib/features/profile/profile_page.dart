@@ -189,11 +189,11 @@ class _ProfilePageState extends State<ProfilePage> {
         await showDialog<({String action, String email, String password})>(
           context: context,
           builder: (BuildContext dialogContext) => AlertDialog(
-            title: const Text('Campus 账号登录'),
+            title: const Text('Campulse 账号登录'),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
-                const Text('使用 Campus 账号，不是学校统一身份认证。'),
+                const Text('使用 Campulse 账号，不是学校统一身份认证。'),
                 TextField(
                   controller: email,
                   keyboardType: TextInputType.emailAddress,
@@ -301,7 +301,7 @@ class _ProfilePageState extends State<ProfilePage> {
     final bool? submitted = await showDialog<bool>(
       context: context,
       builder: (BuildContext dialogContext) => AlertDialog(
-        title: const Text('注册 Campus 账号'),
+        title: const Text('注册 Campulse 账号'),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,

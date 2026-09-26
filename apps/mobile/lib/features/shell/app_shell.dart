@@ -27,6 +27,7 @@
 library;
 
 import 'package:campus_mobile/core/app_scope_repository.dart';
+import 'package:campus_mobile/core/app_state.dart';
 import 'package:campus_mobile/core/theme/campus_theme.dart';
 import 'package:campus_mobile/data/models/transaction.dart';
 import 'package:campus_mobile/data/repositories/campus_repository.dart';
@@ -87,7 +88,17 @@ class _AppShellState extends State<AppShell> {
     final AppLocalizations l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: Text(_title(l10n)),
+        title: Row(
+          children: <Widget>[
+            Image.asset(
+              'assets/brand/campulse-logo.png',
+              width: 30,
+              height: 30,
+            ),
+            const SizedBox(width: 10),
+            Flexible(child: Text(_title(l10n))),
+          ],
+        ),
         actions: <Widget>[
           _AppBarAction(
             icon: Icons.notifications_none,
@@ -113,6 +124,7 @@ class _AppShellState extends State<AppShell> {
           const OfflineBanner(),
           Expanded(
             child: IndexedStack(
+              key: ValueKey<String>(AppScope.of(context).user?.id ?? 'guest'),
               index: _index,
               children: const <Widget>[
                 HomePage(),

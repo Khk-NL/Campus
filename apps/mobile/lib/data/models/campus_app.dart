@@ -1,4 +1,4 @@
-/// Campus App / a Campus app (§6 CampusApp, §14 Store ≠ Plugin Runtime).
+/// Campulse App / a Campulse app (§6 CampusApp, §14 Store ≠ Plugin Runtime).
 ///
 /// Store 只负责**发现**，不负责运行。因此模型里有 `repositoryUrl`、`permissions`
 /// 与 `version`，但没有"安装状态"或"沙箱"之类属于 Plugin Runtime 的概念。
@@ -66,7 +66,7 @@ enum AppUniversityScope {
   }
 }
 
-/// 与后端形状一致的 Campus App / a Campus app shaped like the backend's.
+/// 与后端形状一致的 Campulse App / a Campulse app shaped like the backend's.
 class CampusApp {
   const CampusApp({
     required this.id,

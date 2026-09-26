@@ -7,7 +7,7 @@
 ///    和 weeks 被无声忽略——课表照常显示，只是错的。
 /// 2. **`weeks` 与 `parity` 同时出现必须判非法**。参考项目 `sp-study-courses` 会把
 ///    `"1-8周 单周"` 规范化成 `weeks=[1..8]` + `parity='odd'`；在它的语义下是
-///    1/3/5/7 周，在 Campus 的"`weeks` 覆盖"语义下却会变成 1~8 周每周都上，
+///    1/3/5/7 周，在 Campulse 的"`weeks` 覆盖"语义下却会变成 1~8 周每周都上，
 ///    静默反转成相反的课表。所以这种组合不被解析，而不是被"求解"。
 ///
 /// Two boundaries that fail invisibly on the wire are guarded here: parity and custom
@@ -130,7 +130,7 @@ void main() {
       expect(
         rule,
         isNull,
-        reason: 'weeks 与 parity 同时给出必须判非法：Campus 的覆盖语义会把它静默反转成 '
+        reason: 'weeks 与 parity 同时给出必须判非法：Campulse 的覆盖语义会把它静默反转成 '
             '1~8 周每周都上，而插件语义下它是 1/3/5/7 周',
       );
     });

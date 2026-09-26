@@ -42,7 +42,7 @@ class AppConfig {
   /// empty the client honestly reports "not wired in this build" rather than claiming it can.
   final String weChatAppId;
 
-  /// Campus 自建的移动网关地址，不是 EduWork 桌面 Host 的 RPC 地址。
+  /// Campulse 自建的移动网关地址，不是 EduWork 桌面 Host 的 RPC 地址。
   /// 只允许填写公开的 HTTPS URL；模型密钥与机构凭据不得编进 APK。
   final String eduWorkGatewayUrl;
 

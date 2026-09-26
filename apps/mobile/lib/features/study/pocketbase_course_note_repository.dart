@@ -9,7 +9,7 @@ class PocketBaseCourseNoteRepository implements CourseNoteRepository {
   String get _ownerId {
     final String? id = client.authStore.record?.id;
     if (id == null || id.isEmpty || !client.authStore.isValid) {
-      throw StateError('请先登录 Campus 账号');
+      throw StateError('请先登录 Campulse 账号');
     }
     return id;
   }

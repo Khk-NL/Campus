@@ -1,4 +1,4 @@
-/// 启动目标 / launch targets (§7 Campus Launcher).
+/// 启动目标 / launch targets (§7 Campulse Launcher).
 ///
 /// §6 把启动方式写成未约束的 `launch_config`，§0.7 禁止这种写法。这里用密封类
 /// 穷举四种目标，Dart 的模式匹配保证 `switch` 必须处理全部分支。
@@ -172,13 +172,13 @@ class NativeAppLaunchTarget extends LaunchTarget {
 class CampusAppLaunchTarget extends LaunchTarget {
   const CampusAppLaunchTarget({required this.appId, this.route});
 
-  /// Campus App 标识 / the Campus app id.
+  /// Campulse App 标识 / the Campulse app id.
   final String appId;
 
   /// 应用内路由（Phase 4 的 Plugin Runtime 使用）/ an in-app route for Phase 4.
   final String? route;
 
-  /// Campus App 没有外部兜底链接。/ a Campus app has no external fallback.
+  /// Campulse App 没有外部兜底链接。/ a Campulse app has no external fallback.
   @override
   String? get fallbackUrl => null;
 

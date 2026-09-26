@@ -49,6 +49,7 @@ class _CourseSpaceEntryState extends State<CourseSpaceEntry> {
 
   @override
   Widget build(BuildContext context) {
+    AppScope.of(context);
     final PocketBaseSession? account = PocketBaseSession.instance;
     if (account == null) {
       const String storage = String.fromEnvironment('STUDY_STORAGE');
@@ -81,7 +82,10 @@ class _CourseSpaceEntryState extends State<CourseSpaceEntry> {
             shrinkWrap: true,
             padding: const EdgeInsets.all(24),
             children: <Widget>[
-              Text('Campus 账号登录', style: Theme.of(context).textTheme.titleLarge),
+              Text(
+                'Campulse 账号登录',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
               const SizedBox(height: 8),
               const Text('首次使用请先到「我的」注册并验证邮箱；此处不是学校统一身份认证。'),
               const SizedBox(height: 20),

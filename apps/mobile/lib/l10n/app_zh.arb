@@ -1,6 +1,6 @@
 {
   "@@locale": "zh",
-  "appTitle": "Campus",
+  "appTitle": "Campulse",
   "appTagline": "校园数字工作台",
   "@appTagline": { "description": "应用副标题 / app subtitle" },
 
@@ -180,7 +180,7 @@
   "@launchMiniProgramNotWired": { "description": "装了微信、但本版本未接入 OpenSDK / WeChat is present but this build has not wired the SDK" },
   "launchMiniProgramNoWeChat": "未安装微信，无法打开小程序",
   "@launchMiniProgramNoWeChat": { "description": "设备未安装微信 / WeChat is not installed on this device" },
-  "launchCampusAppUnsupported": "暂不支持打开 Campus 应用",
+  "launchCampusAppUnsupported": "暂不支持打开 Campulse 应用",
 
   "storeTitle": "学生应用",
   "storeEmpty": "应用商店暂无内容",
@@ -220,7 +220,7 @@
   "profileDataSourceMock": "离线演示数据",
   "profileAbout": "关于",
   "profileVersion": "版本",
-  "profileAboutBody": "Campus 是面向高校学生的校园数字工作台：把散落在网站、小程序与独立 App 中的校园服务聚合为一个入口，并把校园信息组织成结构化事务。",
+  "profileAboutBody": "Campulse 是面向高校学生的校园数字工作台：把散落在网站、小程序与独立 App 中的校园服务聚合为一个入口，并把校园信息组织成结构化事务。",
   "profileNotSignedIn": "未登录",
   "profileSignIn": "登录",
   "profileSignInDemo": "使用演示身份",
@@ -243,7 +243,7 @@
   "serviceTypeWeb": "网页",
   "serviceTypeWechatMiniProgram": "微信小程序",
   "serviceTypeNativeApp": "独立 App",
-  "serviceTypeCampusApp": "Campus 应用",
+  "serviceTypeCampusApp": "Campulse 应用",
 
   "originOfficial": "官方",
   "originStudentDeveloped": "学生开发",

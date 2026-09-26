@@ -1,4 +1,4 @@
-/// Campus 后端 REST 客户端 / the Campus backend REST client.
+/// Campulse 后端 REST 客户端 / the Campulse backend REST client.
 ///
 /// 这一层只做三件事：拼 URL、发请求、把响应体解码成 `Object?`。它不认识任何领域
 /// 模型，也不缓存——把领域语义留给 Repository。

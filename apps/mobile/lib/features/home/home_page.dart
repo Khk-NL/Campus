@@ -2,12 +2,12 @@
 ///
 /// §12 的核心表达是「**我今天在校园里有什么事情？**」，而不是「我还有多少条未读」。
 /// 因此这一页刻意**不是**消息流，而是四块结构化内容：
-///   Today（今天的课与日程）/ Tasks（待办 + 截止时间）/ Campus（公告与服务动态）
+///   Today（今天的课与日程）/ Tasks（待办 + 截止时间）/ Campulse（公告与服务动态）
 ///   / Quick Access（课表、校园卡、图书馆…）。
 ///
 /// §12's core question is "what is happening on campus today?", not "how many unread
 /// items do I have?". So this page is deliberately *not* a feed but four structured
-/// blocks: Today, Tasks (with deadlines), Campus (notices and service updates) and
+/// blocks: Today, Tasks (with deadlines), Campulse (notices and service updates) and
 /// Quick Access.
 ///
 /// 每一块独立加载、独立空态：某一块没数据不会让整页变成空白。

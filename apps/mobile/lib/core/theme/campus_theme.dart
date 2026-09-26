@@ -1,4 +1,4 @@
-/// Campus 设计规范 / the Campus design tokens (§0.3, §0.9 手机优先).
+/// Campulse 设计规范 / the Campulse design tokens (§0.3, §0.9 手机优先).
 ///
 /// 色值不是猜的：主色取自学校官方的《标准色使用规范》（PANTONE 201C =
 /// `#A41F35`，规范写明"不得任意更改"），其余为同色族的官方减网色阶。所有颜色都从这里

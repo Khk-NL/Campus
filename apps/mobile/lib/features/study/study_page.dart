@@ -364,7 +364,7 @@ class _StudyPageState extends State<StudyPage> {
             ),
           if (widget.onSignOut != null)
             IconButton(
-              tooltip: '退出 Campus 账号',
+              tooltip: '退出 Campulse 账号',
               onPressed: widget.onSignOut,
               icon: const Icon(Icons.logout),
             ),

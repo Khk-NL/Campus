@@ -42,7 +42,7 @@ class _AgentExplorerState extends State<AgentExplorer> {
   Widget build(BuildContext context) {
     final Future<(StudyRepository, StudyWorkspace)>? data = _data;
     if (data == null) {
-      return const Center(child: Text('请先登录 Campus 账号'));
+      return const Center(child: Text('请先登录 Campulse 账号'));
     }
     return FutureBuilder<(StudyRepository, StudyWorkspace)>(
       future: data,

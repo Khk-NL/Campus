@@ -7,11 +7,12 @@ class PocketBaseStudyRepository implements StudyRepository {
 
   final PocketBase client;
   String? _recordId;
+  String? _loadedOwner;
 
   String get _ownerId {
     final String? id = client.authStore.record?.id;
     if (id == null || id.isEmpty || !client.authStore.isValid) {
-      throw StateError('请先登录 Campus 账号');
+      throw StateError('请先登录 Campulse 账号');
     }
     return id;
   }
@@ -19,6 +20,7 @@ class PocketBaseStudyRepository implements StudyRepository {
   @override
   Future<StudyWorkspace> load() async {
     final String ownerId = _ownerId;
+    _loadedOwner = ownerId;
     final result = await client
         .collection('study_workspaces')
         .getList(
@@ -30,7 +32,14 @@ class PocketBaseStudyRepository implements StudyRepository {
         );
     if (result.items.isEmpty) {
       _recordId = null;
-      return StudyWorkspace.demo();
+      return StudyWorkspace(
+        activities: [],
+        sessions: [],
+        evidence: [],
+        knowledgeBases: [],
+        wikiEntries: [],
+        agents: [],
+      );
     }
     final record = result.items.single;
     _recordId = record.id;
@@ -42,6 +51,9 @@ class PocketBaseStudyRepository implements StudyRepository {
   @override
   Future<void> save(StudyWorkspace workspace) async {
     final String ownerId = _ownerId;
+    if (_loadedOwner != ownerId) {
+      throw StateError('账号已切换，请重新打开课程空间');
+    }
     final String? recordId = _recordId;
     if (recordId == null) {
       final record = await client

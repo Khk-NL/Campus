@@ -1,11 +1,11 @@
 /// 高校配置的宿主边界 / the host boundary for university-specific configuration.
 ///
-/// 架构硬要求（§3.1 / §13「ECNU 特有逻辑不进入 Campus Core」）：
+/// 架构硬要求（§3.1 / §13「ECNU 特有逻辑不进入 Campulse Core」）：
 /// `ecnu` 这类 universityId、"随师办" 这类校名、"sso.ecnu.edu.cn" 这类域名，只允许
 /// 出现在本目录（`lib/core/config/universities/`）之下。通用层——模型、通用 widget、
 /// Repository 抽象、i18n——一律不得出现任何具体高校的字样。
 ///
-/// Architectural hard rule (§3.1, and Phase 0's "no ECNU-specific logic in Campus
+/// Architectural hard rule (§3.1, and Phase 0's "no ECNU-specific logic in Campulse
 /// Core"): identifiers such as `ecnu`, school names and school domains may only
 /// appear under this directory. The generic layers — models, shared widgets, the
 /// repository abstraction and i18n — must never mention a concrete university.

@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Campus owns note text; an AI provider may read a copy but never becomes its store.
+/// Campulse owns note text; an AI provider may read a copy but never becomes its store.
 class CourseNote {
   const CourseNote({
     required this.id,

@@ -50,11 +50,11 @@ const UniversityConfig ecnuConfig = UniversityConfig(
   // number in the timetable, invisibly. The real value comes from the registrar's calendar.
   termFirstMonday: null,
   // 归属标识（校徽）的**唯一**出处：横版组合标（校徽 + 中英文校名），单 path 无内嵌位图。
-  // §18 限定它只能作为"归属"出现，不用作 Campus 自身的图标或闪屏。
+  // §18 限定它只能作为"归属"出现，不用作 Campulse 自身的图标或闪屏。
   //
   // The single home of the provenance mark: the horizontal lock-up (crest plus the Chinese
   // and English names), one path with no embedded bitmap. §18 restricts it to *provenance*
-  // uses; it is never Campus's own icon or splash.
+  // uses; it is never Campulse's own icon or splash.
   brandMarkAsset: 'assets/brand/ecnu-logo.svg',
   contactGroupNumbers: ecnuContactGroupNumbers,
 );
@@ -244,7 +244,7 @@ final List<EcnuServiceEntry> ecnuFallbackServices = <EcnuServiceEntry>[
     ),
     displayName: '校园卡',
     displayDescription: '余额、消费流水、挂失。',
-    nameEn: 'Campus Card',
+    nameEn: 'Campulse Card',
     descriptionEn: 'Balance, spending history and card loss reporting.',
     isQuickAccess: true,
   ),
@@ -263,7 +263,7 @@ final List<EcnuServiceEntry> ecnuFallbackServices = <EcnuServiceEntry>[
     ),
     displayName: '校园地图',
     displayDescription: '两校区地图与楼宇检索。',
-    nameEn: 'Campus Map',
+    nameEn: 'Campulse Map',
     descriptionEn: 'Maps and building search for both campuses.',
   ),
   EcnuServiceEntry(
@@ -299,7 +299,7 @@ final List<EcnuServiceEntry> ecnuFallbackServices = <EcnuServiceEntry>[
     ),
     displayName: '校园网自助服务',
     displayDescription: '上网账号、流量与设备管理。',
-    nameEn: 'Campus Network Self-service',
+    nameEn: 'Campulse Network Self-service',
     descriptionEn: 'Internet account, quota and device management.',
   ),
 ];

@@ -8,7 +8,7 @@ class CourseImportRow {
   bool get valid => course != null && error == null;
 }
 
-/// CSV is parsed into Campus' period/teaching-week model, never into time guesses.
+/// CSV is parsed into Campulse' period/teaching-week model, never into time guesses.
 class CourseCsvImport {
   static List<CourseImportRow> parse(
     String source, {

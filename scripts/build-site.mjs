@@ -1,0 +1,21 @@
+import fs from 'node:fs';
+import path from 'node:path';
+const root=path.resolve(import.meta.dirname,'../deploy/pocketbase/pb_public');
+const github='https://github.com/Khk-NL/Campus';
+const routes=[['index.html','概览'],['hub.html','校园 GitHub'],['course.html','课程空间'],['workflow.html','运行流程'],['download.html','下载']];
+function page(file,title,body){return `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="Campulse：校园服务入口、校园开发者生态与个人课程空间。"><title>${title} · Campulse</title><link rel="icon" href="/assets/favicon.png"><link rel="stylesheet" href="/assets/site.css"></head><body><header><a class="brand" href="/"><img src="/assets/campulse-logo.png" alt="">Campulse</a><nav aria-label="主导航">${routes.map(([f,t])=>`<a href="/${f==='index.html'?'':f}" ${f===file?'aria-current="page"':''}>${t}</a>`).join('')}</nav></header><main>${body}</main><footer><span>© 2026 Campulse · 独立开发，非学校官方应用</span><span><a href="/privacy.html">隐私说明</a> · <a href="${github}">GitHub</a> · <a href="mailto:kongb3124@qq.com">联系我们</a></span></footer></body></html>`;}
+const cards=(items)=>`<div class="grid">${items.map(([n,h,p])=>`<section class="panel"><small>${n}</small><h2>${h}</h2><p>${p}</p></section>`).join('')}</div>`;
+const pages={
+'index.html':['校园，连接起来',`<section class="hero"><div><div class="eyebrow">CAMPULSE / CAMPUS CONNECTED</div><h1>校园的下一次连接。</h1><p>让校园服务更容易找到，让学生开发的工具被看见，让课程与自己的学习资料留在同一个空间。</p><a class="button" href="/download.html">获取 Android 版</a><a class="button secondary" href="/hub.html">探索校园 GitHub</a></div><div class="hero-art"><img src="/assets/campulse-logo.png" alt="Campulse 标志"></div></section>${cards([['01 / HUB','校园入口','学校服务与学生工具，按任务发现与访问。'],['02 / COMMUNITY','校园 GitHub','连接校园项目、使用者与开发者。'],['03 / COURSE','个人学习空间','课程表、资料、笔记与基于资料的 AI 问答。']])}`],
+'hub.html':['校园 GitHub',`<div class="eyebrow">BUILD FOR YOUR CAMPUS</div><h1>好工具，不该只在<br>开发者的电脑里。</h1><p>Campulse 希望成为校园的 GitHub：让学生项目有展示与使用入口，让校园需求找到愿意解决它的人。</p><a class="button" href="${github}">查看 Campulse 源码 ↗</a>${cards([['发现','从校园需求出发','服务入口与学生项目分区呈现，查找工具、了解项目，再直接使用。'],['连接','代码协作留在 GitHub','项目关联仓库，代码、提交、Issue 与 Pull Request 继续使用成熟的 GitHub 工作流。'],['演进','从使用走向共建','当前支持项目展示与仓库跳转；自主发布、贡献者招募与完整反馈协作是后续目标。']])}`],
+'course.html':['课程空间',`<div class="eyebrow">YOUR PERSONAL LEARNING SPACE</div><h1>从一门课开始，<br>组织自己的学习。</h1><p>以课程为线索，将时间、任务、资料和笔记串联起来。AI 问答使用你选定的资料，学习数据仍由 Campulse 管理。</p>${cards([['安排','课表与导入','课程时间、教师与教室；CSV 导入、预览、去重与冲突检查。'],['积累','笔记与资料','个人课程笔记通过 PocketBase 保存到云端，按账号隔离。跨设备更新需要重新读取。'],['理解','基于资料的问答','网关检查用户与资料归属，再调用 ChatECNU。问题和选定正文会发送给模型服务。']])}<p>当前版本不宣称具备离线冲突合并、完整 EduWork 同步或所有学习产物生成功能。可用能力以应用和服务实际状态为准。</p>`],
+'workflow.html':['运行流程',`<div class="eyebrow">HOW CAMPULSE WORKS</div><h1>入口清晰。<br>数据各归其位。</h1><div class="flow">${[['登录与身份','App 通过 HTTPS 连接 PocketBase。普通用户账号与管理员账号分开，注册邮件验证仍按服务配置执行。'],['使用校园服务','从应用目录选择网站、工具或项目。外部服务由其自身管理登录与权限；Campulse 不接管学校密码。'],['保存课程与笔记','个人数据写入归属当前账号的记录。重新加载时读取云端内容，其他普通用户不能访问这些记录。'],['发起 AI 问答','选择课程资料并提问 → 网关验证身份和资料范围 → ChatECNU 返回回答。模型密钥只保存在服务器。'],['版本发布','源码推送 GitHub → 自动检查与构建 APK → 发布 GitHub Release。用户从官网跳转下载。']].map(([h,p])=>`<section><div><h2>${h}</h2><p>${p}</p></div></section>`).join('')}</div>`],
+'download.html':['下载',`<div class="eyebrow">ANDROID / PREVIEW</div><h1>把校园，<br>装进口袋。</h1><p>下载入口指向 GitHub。请查看版本说明、构建结果和安装包信息；预览版本仍在持续完善。</p><a class="button" href="${github}/releases">前往 GitHub 下载 ↗</a><a class="button secondary" href="${github}/tree/main/release">查看 release 目录 ↗</a>${cards([['安装','Android APK','从 GitHub Release 下载安装包；首次安装可能需要允许浏览器安装未知来源应用。'],['更新','云端自动构建','正式构建由 GitHub Actions 执行，不依赖开发者电脑上的打包脚本。'],['说明','试点边界','邮件与微信能力仍受第三方审核影响。官网不提供管理员凭据或 AI 密钥。']])}`]
+};
+for(const [file,[title,body]] of Object.entries(pages)) fs.writeFileSync(path.join(root,file),page(file,title,body));
+const privacyPath=path.join(root,'privacy.html');
+let privacy=fs.readFileSync(privacyPath,'utf8').match(/<main[^>]*>([\s\S]*?)<\/main>/)?.[1];
+if(!privacy)throw new Error('隐私说明正文缺失');
+privacy=privacy.replace(/^<a href="\/">[\s\S]*?<\/a>/,'').replace(/^<article class="privacy">([\s\S]*)<\/article>$/,'$1');
+fs.writeFileSync(privacyPath,page('privacy.html','隐私说明',`<article class="privacy">${privacy}</article>`));
+console.log('Generated 6 Campulse pages');

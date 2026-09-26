@@ -16,10 +16,10 @@ import 'package:flutter/material.dart';
 
 /// 打开通知（事务）列表 / open the notification (transaction) list.
 ///
-/// 复用既有的事务中心：§2.1 的"微信负责交流，Campus 负责事务"决定了这里是一份结构化
+/// 复用既有的事务中心：§2.1 的"微信负责交流，Campulse 负责事务"决定了这里是一份结构化
 /// 清单，而不是聊天列表。作为路由页时它自带 AppBar 与返回按钮。
 ///
-/// Reuses the existing inbox: §2.1's "WeChat does conversation, Campus does transactions"
+/// Reuses the existing inbox: §2.1's "WeChat does conversation, Campulse does transactions"
 /// makes this a structured list rather than a chat list. As a route it carries its own
 /// AppBar and back button.
 Future<void> openNotificationCenter(BuildContext context) {

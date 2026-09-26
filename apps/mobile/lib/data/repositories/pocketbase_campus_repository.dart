@@ -101,7 +101,7 @@ class PocketBaseCampusRepository
       id: record.id,
       universityId: UniversityConfigs.defaultConfig.universityId,
       externalUserId: '',
-      name: name.isNotEmpty ? name : (email.isNotEmpty ? email : 'Campus 用户'),
+      name: name.isNotEmpty ? name : (email.isNotEmpty ? email : 'Campulse 用户'),
       roles: const <PlatformRole>[PlatformRole.user],
     );
   }

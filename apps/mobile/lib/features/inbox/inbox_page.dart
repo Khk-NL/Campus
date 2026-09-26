@@ -1,10 +1,10 @@
 /// 事务中心 / the transaction inbox (§8, §10).
 ///
-/// §2.1 是这一页存在的理由：**微信负责交流，Campus 负责事务**。因此这里是一份"我需要
+/// §2.1 是这一页存在的理由：**微信负责交流，Campulse 负责事务**。因此这里是一份"我需要
 /// 知道 / 确认 / 完成的事"的清单，不是聊天列表；没有未读气泡，没有消息流，只有按类型
 /// 过滤的结构化条目和结构化反馈。
 ///
-/// §2.1 is why this screen exists: WeChat does conversation, Campus does transactions. So
+/// §2.1 is why this screen exists: WeChat does conversation, Campulse does transactions. So
 /// this is a list of "things I need to know, confirm or finish", not a chat list — no
 /// unread badges, no message stream, only structured entries with structured feedback.
 library;

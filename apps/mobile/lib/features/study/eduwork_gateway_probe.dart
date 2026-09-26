@@ -58,7 +58,7 @@ class EduWorkGatewayProbe {
       }
       final Object? decoded = jsonDecode(response.body);
       if (decoded is! Map<String, dynamic> || decoded['contract'] != contract) {
-        throw const FormatException('响应不是 Campus EduWork 网关 v1 契约');
+        throw const FormatException('响应不是 Campulse EduWork 网关 v1 契约');
       }
       return EduWorkGatewayStatus(
         ready: decoded['ready'] == true,

@@ -1,4 +1,4 @@
-/// 启动器 / the Campus Launcher (§7).
+/// 启动器 / the Campulse Launcher (§7).
 ///
 /// §7 要求统一负责「发现 + 判断类型 + 使用最合适方式打开」。本文件就是那条统一路径，
 /// 并按 §7 逐类给出**回退链**：
@@ -9,13 +9,13 @@
 ///   * **微信小程序** —— 阶段内不支持拉起，且**绝不**用普通 WebView 去渲染
 ///     `originalId`（那不是链接）；只有配置了 `fallbackUrl` 才回退到网页。
 ///   * **Native App** —— Deep Link 交给系统；未安装时回退 `fallbackUrl` / `storeUrl`。
-///   * **Campus App** —— 需要 Phase 4 的插件运行时，返回"不支持"。
+///   * **Campulse App** —— 需要 Phase 4 的插件运行时，返回"不支持"。
 ///
 /// §7 asks the launcher to discover, classify and open with the most suitable mechanism, so
 /// this file is that single path, with §7's fallback chain per kind: web prefers the in-app
 /// WebView and falls back to the system browser; a WeChat mini program is never rendered in
 /// a plain WebView (an `originalId` is not a URL) and only falls back to a configured web
-/// link; a native app goes through its deep link with a store/URL fallback; a Campus app is
+/// link; a native app goes through its deep link with a store/URL fallback; a Campulse app is
 /// unsupported until Phase 4.
 ///
 /// 启动器是**可注入**的：`CampusLauncherScope` 提供一个实现，测试注入 fake 即可断言

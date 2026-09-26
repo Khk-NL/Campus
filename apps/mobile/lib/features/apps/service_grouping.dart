@@ -12,7 +12,7 @@
 ///      「官方工作台」里找到学校自己的一站式入口。因此官方工作台**先判**，且判定通过后
 ///      不再看启动方式。
 ///   2. 之后按启动方式分：微信小程序 → 「小程序」。
-///   3. 其余（网页 / Deep Link / Campus App）→ 「Web」，即"交给浏览器或系统打开"的那
+///   3. 其余（网页 / Deep Link / Campulse App）→ 「Web」，即"交给浏览器或系统打开"的那
 ///      一组。这一组是**兜底桶**，保证分组是全覆盖的：任何一门服务都恰好属于一组。
 ///
 /// Grouping is a pure function: it depends only on a service's own fields, never on the
@@ -27,7 +27,7 @@
 ///      school's own entry from the workbench group. So it is tested first, and a match
 ///      stops the chain.
 ///   2. Launch kind decides next: a WeChat mini program goes to "mini programs".
-///   3. Everything else (web, deep link, Campus app) lands in "Web", the bucket that is
+///   3. Everything else (web, deep link, Campulse app) lands in "Web", the bucket that is
 ///      opened by the browser or the OS. This last bucket keeps the grouping total: every
 ///      service belongs to exactly one group.
 ///

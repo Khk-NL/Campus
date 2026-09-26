@@ -62,7 +62,7 @@ class _CourseHubPageState extends State<CourseHubPage> {
     final PocketBaseSession? session = PocketBaseSession.instance;
     if (session == null || !session.signedIn) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('请先登录 Campus 账号')));
+          .showSnackBar(const SnackBar(content: Text('请先登录 Campulse 账号')));
       return;
     }
     final List<Course> existing = await _courses;

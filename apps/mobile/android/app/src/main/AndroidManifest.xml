@@ -15,7 +15,8 @@
          with "Error parsing AndroidManifest.xml". -->
     <uses-permission android:name="android.permission.INTERNET"/>
     <application
-        android:label="Campus"
+        android:label="Campulse"
+        android:allowBackup="false"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

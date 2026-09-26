@@ -1,10 +1,10 @@
 /// 结构化反馈条 / the structured feedback bar (§10).
 ///
-/// §2.1 与 §10 的核心取舍：Campus **不做**聊天与评论区，反馈必须是一组封闭的枚举
+/// §2.1 与 §10 的核心取舍：Campulse **不做**聊天与评论区，反馈必须是一组封闭的枚举
 /// 取值——公告是「已读 / 已确认 / 有疑问」，活动是「参加 / 不参加 / 无法参加 / 待定」，
 /// 任务是「未开始 / 进行中 / 已完成 / 无法完成」。
 ///
-/// The core trade-off of §2.1 and §10: Campus has **no** chat and no comment threads.
+/// The core trade-off of §2.1 and §10: Campulse has **no** chat and no comment threads.
 /// Feedback is a closed set of values — announcements take read/confirmed/question,
 /// events take join/decline/cannot-attend/maybe, and tasks take
 /// not-started/in-progress/done/blocked.

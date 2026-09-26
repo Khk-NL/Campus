@@ -10,7 +10,7 @@ class AppLocalizationsZh extends AppLocalizations {
   AppLocalizationsZh([String locale = 'zh']) : super(locale);
 
   @override
-  String get appTitle => 'Campus';
+  String get appTitle => 'Campulse';
 
   @override
   String get appTagline => '校园数字工作台';
@@ -447,7 +447,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get launchMiniProgramNoWeChat => '未安装微信，无法打开小程序';
 
   @override
-  String get launchCampusAppUnsupported => '暂不支持打开 Campus 应用';
+  String get launchCampusAppUnsupported => '暂不支持打开 Campulse 应用';
 
   @override
   String get storeTitle => '学生应用';
@@ -544,7 +544,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get profileAboutBody =>
-      'Campus 是面向高校学生的校园数字工作台：把散落在网站、小程序与独立 App 中的校园服务聚合为一个入口，并把校园信息组织成结构化事务。';
+      'Campulse 是面向高校学生的校园数字工作台：把散落在网站、小程序与独立 App 中的校园服务聚合为一个入口，并把校园信息组织成结构化事务。';
 
   @override
   String get profileNotSignedIn => '未登录';
@@ -607,7 +607,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get serviceTypeNativeApp => '独立 App';
 
   @override
-  String get serviceTypeCampusApp => 'Campus 应用';
+  String get serviceTypeCampusApp => 'Campulse 应用';
 
   @override
   String get originOfficial => '官方';

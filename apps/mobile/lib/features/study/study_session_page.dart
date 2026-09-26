@@ -151,7 +151,7 @@ class _StudySessionPageState extends State<StudySessionPage> {
               child: Text(
                 <String>[
                   widget.activity.course,
-                  widget.remote ? 'Campus 账号' : '本机记录',
+                  widget.remote ? 'Campulse 账号' : '本机记录',
                   if (widget.activity.objective.isNotEmpty)
                     widget.activity.objective,
                 ].join(' · '),

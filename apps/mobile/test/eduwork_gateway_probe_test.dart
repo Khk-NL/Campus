@@ -9,7 +9,7 @@ void main() {
     expect(AppConfig.defaults().hasEduWorkGateway, isFalse);
   });
 
-  test('只接受 Campus 网关契约并传递普通用户令牌', () async {
+  test('只接受 Campulse 网关契约并传递普通用户令牌', () async {
     final MockClient client = MockClient((http.Request request) async {
       expect(request.url.toString(), 'https://school.example/campus/v1/status');
       expect(request.headers['authorization'], 'Bearer pilot-token');
@@ -27,7 +27,7 @@ void main() {
     expect(status.capabilityIds, <String>{'quiz', 'flashcards'});
   });
 
-  test('EduWork 桌面服务或错误契约不能冒充 Campus 网关', () async {
+  test('EduWork 桌面服务或错误契约不能冒充 Campulse 网关', () async {
     final EduWorkGatewayProbe probe = EduWorkGatewayProbe(
       baseUrl: 'https://school.example',
       client: MockClient((_) async => http.Response('{"ready":true}', 200)),

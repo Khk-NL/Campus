@@ -56,10 +56,10 @@ enum WeekParity {
 /// 周次有两种表达，**二选一**：
 ///
 /// * `startWeek`/`endWeek` + [parity]：区间上下单双周；
-/// * [weeks]：显式的周列表，非空时**覆盖**前两者（Campus 的既定语义）。
+/// * [weeks]：显式的周列表，非空时**覆盖**前两者（Campulse 的既定语义）。
 ///
 /// Weeks are expressed one of two ways — a range plus [parity], or an explicit [weeks]
-/// list that OVERRIDES the range and parity when non-empty (Campus' documented rule).
+/// list that OVERRIDES the range and parity when non-empty (Campulse' documented rule).
 class CourseScheduleRule {
   const CourseScheduleRule({
     required this.startWeek,
@@ -117,7 +117,7 @@ class CourseScheduleRule {
   ///
   /// 为什么"同时给出"直接判非法、而不是让 [weeks] 覆盖 parity：参考项目
   /// `sp-study-courses` 会把 `"1-8周 单周"` 规范化成 `weeks=[1..8]` + `parity='odd'`，
-  /// 在它的"先夹区间、再 parity"语义下是 1/3/5/7 周（正确）；搬到 Campus 的"覆盖"
+  /// 在它的"先夹区间、再 parity"语义下是 1/3/5/7 周（正确）；搬到 Campulse 的"覆盖"
   /// 语义下，`weeks` 获胜就变成 1~8 周每周都上——同一个输入静默反转成相反的课表。
   /// 两种语义无法从数据本身区分，所以这里不接受这种输入：宁可让这条规则落到"未排课"
   /// 并暴露问题，也不猜。规范化（产出纯 parity 或纯 weeks）是解析器的责任。
@@ -125,7 +125,7 @@ class CourseScheduleRule {
   /// Why the combination is rejected outright instead of letting [weeks] win: the
   /// reference project normalises `"1-8 weeks, odd"` into `weeks=[1..8]` plus
   /// `parity='odd'`, which is correct under its range-then-parity semantics. Under
-  /// Campus' override semantics `weeks` wins and the same input silently becomes "every
+  /// Campulse' override semantics `weeks` wins and the same input silently becomes "every
   /// week 1-8" — the exact opposite timetable. The two intents are indistinguishable from
   /// the data alone, so the rule is refused and the caller sees "unscheduled" instead of a
   /// silent inversion. Normalising (to pure parity or pure weeks) belongs to the parser.

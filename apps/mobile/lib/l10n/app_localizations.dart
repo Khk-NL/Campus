@@ -101,7 +101,7 @@ abstract class AppLocalizations {
   /// No description provided for @appTitle.
   ///
   /// In zh, this message translates to:
-  /// **'Campus'**
+  /// **'Campulse'**
   String get appTitle;
 
   /// 应用副标题 / app subtitle
@@ -899,7 +899,7 @@ abstract class AppLocalizations {
   /// No description provided for @launchCampusAppUnsupported.
   ///
   /// In zh, this message translates to:
-  /// **'暂不支持打开 Campus 应用'**
+  /// **'暂不支持打开 Campulse 应用'**
   String get launchCampusAppUnsupported;
 
   /// No description provided for @storeTitle.
@@ -1091,7 +1091,7 @@ abstract class AppLocalizations {
   /// No description provided for @profileAboutBody.
   ///
   /// In zh, this message translates to:
-  /// **'Campus 是面向高校学生的校园数字工作台：把散落在网站、小程序与独立 App 中的校园服务聚合为一个入口，并把校园信息组织成结构化事务。'**
+  /// **'Campulse 是面向高校学生的校园数字工作台：把散落在网站、小程序与独立 App 中的校园服务聚合为一个入口，并把校园信息组织成结构化事务。'**
   String get profileAboutBody;
 
   /// No description provided for @profileNotSignedIn.
@@ -1217,7 +1217,7 @@ abstract class AppLocalizations {
   /// No description provided for @serviceTypeCampusApp.
   ///
   /// In zh, this message translates to:
-  /// **'Campus 应用'**
+  /// **'Campulse 应用'**
   String get serviceTypeCampusApp;
 
   /// No description provided for @originOfficial.
