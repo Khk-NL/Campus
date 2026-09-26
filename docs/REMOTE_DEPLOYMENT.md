@@ -1,5 +1,7 @@
 # Campus 远程后端：上线前操作手册
 
+当前目标服务器使用 Linux + 1Panel，且已有其他网站。2026-09-26 通过远程终端确认：实际由现有 Caddy 管理 80/443，并非 OpenResty。应复用 Caddy，仅新增 Campus 站点，不能覆盖原配置或另启反向代理抢占端口。具体部署见 [阿里云共享服务器部署](ALIYUN_DEPLOYMENT.md)；下面各节仍保留通用双域名示例。
+
 本版支持 PocketBase 多用户邮箱注册、密码重置，以及经过用户身份和资料所有权校验的 ChatECNU 课程问答。**EduWork Studio 的远程成果生成尚未实现**；`GET /v1/status` 中 `ready=false`、`aiReady=true` 正确表示“模型问答可用，EduWork 未接通”。学校 SSO、教务 API、文件检索、Quiz/闪卡/思维导图也不因填写地址而自动启用。
 
 ## 0. 先准备并记录非敏感信息

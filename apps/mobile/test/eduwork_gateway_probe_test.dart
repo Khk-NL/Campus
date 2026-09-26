@@ -47,7 +47,7 @@ void main() {
 
   test('课程提问只发送普通用户令牌、课程和选中资料', () async {
     final MockClient client = MockClient((http.Request request) async {
-      expect(request.url.toString(), 'https://school.example/v1/ask');
+      expect(request.url.toString(), 'https://campus.allezafrique.cn/ai/v1/ask');
       expect(request.headers['authorization'], 'Bearer user-token');
       expect(request.method, 'POST');
       expect(request.body, contains('note:one'));
@@ -61,7 +61,7 @@ void main() {
     });
     final CampusAiAnswer answer =
         await EduWorkGatewayProbe(
-          baseUrl: 'https://school.example',
+          baseUrl: 'https://campus.allezafrique.cn/ai',
           client: client,
         ).ask(
           pocketBaseToken: 'user-token',
