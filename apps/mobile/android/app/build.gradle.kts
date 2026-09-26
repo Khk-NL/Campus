@@ -29,11 +29,24 @@ android {
         versionName = flutter.versionName
     }
 
+    val cloudPreviewKey = System.getenv("CAMPULSE_PREVIEW_KEYSTORE_PATH")
+    signingConfigs {
+        if (!cloudPreviewKey.isNullOrBlank()) {
+            create("cloudPreview") {
+                storeFile = file(cloudPreviewKey)
+                storePassword = "android"
+                keyAlias = "androiddebugkey"
+                keyPassword = "android"
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            // Explicit CI path avoids Android SDK environment overrides selecting a new key.
+            signingConfig = signingConfigs.getByName(
+                if (cloudPreviewKey.isNullOrBlank()) "debug" else "cloudPreview"
+            )
         }
     }
 }

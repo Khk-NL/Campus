@@ -29,7 +29,7 @@ void main() {
    expect(await other.list(course),isEmpty);
    final repo=PocketBaseCampusRepository(client:a);
    await repo.fetchCampusApps(const CampusAppsQuery());
-   expect(repo.sourceMode(DataSourceSource.apps),DataSourceMode.remote);
+   expect(repo.mode,DataSourceMode.remote);
    repo.dispose();
   } finally { await notes.delete(note.id); }
  },timeout:const Timeout(Duration(minutes:2)));

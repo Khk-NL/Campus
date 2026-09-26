@@ -20,7 +20,11 @@
 
 测试新增内容已清理，两个专用用户暂保留。其凭据只在本机 Git 忽略目录 `.tools/remote-test-users.json`；报告为 `.tools/remote-acceptance-report.json`。未向其他服务尝试管理员密码。
 
-接口验收不等同于 Android 全流程验收。模拟器安装、登录状态恢复、导航和屏幕操作需要使用 GitHub 构建出的 APK 另行检查。
+补充：使用 Flutter App 的真实笔记仓库连接公网，验证独立登录会话之间的笔记读取、更新和账号隔离，以及应用目录解析。首次复现笔记列表返回 HTTP 400：原集合缺少客户端排序所需的 `updated` 字段。已备份数据库并应用 `1790210005_note_timestamps.js`，补充自动 `created` / `updated` 字段，复测通过。历史记录没有可恢复的时间，不伪造过去的时间。
+
+本地静态检查、113 项移动端测试、3 项网关测试通过。GitHub Actions 构建与发布已成功：[构建记录](https://github.com/Khk-NL/Campus/actions/runs/36262262635)。APK 已进入 GitHub Release 和仓库 release 目录，未在本机构建 APK。
+
+数据层验收不等同于 Android 全流程验收。模拟器登录状态恢复、导航和屏幕操作仍需要使用 GitHub 构建出的 APK 另行检查。
 
 ## 当前边界
 
