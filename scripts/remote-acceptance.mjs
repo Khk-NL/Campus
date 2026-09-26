@@ -12,6 +12,22 @@ function check(name, ok, status) { result.push({name,passed:!!ok,status}); conso
 const admin=await request('/api/collections/_superusers/auth-with-password',null,'POST',{identity:env.REMOTE_ADMIN_EMAIL,password:env.REMOTE_ADMIN_PASSWORD});
 check('公网管理员认证',admin.status===200,admin.status);
 if(admin.status!==200) process.exit(1);
+if(process.argv.includes('--registration-policy')) {
+ const email=`campulse.registration.${Date.now()}@example.com`,password=crypto.randomBytes(24).toString('base64url');
+ const created=await request('/api/collections/users/records',null,'POST',{email,password,passwordConfirm:password});
+ check('普通注册创建未验证账号',created.status===200&&created.data.verified===false,created.status);
+ if(created.status===200) {
+  try {
+   const login=await request('/api/collections/users/auth-with-password',null,'POST',{identity:email,password});
+   check('未验证账号不能登录',login.status!==200,login.status);
+  } finally { await request('/api/collections/users/records/'+created.data.id,admin.data.token,'DELETE'); }
+ }
+ const forged=await request('/api/collections/users/records',null,'POST',{email,password,passwordConfirm:password,verified:true});
+ check('不能在注册时自行标记已验证',forged.status!==200||forged.data.verified===false,forged.status);
+ if(forged.status===200)await request('/api/collections/users/records/'+forged.data.id,admin.data.token,'DELETE');
+ if(result.some(x=>!x.passed)) process.exitCode=1;
+ process.exit(process.exitCode||0);
+}
 if(process.argv.includes('--schema')) {
  const c=await request('/api/collections?perPage=100',admin.data.token);
  console.log(JSON.stringify(c.data.items?.map(x=>({name:x.name,fields:x.fields?.map(f=>({name:f.name,type:f.type,required:f.required}))})),null,2));

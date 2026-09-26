@@ -7,6 +7,9 @@ import 'package:campus_mobile/features/study/pocketbase_course_note_repository.d
 import 'package:campus_mobile/data/repositories/pocketbase_campus_repository.dart';
 import 'package:campus_mobile/data/repositories/campus_repository.dart';
 import 'package:campus_mobile/data/repositories/data_source_mode.dart';
+import 'package:campus_mobile/features/timetable/course_csv_import.dart';
+import 'package:campus_mobile/features/timetable/user_course_repository.dart';
+import 'package:campus_mobile/core/config/university_config.dart';
 
 void main() {
  test('production repositories: real notes sync and catalog parsing', () async {
@@ -31,6 +34,19 @@ void main() {
    await repo.fetchCampusApps(const CampusAppsQuery());
    expect(repo.mode,DataSourceMode.remote);
    repo.dispose();
+   final imported=CourseCsvImport.parse('课程名称,教师,地点,星期,开始节次,结束节次,开始周,结束周\n$course,验收教师,验收教室,周一,1,2,1,16',universityId:UniversityConfigs.defaultConfig.universityId,termWeeks:16).single.course!;
+   await PocketBaseUserCourseRepository(a).create(imported);
+   final records=await a.collection('user_courses').getFullList();
+   final created=records.singleWhere((r)=>(r.data['payload'] as Map)['name']==course);
+   try {
+    final secondRepo=PocketBaseCampusRepository(client:a2);
+    final foreignRepo=PocketBaseCampusRepository(client:b);
+    final persisted=(await secondRepo.fetchCourses()).singleWhere((c)=>c.name==course);
+    expect(persisted.id,created.id);
+    expect(persisted.location,'验收教室');
+    expect((await foreignRepo.fetchCourses()).where((c)=>c.name==course),isEmpty);
+    secondRepo.dispose();foreignRepo.dispose();
+   } finally { await a.collection('user_courses').delete(created.id); }
   } finally { await notes.delete(note.id); }
  },timeout:const Timeout(Duration(minutes:2)));
 }
