@@ -9,17 +9,17 @@
 - 已有 Caddy 占用 80/443；1Panel core/agent 正在运行，未发现运行中的 OpenResty 容器。
 - 现有 Node 为 18.19.1；Campus 网关要求 Node 22+，应单独安装运行时，不替换现有网站使用的 Node。
 - 当前 Caddy 已管理主域名、1panel、api、afrigo-api 等站点；保留这些配置。
-- campus.allezafrique.cn 已解析到该服务器。DNS 正确不代表 HTTPS 或 Campus 后端已经可用。
+- campus.scsldr.cn 已解析到该服务器。DNS 正确不代表 HTTPS 或 Campus 后端已经可用。
 
 ## 确定的地址
 
 | 用途 | 地址 |
 | --- | --- |
-| PocketBase / App 数据 | https://campus.allezafrique.cn |
-| PocketBase 后台 | https://campus.allezafrique.cn/_/ |
-| 健康检查 | https://campus.allezafrique.cn/api/health |
-| Campus AI 网关基址 | https://campus.allezafrique.cn/ai |
-| 已登录网关状态 | https://campus.allezafrique.cn/ai/v1/status |
+| PocketBase / App 数据 | https://campus.scsldr.cn |
+| PocketBase 后台 | https://campus.scsldr.cn/_/ |
+| 健康检查 | https://campus.scsldr.cn/api/health |
+| Campus AI 网关基址 | https://campus.scsldr.cn/ai |
+| 已登录网关状态 | https://campus.scsldr.cn/ai/v1/status |
 
 客户端会保留网关基址中的 `/ai`。Caddy 的 `handle_path /ai/*` 在转发时移除 `/ai`，因此网关仍接收 `/v1/status`、`/v1/ask`，不需要修改后端路由。
 
@@ -35,7 +35,7 @@
 
 ## 用户需填写的配置
 
-- PocketBase 后台：App URL 已设为 `https://campus.allezafrique.cn`；系统邮件使用 Brevo，主机 `smtp-relay.brevo.com`、端口 `465`、TLS 开启。只需填 Brevo 的 SMTP Login、SMTP Key 和已验证的发件地址，再启用 SMTP。不要使用 Brevo 登录密码或 REST API Key。QQ 邮箱只保留为支持联系地址。
+- PocketBase 后台：App URL 已设为 `https://campus.scsldr.cn`；系统邮件使用 Brevo，主机 `smtp-relay.brevo.com`、端口 `465`、TLS 开启。只需填 Brevo 的 SMTP Login、SMTP Key 和已验证的发件地址，再启用 SMTP。不要使用 Brevo 登录密码或 REST API Key。QQ 邮箱只保留为支持联系地址。
 - `/etc/campus/ai.env`：填写学校授权的模型 Key；正式多用户服务确认生产额度。不要在聊天、APK 或 Git 中填写 Key。
 - 手机构建：`apps/mobile/config/eduwork.production.example.json` 已使用上述公开地址。只有 HTTPS、注册验证、数据隔离和真实模型调用通过后，才把该配置用于正式发布。
 

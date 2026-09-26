@@ -1,6 +1,6 @@
 # Add this site block to the EXISTING Caddy configuration after backing it up.
 # Do not replace other sites. Validate before gracefully reloading Caddy.
-campus.allezafrique.cn {
+campus.scsldr.cn, campus.allezafrique.cn {
     handle_path /ai/* {
         reverse_proxy 127.0.0.1:8787
     }

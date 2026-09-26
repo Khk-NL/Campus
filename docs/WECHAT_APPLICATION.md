@@ -1,14 +1,16 @@
 # 微信开放平台申请材料
 
-官网（部署后）：https://campus.allezafrique.cn
+官网：https://campus.scsldr.cn
 
-隐私说明（部署后）：https://campus.allezafrique.cn/privacy.html
+隐私说明：https://campus.scsldr.cn/privacy.html
 
-流程图（部署后）：https://campus.allezafrique.cn/workflow.svg
+流程图：https://campus.scsldr.cn/workflow.svg
 
 GitHub 下载：https://github.com/Khk-NL/Campus/tree/main/release
 
 ## 应用简介
+
+Campus 的核心定位包括“校园 GitHub”：让学生开发的项目被发现、被使用，连接项目作者与校园用户。当前提供项目发现、介绍与仓库入口；项目发布、反馈和贡献者招募是后续完善方向。Git、PR、CI 等代码协作继续使用 GitHub，不宣称已实现独立代码托管。
 
 Campus 是面向校园生活与个人学习的 Android 应用，提供校园网站与工具入口、常用服务收藏，以及课表、课程资料、笔记和学习记录管理。用户通过邮箱注册独立 Campus 账号；课程问答在模型服务配置就绪后，基于选中的个人资料提供学习参考。项目优先适配华东师范大学场景，属于独立开发项目，并非学校官方应用。
 
