@@ -24,7 +24,9 @@
 
 普通注册策略补测通过：创建未验证账号成功；未验证登录被拒绝（403）；注册时自行指定 `verified=true` 被拒绝（400）。未发送验证邮件，临时账号已清理。
 
-本地静态检查、113 项移动端测试、3 项网关测试通过。GitHub Actions 构建与发布已成功：[构建记录](https://github.com/Khk-NL/Campus/actions/runs/36262262635)。APK 已进入 GitHub Release 和仓库 release 目录，未在本机构建 APK。
+本地静态检查、113 项移动端测试、3 项网关测试通过。最终 GitHub Actions 构建与发布记录：[构建记录](https://github.com/Khk-NL/Campus/actions/runs/36263025128)。APK 已进入 GitHub Release 和仓库 release 目录，未在本机构建 APK。
+
+首次云端 APK 被 MuMu 拒绝覆盖安装，公开证书核对发现 Gradle 没有选中恢复的预览密钥。已改为显式指定 CI 签名路径，并在发布前强制核验指纹。最终 APK 证书与旧版相同，MD5 为 `3b8a0599b4ce81f2f2932c8121c8b4e4`；MuMu Android 15 覆盖安装成功，未卸载或清除旧应用数据。冷启动返回成功，进程和前台 Activity 正常，检查范围内未发现启动崩溃。应用显示名称 Campulse，版本 1.1.0，版本代码 1003。
 
 数据层验收不等同于 Android 全流程验收。模拟器登录状态恢复、导航和屏幕操作仍需要使用 GitHub 构建出的 APK 另行检查。
 
