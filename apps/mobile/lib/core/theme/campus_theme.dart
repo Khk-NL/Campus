@@ -296,6 +296,7 @@ class CampusTheme {
       // i.e. invisible text on a white card (selected chips only read because their fill is
       // pale pink). So the label, the border and the selected state are all pinned here.
       chipTheme: ChipThemeData(
+        showCheckmark: false,
         labelStyle: TextStyle(
           fontSize: 13,
           fontWeight: FontWeight.w500,

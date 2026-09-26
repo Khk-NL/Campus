@@ -57,7 +57,8 @@ jobs:
           mkdir -p release
           cp apps/mobile/build/app/outputs/flutter-apk/app-release.apk release/Campulse-latest.apk
           sha256sum release/Campulse-latest.apk > release/Campulse-latest.apk.sha256
-          printf '{"sourceCommit":"%s","run":"%s","version":"1.1.0","preview":true}\n' "$GITHUB_SHA" "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" > release/Campulse-latest.json
+          VERSION=$(sed -n 's/^version: \([^+]*\).*/\1/p' apps/mobile/pubspec.yaml)
+          printf '{"sourceCommit":"%s","run":"%s","version":"%s","preview":true}\n' "$GITHUB_SHA" "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" "$VERSION" > release/Campulse-latest.json
           gh release view campulse-preview >/dev/null 2>&1 || gh release create campulse-preview --prerelease --title 'Campulse Android 预览版' --notes 'GitHub Actions 自动构建。预览签名与早期安装包保持一致；邮件与微信能力受审核状态限制。'
           gh release upload campulse-preview release/Campulse-latest.apk release/Campulse-latest.apk.sha256 release/Campulse-latest.json --clobber
           git config user.name 'github-actions[bot]'

@@ -62,7 +62,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('校园服务需求观察'), findsOneWidget);
-    await tester.tap(find.text('开始记录').first);
+    await tester.tap(find.byTooltip('学习记录').first);
     await tester.pumpAndSettle();
     expect(find.byType(StudySessionPage), findsOneWidget);
 

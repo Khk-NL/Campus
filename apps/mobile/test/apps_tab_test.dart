@@ -102,6 +102,16 @@ class RecordingCampusRepository extends InMemoryCampusRepository {
   }
 }
 
+class EmptyingCatalogueRepository extends RecordingCampusRepository {
+  bool empty = false;
+  @override
+  Future<List<CampusService>> listServices(CampusServicesQuery query) async =>
+      empty ? <CampusService>[] : super.listServices(query);
+  @override
+  Future<List<CampusApp>> fetchCampusApps(CampusAppsQuery query) async =>
+      empty ? <CampusApp>[] : super.fetchCampusApps(query);
+}
+
 void main() {
   /// 视口调高，让页首、芯片、搜索框与子列表里的条目一次全部完成布局。
   ///
@@ -175,6 +185,26 @@ void main() {
   /// Scoping to `Card` is required: the same word also appears in a topic chip (「图书馆」 is
   /// both a service name and a tag), in the search field's own text, and in subtitles.
   Finder row(String name) => find.widgetWithText(Card, name);
+
+  testWidgets('目录刷新移除消失的标签；选择栏不使用勾号', (tester) async {
+    useTallViewport(tester);
+    final repository = EmptyingCatalogueRepository();
+    final state = await buildState(repository);
+    await tester.pumpWidget(wrap(state));
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(ChoiceChip, '羽毛球'), findsOneWidget);
+    final context = tester.element(find.byType(AppsPage));
+    expect(Theme.of(context).chipTheme.showCheckmark, isFalse);
+    final segmented = tester.widget<SegmentedButton<dynamic>>(
+      find.byWidgetPredicate((widget) => widget is SegmentedButton),
+    );
+    expect(segmented.showSelectedIcon, isFalse);
+    repository.empty = true;
+    await tester.widget<RefreshIndicator>(find.byType(RefreshIndicator)).onRefresh();
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(ChoiceChip, '羽毛球'), findsNothing);
+    state.dispose();
+  });
 
   testWidgets('快速入口与校园作品是两层视角，作品仍可在快速入口使用',
       (WidgetTester tester) async {

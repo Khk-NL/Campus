@@ -24,6 +24,7 @@ import 'package:campus_mobile/data/models/transaction.dart';
 import 'package:campus_mobile/data/repositories/campus_repository.dart';
 import 'package:campus_mobile/data/repositories/data_source_mode.dart';
 import 'package:campus_mobile/features/home/home_view_model.dart';
+import 'package:campus_mobile/features/study/course_space_entry.dart';
 import 'package:campus_mobile/features/home/widgets/quick_access_grid.dart';
 import 'package:campus_mobile/features/home/widgets/task_tile.dart';
 import 'package:campus_mobile/features/inbox/widgets/transaction_details_sheet.dart';
@@ -122,6 +123,18 @@ class _HomePageState extends State<HomePage> {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
         children: <Widget>[
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              icon: const Icon(Icons.checklist_outlined),
+              label: const Text('我的计划'),
+              onPressed: () => Navigator.of(context).push<void>(
+                MaterialPageRoute<void>(
+                  builder: (_) => const CourseSpaceEntry(plansOnly: true),
+                ),
+              ),
+            ),
+          ),
           _todaySection(),
           const SizedBox(height: 16),
           _tasksSection(),

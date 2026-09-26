@@ -6,6 +6,7 @@ import 'package:campus_mobile/features/study/course_notes_page.dart';
 import 'package:campus_mobile/features/study/course_notebook_view.dart';
 import 'package:campus_mobile/features/study/eduwork_gateway_probe.dart';
 import 'package:campus_mobile/features/study/study_repository.dart';
+import 'package:campus_mobile/features/study/task_planner.dart';
 import 'package:campus_mobile/features/study/study_session_page.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -20,6 +21,7 @@ class StudyPage extends StatefulWidget {
     this.onSignOut,
     this.localStorageName,
     this.noteRepository,
+    this.plansOnly = false,
   });
   final StudyRepository? repository;
   final Course? course;
@@ -27,6 +29,7 @@ class StudyPage extends StatefulWidget {
   final VoidCallback? onSignOut;
   final String? localStorageName;
   final CourseNoteRepository? noteRepository;
+  final bool plansOnly;
 
   @override
   State<StudyPage> createState() => _StudyPageState();
@@ -194,13 +197,45 @@ class _StudyPageState extends State<StudyPage> {
   }
 
   Future<void> _addPersonalActivity() async {
-    final StudyActivity? activity = await showDialog<StudyActivity>(
-      context: context,
-      builder: (BuildContext context) => _ActivityDialog(course: widget.course),
+    final StudyActivity? activity = await showTaskEditor(
+      context,
+      course: widget.course,
     );
     if (activity == null) return;
-    _workspace!.activities.add(activity);
-    await _save();
+    await _saveActivity(activity);
+  }
+
+  Future<bool> _saveActivity(StudyActivity activity) async {
+    final StudyWorkspace workspace = _workspace!;
+    final int index = workspace.activities.indexWhere(
+      (x) => x.id == activity.id,
+    );
+    final StudyActivity? previous = index < 0
+        ? null
+        : workspace.activities[index];
+    if (index < 0) {
+      workspace.activities.add(activity);
+    } else {
+      workspace.activities[index] = activity;
+    }
+    try {
+      await _repository!.save(workspace);
+      if (mounted) setState(() {});
+      return true;
+    } catch (error) {
+      if (index < 0) {
+        workspace.activities.remove(activity);
+      } else {
+        workspace.activities[index] = previous!;
+      }
+      if (mounted) {
+        setState(() {});
+        ScaffoldMessenger.of(context)
+          ..clearSnackBars()
+          ..showSnackBar(SnackBar(content: Text('计划保存失败：$error')));
+      }
+      return false;
+    }
   }
 
   Future<bool> _captureQuestion(String question, Set<String> sourceIds) async {
@@ -286,7 +321,14 @@ class _StudyPageState extends State<StudyPage> {
   @override
   Widget build(BuildContext context) {
     final StudyWorkspace? workspace = _workspace;
-    final Widget content = widget.course != null && workspace != null
+    final Widget content = widget.plansOnly && workspace != null
+        ? TaskPlanner(
+            activities: _activitiesFor(workspace),
+            onSave: _saveActivity,
+            onOpen: _openSession,
+            course: widget.course,
+          )
+        : widget.course != null && workspace != null
         ? CourseNotebookView(
             course: widget.course!,
             workspace: workspace,
@@ -301,6 +343,7 @@ class _StudyPageState extends State<StudyPage> {
             onAddActivity: _addPersonalActivity,
             onOpenActivity: _openSession,
             onAddAgent: _addAgent,
+            onSaveActivity: _saveActivity,
           )
         : DefaultTabController(
             length: 5,
@@ -348,7 +391,13 @@ class _StudyPageState extends State<StudyPage> {
           );
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.course == null ? '课程空间' : '学习空间'),
+        title: Text(
+          widget.plansOnly
+              ? '我的计划'
+              : widget.course == null
+              ? '课程空间'
+              : '学习空间',
+        ),
         actions: <Widget>[
           if (widget.course != null)
             IconButton(
@@ -433,65 +482,11 @@ class _StudyPageState extends State<StudyPage> {
       .where((StudyAgent agent) => agent.courseId == widget.course?.id)
       .toList();
 
-  Widget _activityTab(StudyWorkspace workspace) => ListView(
-    padding: const EdgeInsets.all(16),
-    children: <Widget>[
-      if (widget.course != null) ...<Widget>[
-        FilledButton.tonalIcon(
-          onPressed: _openNotes,
-          icon: const Icon(Icons.note_alt_outlined),
-          label: const Text('课程笔记'),
-        ),
-        const SizedBox(height: 8),
-      ],
-      Align(
-        alignment: Alignment.centerLeft,
-        child: TextButton.icon(
-          onPressed: _addPersonalActivity,
-          icon: const Icon(Icons.add),
-          label: const Text('新建学习任务'),
-        ),
-      ),
-      for (final StudyActivity activity in _activitiesFor(workspace))
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  '${activity.course} · ${activity.source == 'demo' ? '示例' : '个人记录'}',
-                  style: Theme.of(context).textTheme.labelMedium,
-                ),
-                const SizedBox(height: 5),
-                Text(
-                  activity.title,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: 8),
-                Text(activity.objective),
-                const SizedBox(height: 8),
-                Text('建议完成：${activity.deadline}'),
-                const SizedBox(height: 10),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: FilledButton.icon(
-                    onPressed: () => _openSession(activity),
-                    icon: const Icon(Icons.edit_note),
-                    label: Text(
-                      workspace.sessions.any(
-                            (StudySession s) => s.activityId == activity.id,
-                          )
-                          ? '继续记录'
-                          : '开始记录',
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-    ],
+  Widget _activityTab(StudyWorkspace workspace) => TaskPlanner(
+    activities: _activitiesFor(workspace),
+    onSave: _saveActivity,
+    onOpen: _openSession,
+    course: widget.course,
   );
 
   Widget _sessionTab(StudyWorkspace workspace) => ListView(
@@ -766,77 +761,6 @@ class _TextPromptDialogState extends State<_TextPromptDialog> {
           if (value.isNotEmpty) Navigator.pop(context, value);
         },
         child: const Text('保存'),
-      ),
-    ],
-  );
-}
-
-class _ActivityDialog extends StatefulWidget {
-  const _ActivityDialog({this.course});
-  final Course? course;
-  @override
-  State<_ActivityDialog> createState() => _ActivityDialogState();
-}
-
-class _ActivityDialogState extends State<_ActivityDialog> {
-  final TextEditingController title = TextEditingController();
-  final TextEditingController objective = TextEditingController();
-  final TextEditingController deadline = TextEditingController();
-  @override
-  void dispose() {
-    title.dispose();
-    objective.dispose();
-    deadline.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) => AlertDialog(
-    title: const Text('新建学习任务'),
-    content: SingleChildScrollView(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          TextField(
-            controller: title,
-            decoration: const InputDecoration(labelText: '任务名称 *'),
-          ),
-          TextField(
-            controller: objective,
-            maxLines: 2,
-            decoration: const InputDecoration(labelText: '学习目标'),
-          ),
-          TextField(
-            controller: deadline,
-            decoration: const InputDecoration(labelText: '计划完成时间'),
-          ),
-        ],
-      ),
-    ),
-    actions: <Widget>[
-      TextButton(
-        onPressed: () => Navigator.pop(context),
-        child: const Text('取消'),
-      ),
-      FilledButton(
-        onPressed: () {
-          if (title.text.trim().isEmpty) return;
-          Navigator.pop(
-            context,
-            StudyActivity(
-              id: DateTime.now().microsecondsSinceEpoch.toString(),
-              course: widget.course?.name ?? '个人学习',
-              courseId: widget.course?.id,
-              title: title.text.trim(),
-              objective: objective.text.trim(),
-              deadline: deadline.text.trim().isEmpty
-                  ? '未设定'
-                  : deadline.text.trim(),
-              source: 'personal',
-            ),
-          );
-        },
-        child: const Text('创建'),
       ),
     ],
   );

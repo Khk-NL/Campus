@@ -10,8 +10,51 @@ import 'package:campus_mobile/data/repositories/data_source_mode.dart';
 import 'package:campus_mobile/features/timetable/course_csv_import.dart';
 import 'package:campus_mobile/features/timetable/user_course_repository.dart';
 import 'package:campus_mobile/core/config/university_config.dart';
+import 'package:campus_mobile/features/study/pocketbase_study_repository.dart';
+import 'package:campus_mobile/features/study/study_repository.dart';
 
 void main() {
+ test('production plans: completion sync, restoration and user isolation', () async {
+  final users=jsonDecode(File(Platform.environment['CAMPULSE_TEST_USERS']!).readAsStringSync()) as List;
+  final a=PocketBase('https://campus.scsldr.cn');
+  final a2=PocketBase('https://campus.scsldr.cn');
+  final b=PocketBase('https://campus.scsldr.cn');
+  for(final pair in [(a,users[0]),(a2,users[0]),(b,users[1])]){
+   await pair.$1.collection('users').authWithPassword(pair.$2['email'] as String,pair.$2['password'] as String);
+  }
+  final store=PocketBaseStudyRepository(a);
+  final second=PocketBaseStudyRepository(a2);
+  final original=await a.collection('study_workspaces').getFullList();
+  final workspace=await store.load();
+  final id='plan-acceptance-${DateTime.now().microsecondsSinceEpoch}';
+  String? createdRecordId;
+  workspace.activities.add(StudyActivity(id:id,course:'验收',title:'验收计划',objective:'',deadline:'2026-10-01',source:'personal',priority:2,tags:['验收'],subtasks:[const StudySubtask(title:'子任务',done:true)]));
+  try {
+   await store.save(workspace);
+   if(original.isEmpty){
+    final records=await a.collection('study_workspaces').getFullList();
+    createdRecordId=records.singleWhere((record){
+     final payload=record.data['payload'] as Map;
+     return (payload['activities'] as List).any((task)=>(task as Map)['id']==id);
+    }).id;
+   }
+   expect((await second.load()).activities.singleWhere((x)=>x.id==id).priority,2);
+   final index=workspace.activities.indexWhere((x)=>x.id==id);
+   workspace.activities[index]=workspace.activities[index].copyWith(completed:true);
+   await store.save(workspace);
+   final archived=(await second.load()).activities.singleWhere((x)=>x.id==id);
+   expect(archived.isCompleted,isTrue);
+   expect(archived.subtasks.single.done,isTrue);
+   expect((await PocketBaseStudyRepository(b).load()).activities.where((x)=>x.id==id),isEmpty);
+   workspace.activities[index]=archived.copyWith(completed:false);
+   await store.save(workspace);
+   expect((await second.load()).activities.singleWhere((x)=>x.id==id).isCompleted,isFalse);
+  } finally {
+   workspace.activities.removeWhere((x)=>x.id==id);
+   if(original.isNotEmpty){await store.save(workspace);}
+   else if(createdRecordId!=null){await a.collection('study_workspaces').delete(createdRecordId);}
+  }
+ },timeout:const Timeout(Duration(minutes:2)));
  test('production repositories: real notes sync and catalog parsing', () async {
   final users=jsonDecode(File(Platform.environment['CAMPULSE_TEST_USERS']!).readAsStringSync()) as List;
   final a=PocketBase('https://campus.scsldr.cn');

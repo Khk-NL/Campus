@@ -9,9 +9,10 @@ import 'package:flutter/material.dart';
 
 /// 未配置远程地址时，原有本地课程空间保持不变。
 class CourseSpaceEntry extends StatefulWidget {
-  const CourseSpaceEntry({super.key, required this.course});
+  const CourseSpaceEntry({super.key, this.course, this.plansOnly = false});
 
-  final Course course;
+  final Course? course;
+  final bool plansOnly;
 
   @override
   State<CourseSpaceEntry> createState() => _CourseSpaceEntryState();
@@ -54,6 +55,7 @@ class _CourseSpaceEntryState extends State<CourseSpaceEntry> {
     if (account == null) {
       const String storage = String.fromEnvironment('STUDY_STORAGE');
       return StudyPage(
+        plansOnly: widget.plansOnly,
         course: widget.course,
         repository: storage == 'sqlite' ? SqliteStudyRepository() : null,
         localStorageName: storage == 'sqlite' ? 'SQLite 本机' : null,
@@ -61,6 +63,7 @@ class _CourseSpaceEntryState extends State<CourseSpaceEntry> {
     }
     if (account.signedIn) {
       return StudyPage(
+        plansOnly: widget.plansOnly,
         key: ValueKey<String>(account.client.authStore.record!.id),
         course: widget.course,
         repository: PocketBaseStudyRepository(account.client),

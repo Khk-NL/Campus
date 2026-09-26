@@ -98,13 +98,13 @@ class _AppsPageState extends State<AppsPage> {
   /// 话题（标签）筛选（`null` = 全部）/ the topic filter, null for "all".
   String? _topic;
 
-  /// 话题表：服务端返回过的**规范名**的并集，只在未筛选的列表上建一次。
+  /// 话题表：服务端规范名的并集，每次加载从未筛选的列表更新。
   ///
   /// 每次筛选都重建的话，选中一个话题之后其余话题会消失，用户再也换不回去。
   /// Built once from the **unfiltered** list: rebuilding per filter would drop every other topic
   /// and trap the user inside the one they picked.
   List<String> _topics = const <String>[];
-  bool _topicsLoaded = false;
+  List<CampusEntry> _unfilteredEntries = const <CampusEntry>[];
 
   /// 首次加载已经排过队了吗。/ whether the first load has already been queued.
   bool _loadQueued = false;
@@ -154,34 +154,34 @@ class _AppsPageState extends State<AppsPage> {
     // Both sources filter server-side, each with its own endpoint's semantics: apps have a real
     // `?tag=` filter normalised on the server, services only have `?q=`. The asymmetry is
     // deliberate — reimplementing tag matching here is how tag keys split.
-    final List<CampusService> services = await repository.listServices(
+    final List<CampusService> allServices = await repository.listServices(
       CampusServicesQuery(
         universityId: AppState.defaultUniversityId,
-        text: topic,
         sort: ServiceSortOrder.name,
       ),
     );
-    final List<CampusApp> apps = await repository.fetchCampusApps(
-      CampusAppsQuery(tag: topic),
+    final List<CampusApp> allApps = await repository.fetchCampusApps(
+      const CampusAppsQuery(),
     );
-
-    if (!_topicsLoaded) {
-      final List<CampusService> allServices = topic == null
-          ? services
-          : await repository.listServices(
-              CampusServicesQuery(
-                universityId: AppState.defaultUniversityId,
-                sort: ServiceSortOrder.name,
-              ),
-            );
-      final List<CampusApp> allApps = topic == null
-          ? apps
-          : await repository.fetchCampusApps(const CampusAppsQuery());
-      _topics = _collectTopics(
-        CampusEntries.merge(services: allServices, apps: allApps),
-      );
-      _topicsLoaded = true;
-    }
+    _unfilteredEntries = CampusEntries.merge(
+      services: allServices,
+      apps: allApps,
+    );
+    _topics = _collectTopics(_unfilteredEntries);
+    final String? activeTopic = _topics.contains(topic) ? topic : null;
+    _topic = activeTopic;
+    final List<CampusService> services = activeTopic == null
+        ? allServices
+        : await repository.listServices(
+            CampusServicesQuery(
+              universityId: AppState.defaultUniversityId,
+              text: activeTopic,
+              sort: ServiceSortOrder.name,
+            ),
+          );
+    final List<CampusApp> apps = activeTopic == null
+        ? allApps
+        : await repository.fetchCampusApps(CampusAppsQuery(tag: activeTopic));
 
     return _Catalogue(
       entries: CampusEntries.merge(services: services, apps: apps),
@@ -194,7 +194,7 @@ class _AppsPageState extends State<AppsPage> {
   static List<String> _collectTopics(List<CampusEntry> entries) {
     final Set<String> topics = <String>{};
     for (final CampusEntry entry in entries) {
-      topics.addAll(entry.tags);
+      topics.addAll(entry.tags.where((String x) => x.trim().isNotEmpty));
     }
     return topics.toList()..sort();
   }
@@ -378,6 +378,7 @@ class _AppsPageState extends State<AppsPage> {
 
   Widget _surfaceSwitcher(AppLocalizations l10n) =>
       SegmentedButton<_AppsSurface>(
+        showSelectedIcon: false,
         segments: <ButtonSegment<_AppsSurface>>[
           ButtonSegment<_AppsSurface>(
             value: _AppsSurface.quick,
@@ -391,8 +392,11 @@ class _AppsPageState extends State<AppsPage> {
           ),
         ],
         selected: <_AppsSurface>{_surface},
-        onSelectionChanged: (Set<_AppsSurface> selected) =>
-            setState(() => _surface = selected.first),
+        onSelectionChanged: (Set<_AppsSurface> selected) {
+          _surface = selected.first;
+          _topic = null;
+          _load();
+        },
       );
 
   /// 服务可能带双语名 / a service may carry a bilingual name.
@@ -433,6 +437,12 @@ class _AppsPageState extends State<AppsPage> {
 
   /// 话题筛选（标签）/ the topic (tag) filter.
   Widget _topicFilter(BuildContext context, AppLocalizations l10n) {
+    final List<String> topics = _surface == _AppsSurface.forge
+        ? _collectTopics(
+            _unfilteredEntries.where((x) => x.isStudentProject).toList(),
+          )
+        : _topics;
+    if (topics.isEmpty) return const SizedBox.shrink();
     final ThemeData theme = Theme.of(context);
     return Padding(
       padding: const EdgeInsets.only(top: 10),
@@ -459,7 +469,7 @@ class _AppsPageState extends State<AppsPage> {
                 selected: _topic == null,
                 onSelected: (bool _) => _selectTopic(null),
               ),
-              for (final String topic in _topics)
+              for (final String topic in topics)
                 ChoiceChip(
                   label: Text(topic),
                   selected: _topic == topic,

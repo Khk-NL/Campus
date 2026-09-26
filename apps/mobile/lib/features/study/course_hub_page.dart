@@ -109,15 +109,31 @@ class _CourseHubPageState extends State<CourseHubPage> {
                 children: <Widget>[
                   Text('我的课程', style: Theme.of(context).textTheme.titleLarge),
                   const SizedBox(height: 12),
-                  OutlinedButton.icon(
-                    onPressed: _openTimetable,
-                    icon: const Icon(Icons.calendar_view_week_outlined),
-                    label: const Text('查看课程表'),
-                  ),
-                  OutlinedButton.icon(
-                    onPressed: _importCourses,
-                    icon: const Icon(Icons.upload_file_outlined),
-                    label: const Text('导入课程'),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: <Widget>[
+                      OutlinedButton.icon(
+                        onPressed: _openTimetable,
+                        icon: const Icon(Icons.calendar_view_week_outlined),
+                        label: const Text('查看课程表'),
+                      ),
+                      OutlinedButton.icon(
+                        onPressed: _importCourses,
+                        icon: const Icon(Icons.upload_file_outlined),
+                        label: const Text('导入课程'),
+                      ),
+                      OutlinedButton.icon(
+                        onPressed: () => Navigator.of(context).push<void>(
+                          MaterialPageRoute<void>(
+                            builder: (_) =>
+                                const CourseSpaceEntry(plansOnly: true),
+                          ),
+                        ),
+                        icon: const Icon(Icons.checklist_outlined),
+                        label: const Text('我的计划'),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -184,6 +200,7 @@ class _CourseHubPageState extends State<CourseHubPage> {
   Widget _viewSwitcher() => Padding(
     padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
     child: SegmentedButton<bool>(
+      showSelectedIcon: false,
       segments: const <ButtonSegment<bool>>[
         ButtonSegment<bool>(
           value: false,

@@ -1,6 +1,7 @@
 import 'package:campus_mobile/data/models/course.dart';
 import 'package:campus_mobile/features/study/course_note_repository.dart';
 import 'package:campus_mobile/features/study/study_repository.dart';
+import 'package:campus_mobile/features/study/task_planner.dart';
 import 'package:flutter/material.dart';
 
 /// A mobile-first course workspace: sources, questions, then work products.
@@ -20,6 +21,7 @@ class CourseNotebookView extends StatefulWidget {
     required this.onAddActivity,
     required this.onOpenActivity,
     required this.onAddAgent,
+    required this.onSaveActivity,
   });
 
   final Course course;
@@ -35,6 +37,7 @@ class CourseNotebookView extends StatefulWidget {
   final VoidCallback onAddActivity;
   final ValueChanged<StudyActivity> onOpenActivity;
   final VoidCallback onAddAgent;
+  final Future<bool> Function(StudyActivity) onSaveActivity;
 
   @override
   State<CourseNotebookView> createState() => _CourseNotebookViewState();
@@ -179,6 +182,7 @@ class _CourseNotebookViewState extends State<CourseNotebookView> {
               SizedBox(
                 width: double.infinity,
                 child: SegmentedButton<int>(
+                  showSelectedIcon: false,
                   segments: const <ButtonSegment<int>>[
                     ButtonSegment<int>(
                       value: 0,
@@ -192,6 +196,11 @@ class _CourseNotebookViewState extends State<CourseNotebookView> {
                     ),
                     ButtonSegment<int>(
                       value: 2,
+                      label: Text('计划'),
+                      icon: Icon(Icons.checklist_outlined),
+                    ),
+                    ButtonSegment<int>(
+                      value: 3,
                       label: Text('工作台'),
                       icon: Icon(Icons.dashboard_customize_outlined),
                     ),
@@ -208,6 +217,12 @@ class _CourseNotebookViewState extends State<CourseNotebookView> {
           child: switch (_tab) {
             0 => _sourcePanel(context),
             1 => _questionPanel(context),
+            2 => TaskPlanner(
+              activities: _activities,
+              onSave: widget.onSaveActivity,
+              onOpen: widget.onOpenActivity,
+              course: widget.course,
+            ),
             _ => _studioPanel(context),
           },
         ),
@@ -431,7 +446,7 @@ class _CourseNotebookViewState extends State<CourseNotebookView> {
               leading: const Icon(Icons.add_task_outlined),
               title: const Text('学习任务'),
               subtitle: Text(
-                '已有 ${_activities.where((StudyActivity a) => a.source != 'personal-course').length} 项',
+                '待办 ${_activities.where((StudyActivity a) => !a.isNotebook && !a.isCompleted).length} 项',
               ),
               trailing: const Icon(Icons.add),
               onTap: widget.onAddActivity,
@@ -440,7 +455,7 @@ class _CourseNotebookViewState extends State<CourseNotebookView> {
         ),
       ),
       for (final StudyActivity activity in _activities.where(
-        (StudyActivity item) => item.source != 'personal-course',
+        (StudyActivity item) => !item.isNotebook && !item.isCompleted,
       ))
         ListTile(
           leading: const Icon(Icons.task_alt_outlined),

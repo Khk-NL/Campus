@@ -32,6 +32,12 @@ class LocalStudyRepository implements StudyRepository {
             objective: activity.objective,
             deadline: activity.deadline,
             source: activity.source,
+            courseId: activity.courseId,
+            completedAt: activity.completedAt,
+            priority: activity.priority,
+            tags: activity.tags,
+            subtasks: activity.subtasks,
+            estimateMinutes: activity.estimateMinutes,
           );
         }
       }
@@ -139,9 +145,49 @@ class StudyActivity {
     required this.deadline,
     this.source = 'demo',
     this.courseId,
+    this.completedAt,
+    this.priority = 0,
+    this.tags = const <String>[],
+    this.subtasks = const <StudySubtask>[],
+    this.estimateMinutes = 0,
   });
   final String id, course, title, objective, deadline, source;
   final String? courseId;
+  final String? completedAt;
+  final int priority, estimateMinutes;
+  final List<String> tags;
+  final List<StudySubtask> subtasks;
+  bool get isCompleted => completedAt != null;
+  bool get isNotebook => source == 'personal-course' || id.endsWith(':notes');
+  DateTime? get dueDate => DateTime.tryParse(deadline);
+
+  StudyActivity copyWith({
+    String? title,
+    String? objective,
+    String? deadline,
+    int? priority,
+    int? estimateMinutes,
+    List<String>? tags,
+    List<StudySubtask>? subtasks,
+    bool? completed,
+  }) => StudyActivity(
+    id: id,
+    course: course,
+    courseId: courseId,
+    source: source,
+    title: title ?? this.title,
+    objective: objective ?? this.objective,
+    deadline: deadline ?? this.deadline,
+    priority: priority ?? this.priority,
+    estimateMinutes: estimateMinutes ?? this.estimateMinutes,
+    tags: tags ?? this.tags,
+    subtasks: subtasks ?? this.subtasks,
+    completedAt: completed == null
+        ? completedAt
+        : completed
+        ? DateTime.now().toUtc().toIso8601String()
+        : null,
+  );
   factory StudyActivity.fromJson(Map<String, dynamic> j) => StudyActivity(
     id: j['id'] as String? ?? '',
     course: j['course'] as String? ?? '',
@@ -150,6 +196,15 @@ class StudyActivity {
     deadline: j['deadline'] as String? ?? '',
     source: j['source'] as String? ?? 'demo',
     courseId: j['courseId'] as String?,
+    completedAt: j['completedAt'] as String?,
+    priority: (j['priority'] as num?)?.toInt() ?? 0,
+    estimateMinutes: (j['estimateMinutes'] as num?)?.toInt() ?? 0,
+    tags: (j['tags'] as List<dynamic>? ?? [])
+        .whereType<String>()
+        .where((String x) => x.trim().isNotEmpty)
+        .toSet()
+        .toList(),
+    subtasks: _objects(j['subtasks']).map(StudySubtask.fromJson).toList(),
   );
   Map<String, dynamic> toJson() => <String, dynamic>{
     'id': id,
@@ -159,7 +214,21 @@ class StudyActivity {
     'deadline': deadline,
     'source': source,
     'courseId': courseId,
+    'completedAt': completedAt,
+    'priority': priority,
+    'estimateMinutes': estimateMinutes,
+    'tags': tags,
+    'subtasks': subtasks.map((StudySubtask x) => x.toJson()).toList(),
   };
+}
+
+class StudySubtask {
+  const StudySubtask({required this.title, this.done = false});
+  final String title;
+  final bool done;
+  factory StudySubtask.fromJson(Map<String, dynamic> j) =>
+      StudySubtask(title: j['title'] as String? ?? '', done: j['done'] == true);
+  Map<String, dynamic> toJson() => {'title': title, 'done': done};
 }
 
 class StudySession {
