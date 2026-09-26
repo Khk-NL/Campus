@@ -16,7 +16,7 @@
 ## 1. 在新服务器启动 PocketBase
 
 1. 从 [PocketBase 官方发布页](https://github.com/pocketbase/pocketbase/releases)下载与你服务器 CPU 架构匹配的 **0.40.4 Linux** 可执行文件并校验；放到 `/opt/campus/pocketbase/pocketbase`。新建非 root 系统用户 `campus`，只允许它读写该目录和 `pb_data`。
-2. 将 `experiments/pocketbase/pb_migrations/` 里的 4 个基础迁移及 `deploy/pocketbase/pb_migrations/` 中的生产迁移一起放到服务器的 `/opt/campus/pocketbase/pb_migrations/`。站点元数据迁移已使用 `campus.allezafrique.cn` 和指定 QQ 发件邮箱，部署到其他域名时须先调整。这是**全新生产库**的迁移集合；不要把生产注册策略迁入原有本机试点库。
+2. 将 `experiments/pocketbase/pb_migrations/` 里的 4 个基础迁移及 `deploy/pocketbase/pb_migrations/` 中的生产迁移一起放到服务器的 `/opt/campus/pocketbase/pb_migrations/`。站点元数据已使用 `campus.allezafrique.cn`，SMTP 使用 Brevo；部署到其他域名时须先调整。这是**全新生产库**的迁移集合；不要把生产注册策略迁入原有本机试点库。
 3. 检查 `deploy/campus-pocketbase.service.example` 中的目录、二进制路径和运行用户，保存为服务器上的 systemd 服务。服务只监听 `127.0.0.1:8090`，启动后检查日志和迁移结果。PocketBase 自带 SQLite；`pb_data` 必须在持久磁盘上。
 4. 用 `deploy/Caddyfile.example` 替换为自己的真实域名，启用 Caddy。它负责公网 HTTPS：`https://pb.你的域名` → `127.0.0.1:8090`，`https://ai.你的域名` → `127.0.0.1:8787`。先从手机网络打开 `https://pb.你的域名/api/health`，确认是有效 HTTPS、返回正常，再继续。
 5. 在 `https://pb.你的域名/_/` 创建**新的**生产管理员账号。设置 App URL、发件人、SMTP，并发送测试邮件。开启限流和定时备份；备份保存在不同磁盘或对象存储，验证能恢复。管理员账号绝不用于手机登录。

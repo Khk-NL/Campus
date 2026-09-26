@@ -4,7 +4,7 @@ migrate((app) => {
   settings.meta.appName = "Campus";
   settings.meta.appURL = "https://campus.allezafrique.cn";
   settings.meta.senderName = "Campus";
-  settings.meta.senderAddress = "kongb3124@qq.com";
+  // The verified Brevo sender is supplied privately during production setup.
   app.save(settings);
 }, (app) => {
   // Keep deployment metadata when rolling back collection migrations.
