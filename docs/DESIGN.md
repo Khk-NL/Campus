@@ -1,4 +1,4 @@
-# Campus 设计规范 / Design Specification
+# Campulse 设计规范 / Design Specification
 
 > 色值不是猜的，取自华东师范大学**官方的《标准色使用规范》**。
 > Colour values are not guesses: they come from ECNU's official *Standard Colour

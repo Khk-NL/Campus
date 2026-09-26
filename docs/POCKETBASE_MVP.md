@@ -15,7 +15,7 @@
 3. 在 `apps/mobile` 运行：`flutter run --dart-define=POCKETBASE_URL=http://10.0.2.2:8090`。Android 模拟器的 `10.0.2.2` 指向电脑本机；调试版允许这个本机 HTTP 地址。真机和正式 APK 应使用 HTTPS 地址。
 4. 检查服务与课程列表、在“我的”页面登录、进入课程空间写一条学习记录和一条课程笔记，退出后重进页面确认记录仍在。换另一个试点账号时不应看到前一个账号的内容。
 
-不设置 `POCKETBASE_URL` 时仍走历史 Campus API/本地演示路径，方便对照和回退；这**不是** PocketBase MVP 的目标构建。旧 SharedPreferences、SQLite 试点与 PocketBase 的课程空间数据互不自动迁移。PocketBase 当前登录令牌只保存在进程内，重启应用需重新登录。
+不设置 `POCKETBASE_URL` 时仍走历史 Campulse API/本地演示路径，方便对照和回退；这**不是** PocketBase MVP 的目标构建。旧 SharedPreferences、SQLite 试点与 PocketBase 的课程空间数据互不自动迁移。PocketBase 当前登录令牌只保存在进程内，重启应用需重新登录。
 
 本机初次迁移前恢复点保存在 `.tools/pocketbase-pre-mvp-backup-20260924`；笔记迁移前恢复点保存在 `.tools/pocketbase-pre-notes-backup-20260925`；个人课程迁移前恢复点在 `.tools/pocketbase-pre-course-import-backup-20260925`（均含敏感数据，不提交、不分享）。课程迁移先在副本通过，再应用到原服务；普通试点账号的临时记录创建、读取、删除已验证。
 
@@ -28,6 +28,6 @@
 ## 以后换数据库时保留什么
 
 - 保持页面只依赖 `CampusRepository`、`StudyRepository`、`CourseNoteRepository`、`UserCourseRepository`，新增 PostgreSQL 等实现，不让页面直接认识数据库。
-- 保留业务 ID 与 `universityId`、`kind`、`schemaVersion`、`payload` 的含义。迁出时将 PocketBase 记录 ID 作为外部 ID 或建立映射表；`study_workspaces.owner`、`course_notes.owner` 与 `users.id` 要一起映射。课程笔记正文归 Campus，不以外部 AI 工作区为唯一存储。
+- 保留业务 ID 与 `universityId`、`kind`、`schemaVersion`、`payload` 的含义。迁出时将 PocketBase 记录 ID 作为外部 ID 或建立映射表；`study_workspaces.owner`、`course_notes.owner` 与 `users.id` 要一起映射。课程笔记正文归 Campulse，不以外部 AI 工作区为唯一存储。
 - 先从 `pb_data` 做一致性备份，再导出公开内容、账号必要字段和个人记录；个人数据迁移要经用户授权并保护导出文件，不导出密码哈希到普通 JSON。迁移后用记录数、抽样内容和跨账号访问测试验收。
 - 本 MVP 的公开内容和学习空间仍是 JSON 快照；课程笔记虽已独立成记录，仍未实现离线队列、多端同时编辑冲突处理、版本历史和 AI 索引。学校 SSO、校园 API 实时同步、AI 服务也尚未接入。不要把试点快照误当成最终数据库设计。

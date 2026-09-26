@@ -169,7 +169,7 @@ campus_app_tag_links    (app_id, tag_id, PRIMARY KEY(app_id, tag_id))
 1. **投稿入口**：站内表单，还是复用 GitHub Issue（GSM 那条管道的做法）？
    后者天然带 `source_url` 与讨论区，但要求学生有 GitHub 账号。
 2. **谁能审核**：`moderator`（平台角色）还是按高校指定管理员？目前 §17 定的是前者。
-3. **`install_count` 的语义**：Campus App 是"安装"还是只是"打开过"？
+3. **`install_count` 的语义**：Campulse App 是"安装"还是只是"打开过"？
    若只是打开，这个字段应改名为"最近打开次数"，避免语义虚假。
 
 ## 11. 开发者编辑自己的应用（用户需求，含一条安全约束）

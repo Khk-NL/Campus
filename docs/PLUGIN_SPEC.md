@@ -1,4 +1,4 @@
-# Campus 插件规范 / Plugin Specification
+# Campulse 插件规范 / Plugin Specification
 
 > 契约的真源是 `packages/plugin-runtime`。本文档说明规范本身与需要开发者遵守的约束。
 >
@@ -10,7 +10,7 @@
 **Plugin Runtime 尚未实现**（§13-Phase 4）。现在发布契约是有意的：§14 要求 Store 与 Runtime
 分离，而 Store（Phase 3）需要在没有运行时的情况下展示「这个应用需要哪些权限、会被怎样隔离」。
 
-在此之前，Campus App 只能通过 Store 被**发现**，不能运行 —— 这是 §14 要求的开发顺序
+在此之前，Campulse App 只能通过 Store 被**发现**，不能运行 —— 这是 §14 要求的开发顺序
 （Store → 验证生态需求 → Runtime），而不是反过来。
 
 ## 1. 包结构 / package layout
@@ -87,7 +87,7 @@ service.open
 
 ### 权限与桥接方法的对应
 
-插件对 Campus 的全部能力收敛到 `BRIDGE_METHOD_PERMISSION` 这一张表：
+插件对 Campulse 的全部能力收敛到 `BRIDGE_METHOD_PERMISSION` 这一张表：
 
 | 桥接方法 | 所需权限 |
 | --- | --- |
@@ -128,7 +128,7 @@ service.open
 跨主版本回滚会改变清单里声明的权限语义，而用户当时同意的是旧语义。静默回滚等于绕过授权，
 因此 `canRollbackTo()` 会拒绝跨主版本回滚。
 
-## 5. Campus SDK 接口面 / the SDK surface
+## 5. Campulse SDK 接口面 / the SDK surface
 
 §13-Phase 4 只提供少量稳定接口：
 
@@ -155,4 +155,4 @@ Campus.notification.request()
 - 是否冒充官方服务
 
 标识上必须明确区分 **Official / Student Developed / External / Open Source**（`CampusAppOrigin`）。
-未经学校授权，不得把 Campus 或学生项目包装成学校官方产品。
+未经学校授权，不得把 Campulse 或学生项目包装成学校官方产品。

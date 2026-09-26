@@ -13,9 +13,9 @@
 
 **GSM 对单个仓库的操作可以归成五类：读、改本地元数据、改分类、订 Release、取消 Star —— 全部是"我一个人对一份我自己的清单"的操作；没有任何一项是"我对别人表达什么"。**
 
-它把"社交"完全外包给了 GitHub：star 数、issue、仓库自身的 issue/label 都是**别人的社区**，GSM 只读不写。因此 Campus 要的六项里，**只有"探索/排序"和"标签"能在 GSM 找到可抄的实现（而且标签那条是反面教材）**，投稿—审核只能抄它的**消费端**（它读别人的投稿队列），点赞、反馈必须自研。
+它把"社交"完全外包给了 GitHub：star 数、issue、仓库自身的 issue/label 都是**别人的社区**，GSM 只读不写。因此 Campulse 要的六项里，**只有"探索/排序"和"标签"能在 GSM 找到可抄的实现（而且标签那条是反面教材）**，投稿—审核只能抄它的**消费端**（它读别人的投稿队列），点赞、反馈必须自研。
 
-一个值得记住的不对称：**GSM 有一个真实的"投稿 → 收录"数据管道，但它是只读的**（`weeklyIssuesService.ts`，消费 `ruanyf/weekly` 的 issues + `weekly` label）。这恰好是 Campus 最该研究的形态：它把"审核结论"表达成了一个**可筛选的标签 + 徽章 + 可追溯到原贴**，而不是一个布尔标志位。
+一个值得记住的不对称：**GSM 有一个真实的"投稿 → 收录"数据管道，但它是只读的**（`weeklyIssuesService.ts`，消费 `ruanyf/weekly` 的 issues + `weekly` label）。这恰好是 Campulse 最该研究的形态：它把"审核结论"表达成了一个**可筛选的标签 + 徽章 + 可追溯到原贴**，而不是一个布尔标志位。
 
 ---
 
@@ -137,17 +137,17 @@
 **值得迁移什么**：
 
 - **"审核结论必须是可筛选的维度 + 卡片上的徽章 + 可回溯的原贴"**，这三件套 GSM 都做对了，而且它只是消费别人的结论。
-  Campus 自己拥有结论时更应该这么做。
+  Campulse 自己拥有结论时更应该这么做。
 - **"同一主体多次投稿只保留最新一条"** 的续投语义（`:173-181` 用时间戳比较，不产生重复记录）。
 - **失败/不可用条目要留着重试而不是删掉**（`:62` 的 7 天重试），与 ECOSYSTEM_NOTES §6 的墓碑结论一致。
 
 **校园场景要改什么**：
 
-- GSM 的模式**不能发起**：它不能投稿、不能催审、不能申诉。Campus 必须自己拥有 `CampusAppSubmission` 这张表与
+- GSM 的模式**不能发起**：它不能投稿、不能催审、不能申诉。Campulse 必须自己拥有 `CampusAppSubmission` 这张表与
   状态机（`draft → pending-review → approved/rejected/suspended`），并留下 `reviewerId` / `reviewedAt` / 结论依据。
 - **一个 GSM 缺了就永远补不回来的字段：提交者。** `githubApi.ts:1205-1224` 的 issue read model **不含 `user.login`**，
   `weeklyIssuesService` 也从不记录作者 —— 于是这条投稿管道的**历史投稿无法追溯提交者**。
-  Campus 的 `submitterId` 不是"以后再说"的可选项。
+  Campulse 的 `submitterId` 不是"以后再说"的可选项。
 - **不要把"待审"做成列表上的一个布尔**。GSM 的 label 之所以好用，是因为它同时是筛选维度、徽章和原贴锚点。
 
 ---
@@ -194,12 +194,12 @@
 **校园场景要改什么**：
 
 - **GSM 的排序键全是"客观计数"，这对校园入口型产品是错的排序依据。** star 数、`pushed_at` 都不能回答
-  "哪个入口学生最常用"。ECOSYSTEM_NOTES 已指出 Campus 的 `sort=recent` 是假的 —— GSM 也一样没有，
+  "哪个入口学生最常用"。ECOSYSTEM_NOTES 已指出 Campulse 的 `sort=recent` 是假的 —— GSM 也一样没有，
   所以这件事**两边都得自研**，抄不到。
 - **UI 与引擎的排序选项必须由同一个联合类型驱动。** GSM 在这里翻过车：`repoSearch.getSortValue()` 认 5 个键，
   但 UI 的 `SortByDropdown` 把值 cast 成 4 个，**静默丢掉了 `created`**（`src/components/SearchBar.tsx`）。
-  Campus 的 `ServiceSortOrder` 已经是一处定义、两处实现（后端只实现两种），**同样的种子已经埋下了**。
-- **不要抄 9 个频道的并列结构**。Campus 的条目量级和产品定位都不支持它。
+  Campulse 的 `ServiceSortOrder` 已经是一处定义、两处实现（后端只实现两种），**同样的种子已经埋下了**。
+- **不要抄 9 个频道的并列结构**。Campulse 的条目量级和产品定位都不支持它。
 
 ---
 
@@ -238,7 +238,7 @@
 
 ---
 
-### 3.4 反馈 / 备注（**对 Campus 最有参考价值的一条**）
+### 3.4 反馈 / 备注（**对 Campulse 最有参考价值的一条**）
 
 **GSM 有没有**：**没有"反馈"，也没有"备注"。**全仓没有 `notes` / `annotation` / `feedback` 字段。
 （命中的 `comments` 全是 **GitHub issue 的评论**，而且只在 AI 问答链路里被**只读**引用：
@@ -263,16 +263,16 @@
   `DataSource = 'custom' | 'ai' | 'original' | 'mixed' | 'none'` 就是"这段字谁写的"的完整答案。
 - **"显式清空"与"从未设置"要分开建模**，并且**清空要能阻止 AI 覆盖回来**
   （`resolveCategoryAssignment()` 永久保留 `custom_category === ''`，`categoryUtils.ts:273-276`）。
-  Campus 的"这条不是官方工作台"正需要这个语义。
+  Campulse 的"这条不是官方工作台"正需要这个语义。
 - **迁移纪律**：`'__EMPTY__'` → `''` 这条 migration（`options.ts:216-230`）说明
-  **哨兵值这种临时手段一定会变成需要迁移的历史包袱**。Campus 如果要引入"反馈状态"，从一开始就用显式枚举。
+  **哨兵值这种临时手段一定会变成需要迁移的历史包袱**。Campulse 如果要引入"反馈状态"，从一开始就用显式枚举。
 
 **校园场景要改什么**：
 
 - **GSM 的教训直接推翻了"反馈只是评论区换个名字"的风险**：GSM 里**连一个自由文本字段都没有被社交化**，
   它把 `custom_description` 严格限制在"我的副本"语义里，这正是它不需要治理成本的原因。
-  Campus 一旦把自由文本开放给所有学生，就必须同时具备**举报 / 折叠 / 删除**（§27.9 已经把这条写成发布前提，判断正确）。
-- **最有参考价值的不是"反馈"，而是"逐字段来源"。** Campus 应该把这个粒度**提到卡片上**：
+  Campulse 一旦把自由文本开放给所有学生，就必须同时具备**举报 / 折叠 / 删除**（§27.9 已经把这条写成发布前提，判断正确）。
+- **最有参考价值的不是"反馈"，而是"逐字段来源"。** Campulse 应该把这个粒度**提到卡片上**：
   「来源：运营录入」「核实：3 天前」「可达性：未知」。GSM 把它埋在编辑弹窗里（`RepositoryEditModal.tsx:32`），
   而在卡片上退化成一个布尔 `isCustomized`（`RepositoryCard.tsx:1145`）—— **这是它自己承认过的浪费**。
 - **"反馈" 与 "备注" 分开**：备注是用户私有的（可离线、可不同步），反馈是公开的（必须服务端、必须可治理）。
@@ -330,19 +330,19 @@ getCategoryKeywords()→ categoryUtils.ts:137-139 // 同样只有 trim + filter
 **值得迁移什么**：
 
 - **`planListCategories` 的"归一化键 + 原样显示名"分离**（`useSearchActions.ts:85-92`）：这是全仓唯一正确的归一化设计，
-  而且注释把"为什么不能存外部大小写"写清楚了。Campus 的 `normalizeTag()` 应该照这个形状做（归一化键用于匹配，原词用于展示）。
+  而且注释把"为什么不能存外部大小写"写清楚了。Campulse 的 `normalizeTag()` 应该照这个形状做（归一化键用于匹配，原词用于展示）。
 - **"LLM 只产标签，归属交给纯函数"**（`resolveCategoryAssignment`）：可直接抄，校园运营辅助打标应照此办理。
 - **改名/合并时的连带改写**（`categorySlice.ts:39-43`）：标签合并（羽球 → 羽毛球）需要同一套机制。
 
 **校园场景要改什么**：
 
 - **归一化必须比 GSM 狠一个数量级**，而 GSM 的具体缺陷正好给出了验收清单：
-  1. **大小写**：GSM 在标签路径上就栽在这（`RepositoryEditModal.tsx:425` 的 `includes`）；Campus 中文侧没这个问题，
+  1. **大小写**：GSM 在标签路径上就栽在这（`RepositoryEditModal.tsx:425` 的 `includes`）；Campulse 中文侧没这个问题，
      但英文标签（`badminton` / `Badminton`）会有。
   2. **全半角 + 繁简 + 内部空格**：GSM 完全没有（只有 `trim`，`categoryUtils.ts:34-36`）。
-  3. **同义词 / 别名表**：GSM 完全没有；Campus 的「羽毛球/羽球」必须靠它。
-  4. **一个判定函数、一处字段清单**：GSM 有三套口径（见上表），Campus 必须收敛成 `normalizeTag()` + 一个匹配函数。
-- **不要把"板块归属"和"主题标签"合成一个字段**（GSM 的根因）。Campus 已有正确的分离（`ServiceGrouping.groupOf()` vs `CampusService.tags`），保持。
+  3. **同义词 / 别名表**：GSM 完全没有；Campulse 的「羽毛球/羽球」必须靠它。
+  4. **一个判定函数、一处字段清单**：GSM 有三套口径（见上表），Campulse 必须收敛成 `normalizeTag()` + 一个匹配函数。
+- **不要把"板块归属"和"主题标签"合成一个字段**（GSM 的根因）。Campulse 已有正确的分离（`ServiceGrouping.groupOf()` vs `CampusService.tags`），保持。
 - **受控词表 + 允许提交新标签待审**：这条 §27.9 的建议**被 GSM 的失败反向证实**。补一条 GSM 教的操作细节：
   **词表变更（改名/合并/废弃）必须像 `updateCustomCategory` 那样连带改写已有条目**，否则历史条目会指向已不存在的标签。
 
@@ -373,16 +373,16 @@ getCategoryKeywords()→ categoryUtils.ts:137-139 // 同样只有 trim + filter
 **值得迁移什么**：
 
 - **外链要分层，并注明这条链接是什么**：GSM 的条目上并列 GitHub / ZRead / Releases 三种性质完全不同的外链，
-  但**没有告诉用户区别**（图标 + title 而已）。Campus 的"入口链接 / 源码仓库 / 原投稿"三层必须**显式命名**。
+  但**没有告诉用户区别**（图标 + title 而已）。Campulse 的"入口链接 / 源码仓库 / 原投稿"三层必须**显式命名**。
 - **"回到来源"是可信度的一部分**：`SubscriptionRepoCard` 能给"查看原贴"，因为它的数据管道保留了 `sourceIssueNumber`
-  （`weeklyIssuesService.ts:169-181`）。**Campus 的每条运营/学生录入条目都应该有同等的东西**（`sourceUrl`），
+  （`weeklyIssuesService.ts:169-181`）。**Campulse 的每条运营/学生录入条目都应该有同等的东西**（`sourceUrl`），
   这正是 ECOSYSTEM_NOTES §11.1 列的缺口。
-- **崩溃/异常提供上报入口**这个模式本身值得抄到 Campus 的运营后台（`ErrorBoundary.tsx:55`）。
+- **崩溃/异常提供上报入口**这个模式本身值得抄到 Campulse 的运营后台（`ErrorBoundary.tsx:55`）。
 
 **校园场景要改什么**：
 
 - **缺少 "去提 Issue" 的回路是 GSM 最大的结构性空洞**，而校园恰好**可以低成本补上**：
-  Campus 的条目大多是开源/学生项目，`repositoryUrl` 存在时可以直接提供
+  Campulse 的条目大多是开源/学生项目，`repositoryUrl` 存在时可以直接提供
   「报告问题 → 到该项目的 issues 新建」的深链，并把当前条目的信息作为上下文带上。
   §27.9 说"这个链接的可信度已被审核过"是对的，但**可信度必须在 UI 上可见**（审过、谁审的、什么时候），
   否则用户仍然分不清官方入口和学生自荐的 GitHub Pages。
@@ -394,9 +394,9 @@ getCategoryKeywords()→ categoryUtils.ts:137-139 // 同样只有 trim + filter
 
 ## 4. 它没有的东西（明确清单）
 
-| # | 没有的东西 | 核查方式 | Campus 该从哪里借鉴 / 自己设计 |
+| # | 没有的东西 | 核查方式 | Campulse 该从哪里借鉴 / 自己设计 |
 |---|---|---|---|
-| N1 | **收藏 / 置顶 / bookmark** | 无 `favoriteIds`、卡片无按钮（ECOSYSTEM_NOTES §4 已核） | **自研**。Campus 已有 `FavoritesController`；注意 GSM 的反面教训："集合 = 保存下来的查询"不适用收藏 |
+| N1 | **收藏 / 置顶 / bookmark** | 无 `favoriteIds`、卡片无按钮（ECOSYSTEM_NOTES §4 已核） | **自研**。Campulse 已有 `FavoritesController`；注意 GSM 的反面教训："集合 = 保存下来的查询"不适用收藏 |
 | N2 | **评论 / 反馈 / notes / annotation** | 全仓无字段；`comments` 全指 GitHub issue 评论 | **自研**（结构化 + 自由文本 + 举报/折叠/删除）。可借鉴 GSM 的**逐字段来源**表达 |
 | N3 | **点赞 / 评分 / 投票** | `upvote|voting|rating|liked` 零命中 | **自研**，但优先用"使用次数"；初期不参与排序 |
 | N4 | **投稿 / 待审 / 审核通过（自身）** | 无任何 submission 实体 | **自研状态机**；**抄 GSM 消费端的呈现三件套**（筛选维度 + 卡片徽章 + 原贴锚点） |
@@ -408,7 +408,7 @@ getCategoryKeywords()→ categoryUtils.ts:137-139 // 同样只有 trim + filter
 | N10 | **条目迁移 / 改名历史（replacedBy）** | `renamed` 只在类型里声明，实现缺失（ECOSYSTEM_NOTES §5 已核） | **自研**（学校改版的最典型表现） |
 | N11 | **条目级"复制链接 / 分享"** | `clipboardUtils` 调用点不含 RepositoryCard | **自研**（校园"把入口发给同学"是高频动作） |
 | N12 | **条目的"忽略 / 隐藏"** | 只有 Release/Fork 的已读、custom release 来源的 `release_hidden`（`ReleaseSourceSettingsModal.tsx:254-259`） | 慎重：校园不要给"隐藏一条官方入口"的能力，会给治理制造黑洞 |
-| N13 | **跨设备的状态** | 本地 IndexedDB 单 blob（`options.ts:25` 起，version 16） | **自研，走服务端**（Campus 的 Prisma 已是唯一真源） |
+| N13 | **跨设备的状态** | 本地 IndexedDB 单 blob（`options.ts:25` 起，version 16） | **自研，走服务端**（Campulse 的 Prisma 已是唯一真源） |
 | N14 | **条目的 Homepage 外链** | `Repository` 无该字段 | **不要加** |
 | N15 | **深链 / 路由** | 无 react-router，详情是模态 | **不要抄**（校园四 Tab + 返回链，见 ECOSYSTEM_NOTES §7） |
 
@@ -419,9 +419,9 @@ getCategoryKeywords()→ categoryUtils.ts:137-139 // 同样只有 trim + filter
 
 ## 5. 可迁移的具体清单
 
-### 5.1 能直接借鉴（GSM 的实现位置 + Campus 的落点）
+### 5.1 能直接借鉴（GSM 的实现位置 + Campulse 的落点）
 
-| # | 可借鉴的东西 | GSM 位置 | Campus 落点 |
+| # | 可借鉴的东西 | GSM 位置 | Campulse 落点 |
 |---|---|---|---|
 | 1 | **事实 + 事实来源 + 第三态"未知"** | `repositoryHealth.ts:271`（`FACT_SOURCE`）、`:163-168`（三态透传）、`:114`（纯函数入口） | `CampusService.reachability / verifiedBy`；每条事实回答"谁说的、什么时候" |
 | 2 | **可解释排序说明（确定性映射表）** | `SortAlgorithmTooltip.tsx:22-85` | 探索页每个排序口径旁挂一个"凭什么这样排"的气泡；写成可单测的映射 |
@@ -429,7 +429,7 @@ getCategoryKeywords()→ categoryUtils.ts:137-139 // 同样只有 trim + filter
 | 4 | **改名/删除时连带改写引用 + 打戳 `last_edited`** | `categorySlice.ts:39-43`、`:238-242` | 标签改名/合并必须回写所有条目，并记录变更时间 |
 | 5 | **"显式清空"是独立状态，且能阻止自动重填** | `categoryUtils.ts:273-276`；`CategorySidebar.tsx:299-323` | "这条不是官方工作台"用显式枚举表达 |
 | 6 | **排序键集中一个函数 + 稳定 tiebreak + 时间戳歧义写注释** | `repoSearch.ts:94-108` | `ServiceSortOrder` 的单一实现，UI 与引擎共用一个联合类型 |
-| 7 | **facet 间 AND / 内 OR** | `repoSearch.ts:121-158` | Campus 筛选（group / origin / status / type）照此规则 |
+| 7 | **facet 间 AND / 内 OR** | `repoSearch.ts:121-158` | Campulse 筛选（group / origin / status / type）照此规则 |
 | 8 | **"命中多少 / 被筛掉多少"显式说出** | `SearchResultStats.tsx`（`filterRate`） | 目录条目量小但更需要：让用户知道是搜索不行还是筛选过窄 |
 | 9 | **列表分批渲染而非虚拟列表** | `RepositoryList.tsx:177-178`（`LOAD_BATCH = 50`） | 校园几十条，够用 |
 | 10 | **migration 的"数据修正型"兜底** | `options.ts:216-230`（`'__EMPTY__'` → `''`）、`:393-401`（v15→v16） | 迁移写成"逐条数据修正 + 幂等可重放"，不要只补默认值 |
@@ -465,7 +465,7 @@ getCategoryKeywords()→ categoryUtils.ts:137-139 // 同样只有 trim + filter
 
 ---
 
-## 6. 对 Campus `docs/DEVELOPMENT.md §27.9` 的修正建议
+## 6. 对 Campulse `docs/DEVELOPMENT.md §27.9` 的修正建议
 
 > 前提：ECOSYSTEM_NOTES 的 GSM 结论**全部核实为真** —— 没有 favorite/pin、没有评论、没有"最近使用"排序、
 > `autoSync.ts` 不是星标增量引擎。下面只列 GSM 实践**推翻或需要收紧**的判断。

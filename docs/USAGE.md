@@ -1,4 +1,4 @@
-# Campus 使用与配置 / Usage and configuration
+# Campulse 使用与配置 / Usage and configuration
 
 > 本文件描述**当前实际可用**的功能与配置方式。所有命令都在本机验证过，输出取自真实运行。
 > This document describes what actually works today. Every command was verified on this machine

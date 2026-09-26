@@ -3,10 +3,10 @@
 > **学习、服务、创新**
 > One entry point for campus services; a real chance for campus ideas to become apps.
 
-Campus 是一个面向高校学生的独立校园数字工作台, 把散落在网站、微信小程序、独立 App 与官方工作台
+Campulse 是一个面向高校学生的独立校园数字工作台, 把散落在网站、微信小程序、独立 App 与官方工作台
 中的校园服务重新组织，并在其上提供**结构化校园事务**与**学生开发者生态**。
 
-Campus is an independent digital workbench for university students. It does not
+Campulse is an independent digital workbench for university students. It does not
 rebuild the systems a school already has, nor replace WeChat or the school's own
 platforms. It re-organises campus services scattered across websites, WeChat mini
 programs, native apps and official workbenches, then layers **structured campus
@@ -16,10 +16,10 @@ transactions** and a **student developer ecosystem** on top.
 
 1. **校园服务统一入口** — 统一搜索、收藏、最近使用、服务发现
 2. **校园事务中心** — 把"聊天消息"变成 Announcement / Event / Task
-3. **学生开发者生态** — Campus Store，后期 Campus SDK 与 Plugin Runtime
+3. **学生开发者生态** — Campulse Store，后期 Campulse SDK 与 Plugin Runtime
 
-> 产品原则：**微信负责交流，Campus 负责事务。**
-> WeChat handles conversation; Campus handles transactions.
+> 产品原则：**微信负责交流，Campulse 负责事务。**
+> WeChat handles conversation; Campulse handles transactions.
 
 首个落地高校为**华东师范大学（ECNU）**，但架构从一开始就与高校无关：
 **ECNU-first，Architecture-general**。
@@ -37,11 +37,11 @@ campus/
 │   ├── admin/             管理后台，React + Vite / the admin console
 │   └── api/               NestJS + Prisma 后端 / the backend
 ├── packages/
-│   ├── launcher/          Campus Launcher 契约（§7）
-│   ├── models/            Campus 领域模型（§6）
+│   ├── launcher/          Campulse Launcher 契约（§7）
+│   ├── models/            Campulse 领域模型（§6）
 │   ├── university-adapter/高校适配层契约（§3.2）
 │   ├── core/              校园事务与聚合逻辑（§8 / §11）
-│   ├── campus-sdk/        Campus SDK 契约（Phase 4）
+│   ├── campus-sdk/        Campulse SDK 契约（Phase 4）
 │   └── plugin-runtime/    插件清单与权限契约（Phase 4）
 ├── adapters/
 │   └── ecnu/              华东师范大学适配器（唯一允许出现 ECNU 专有逻辑的地方）
@@ -193,6 +193,6 @@ cd apps\api; node dist\src\main.js     # 启动后端
 
 ## 非目标 / non-goals
 
-Campus **不做**：聊天软件、私信、校园朋友圈、短视频、内容推荐流、支付系统，以及重新开发
-教务 / 校园卡 / 论坛 / 二手市场 / 拼车 / 竞赛组队。这些长尾功能应当由 Campus Store 中的
+Campulse **不做**：聊天软件、私信、校园朋友圈、短视频、内容推荐流、支付系统，以及重新开发
+教务 / 校园卡 / 论坛 / 二手市场 / 拼车 / 竞赛组队。这些长尾功能应当由 Campulse Store 中的
 应用承担。

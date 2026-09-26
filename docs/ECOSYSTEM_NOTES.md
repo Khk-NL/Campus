@@ -5,8 +5,8 @@
 >
 > 本文是**判断**，不是转述。凡是"照搬会出错"的地方都写明了原因。
 >
-> 快照说明：写作时 Campus 仓库正在并行开发（`apps/mobile` 的收藏、分组正在落地），
-> 文中对 Campus 现状的描述以写作时刻的代码为准；模型与后端部分的判断不受客户端改动影响。
+> 快照说明：写作时 Campulse 仓库正在并行开发（`apps/mobile` 的收藏、分组正在落地），
+> 文中对 Campulse 现状的描述以写作时刻的代码为准；模型与后端部分的判断不受客户端改动影响。
 
 ---
 
@@ -15,11 +15,11 @@
 1. **把"外部来源的一切"压成一种扁平条目，再用纯函数裁决它的归属、搜索与排序。**
    GSM 的 `Repository`（`src/types/index.ts`）只有一个形状，`matchesCategory()`（`src/utils/categoryUtils.ts`）、
    `performBasicTextSearch()` / `applyRepoFilters()` / `sortRepositories()`（`src/utils/repoSearch.ts`）是纯函数，
-   组件里不做业务判断。Campus 已有的对应物是 `ServiceGrouping.groupOf()`（`apps/mobile/lib/features/apps/service_grouping.dart`）
+   组件里不做业务判断。Campulse 已有的对应物是 `ServiceGrouping.groupOf()`（`apps/mobile/lib/features/apps/service_grouping.dart`）
    与 `packages/core/src/search/search.ts` —— **继续沿这条线走，别让判断回流到 widget**。
 
 2. **同步的纪律：稳定来源 id 作幂等键 + 内容哈希避免空写 + 来源里消失的条目绝不静默删除。**
-   GSM：`(universityId, sourceId)` 式的 upsert（Campus 已有，`apps/api/src/services/services.service.ts:89`）、
+   GSM：`(universityId, sourceId)` 式的 upsert（Campulse 已有，`apps/api/src/services/services.service.ts:89`）、
    `repositoryPayloadHash()`（`src/services/autoSync.ts:97`）、
    以及 §9 里那条明确的原则——"静默移除比留一条陈旧记录更危险"。
    校园场景比 star 管理**更**依赖这条纪律：入口失效时用户可能已经收藏了它。
@@ -27,7 +27,7 @@
 3. **把"事实"和"事实的来源"一起建模，而不是给一个不透明的分数。**
    GSM 的每条健康事实都带 `source: 'repository' | 'enrichment' | 'releases'`（`src/utils/repositoryHealth.ts` 的 `FACT_SOURCE`），
    并且"未知"是**第三种状态**（`isArchivedRepository()` 缺字段返回 `undefined`）。
-   Campus 已经有 `ServiceOrigin` / `ServiceSourceSystem` / `lastVerifiedAt` 三件套，
+   Campulse 已经有 `ServiceOrigin` / `ServiceSourceSystem` / `lastVerifiedAt` 三件套，
    把它们推进为"**每条事实都能回答谁说的、什么时候说的**"，就是校园目录可信度的骨架。
 
 **反过来说**：GSM 最不该被继承的是它的**产品形状**（并列 7 个工具视图、超大 AI 表面、本地存储当数据库）。
@@ -63,7 +63,7 @@
 
 ### 值得继承什么
 
-- **幂等 upsert 的去重键写进 schema 唯一约束**。Campus 已经做对了（Prisma `universityId_sourceId`）。
+- **幂等 upsert 的去重键写进 schema 唯一约束**。Campulse 已经做对了（Prisma `universityId_sourceId`）。
 - **本地富化字段与远端字段分成两份清单，合并时只覆盖远端那一半**。
   GSM 用 bug 换来的配套纪律值得直接抄：`CLIENT_ONLY_REPOSITORY_FIELDS` 与 `stripLocalRepositoryFields()`
   （`src/utils/repositoryMerge.ts:36/55`）必须与合并逻辑使用**同一个投影**，
@@ -83,7 +83,7 @@
   （`server/src/routes/repositories.ts`）。对 star 列表成立；对**用户已经收藏过的校园入口是灾难**——
   用户收藏会变成哑弹，且没有任何 UI 说明发生了什么。
   校园需要 `status: active | degraded | retired` 三态，并且失效条目**留在列表里当墓碑**。
-- **`lastVerifiedAt` 必须在"同步成功"这个事件上被打戳——这是当前 Campus 最先要补的 bug。**
+- **`lastVerifiedAt` 必须在"同步成功"这个事件上被打戳——这是当前 Campulse 最先要补的 bug。**
   `ServicesService.syncFromAdapter()`（`apps/api/src/services/services.service.ts:89`）构造的
   `data` 里**没有 `lastVerifiedAt`**，`update` 分支也不写它。
   也就是说：**适配器成功同步（最强的可信信号）根本没有被记录**，`lastVerifiedAt` 只能靠人工填。
@@ -94,7 +94,7 @@
   而 `description` 的陈旧程度无关紧要 —— 别用一个 TTL 管两件事。
 - GSM 明确**不存在** `METADATA_TTL` / `HEALTH_*` 之类常量；真实 TTL 只出现在旁路发现频道
   （`weeklyIssuesService.ts` 的 `REPO_DETAIL_TTL_MS = 30 天`、`UNAVAILABLE_RETRY_MS = 7 天`）。
-  Campus 若引入 TTL，请**集中成带注释的常量**，不要散落在各 repository 实现里。
+  Campulse 若引入 TTL，请**集中成带注释的常量**，不要散落在各 repository 实现里。
 
 ---
 
@@ -151,11 +151,11 @@
   （"羽毛球/羽球"、"图书馆/图书馆预约"、"校园卡/一卡通"）。
   建议在 `packages/models` 增加 `normalizeTag()`（NFC 归一 + 全角转半角 + 去内部空格 + 别名表映射），
   后端 `tags` 列只存归一化值，原始词另存或丢弃。
-  **这是 Campus 必须超过 GSM 的地方**，因为校园长尾词比英文技术标签更口语化、更不规范。
+  **这是 Campulse 必须超过 GSM 的地方**，因为校园长尾词比英文技术标签更口语化、更不规范。
 - **现有 9 个 `ServiceCategory`（`packages/models/src/service.ts:21`）不适合做检索面。**
   它是"功能分类"（academic / library / venue…），适合决定图标与默认分组，
   但不能覆盖学生用口语搜索的维度。检索面应该由 `tags` 承担，分类只做图标与粗分组。
-- 别抄"内置分类可覆盖显示名"这套多语言机制 —— Campus 只有 zh/en 两种语言，
+- 别抄"内置分类可覆盖显示名"这套多语言机制 —— Campulse 只有 zh/en 两种语言，
   直接改字符串即可，不需要 `builtinCategoryNameVariants` 这一层。
 
 ---
@@ -201,7 +201,7 @@
 （`repoSearch.getSortValue()` 认 `stars|updated|name|starred|created`），
 但 UI 的 `SortByDropdown`（`src/components/SearchBar.tsx`）把值 cast 成
 `'stars'|'updated'|'name'|'starred'`，**静默丢掉了 `created`** ——
-用户能选到的东西和引擎能算的东西不一致。Campus 若加排序选项，
+用户能选到的东西和引擎能算的东西不一致。Campulse 若加排序选项，
 必须让"可选值"由同一个联合类型同时驱动 UI 与引擎（`ServiceSortOrder` 目前是一处定义、两处实现，
 已经埋了同样的种子：后端只实现 `name` / `recent` 两种，见 §3 末与 §11）。
 
@@ -260,7 +260,7 @@
 ### 值得继承什么
 
 - **"集合 = 保存下来的查询"**：成员不落库，永远与规则一致，于是不会出现"条目改了但清单没跟上"。
-  Campus 的三个板块正是这种派生集合，`ServiceGrouping.groupOf()` 就是它的规则函数。
+  Campulse 的三个板块正是这种派生集合，`ServiceGrouping.groupOf()` 就是它的规则函数。
 - **回写（push）时成员集现算**，而不是维护一张成员表 + 一堆增删事件。
 - **id 映射单独持久化**（`categoryListIdMap`）以保持跨语言/跨显示名稳定 ——
   校园藏品（收藏）用的是 `sourceId`，同一个思路。
@@ -282,7 +282,7 @@
   - 做"组内置顶"（已有 `favoritesFirst()`，用分区拼接而非 `sort`，避免打乱组内顺序 —— 这个实现细节是对的，保留）。
   - 可选做一个**跨板块的"我常用的入口"**聚合视图，但排序必须由**使用频率**驱动，而不是由收藏时间驱动。
 - **收藏键的选择已经做对了**：`favoriteKeyOf()` 取 `sourceId ?? id` 而不是主键 `id`
-  （注释解释了离线/在线主键会变）。**这是 Campus 相对 GSM 的一个正确判断，不要在后续重构里退化成用 `id`。**
+  （注释解释了离线/在线主键会变）。**这是 Campulse 相对 GSM 的一个正确判断，不要在后续重构里退化成用 `id`。**
 
 ---
 
@@ -308,7 +308,7 @@
 
 ### 值得继承什么
 
-- **身份用来源系统的稳定 id，而不是名字。** Campus 已经做对：
+- **身份用来源系统的稳定 id，而不是名字。** Campulse 已经做对：
   `CampusService.sourceId` + Prisma 唯一约束 `(universityId, sourceId)`，
   以及收藏键 `favoriteKeyOf()` 用 `sourceId`。
 - **"同一投影"纪律**：合并用的字段清单、指纹用的字段清单、后端存的字段清单，
@@ -322,12 +322,12 @@
   学校 adapter 说入口在 A 网址、运营说在 B、学生投稿说是个小程序。
   所以需要的不是 id 合并，而是**权威来源优先级 + 冲突可见**：
   - 建议优先级：`university-adapter` > `official-directory` > `manual` > `developer-submission`
-    （四个值 Campus 已有，见 `ServiceSourceSystem`，`packages/models/src/service.ts:59`）。
+    （四个值 Campulse 已有，见 `ServiceSourceSystem`，`packages/models/src/service.ts:59`）。
   - 高优先级胜出，**但低优先级的另一种说法要在详情页里显示出来**，而不是静默丢弃。
     这正是 §27.4 的要求："它和适配器同步的数据是两种来源，模型上要能区分"。
   - 冲突本身是一条值得展示的事实（"运营记录：群号 X；学校系统：无"），
     而不是需要被消除的脏数据。
-- **Campus 现在缺"入口迁移"的表达。** `CampusService` / `CampusApp` 都没有
+- **Campulse 现在缺"入口迁移"的表达。** `CampusService` / `CampusApp` 都没有
   `replacedBy` / `supersedes` 之类的字段。学校改版最典型的表现就是"名字没变、URL 变了"。
   建议加 `replacedByServiceId?: CampusServiceId`（或 `supersededBy`），
   这样老收藏可以跟着迁移并给用户一句解释，而不是让用户重新找一遍。
@@ -493,7 +493,7 @@
 - 入口型：列表 → **点开就离开 App（WebView / 微信 / 系统浏览器）** → **回来**。
   **详情不是终点，"回来"才是主要路径。**
 
-这对信息架构有三个直接推论，其中只有第一条 Campus 已经做到：
+这对信息架构有三个直接推论，其中只有第一条 Campulse 已经做到：
 
 1. **一次点击直达，不经过详情页。** ✅ 已做到：`apps_page.dart` 的 `_ServiceTile`
    `onTap: onOpen` / `onLongPress: onDetails`（注释明确写了"点一下直接打开，详情在长按与更多"）。
@@ -590,7 +590,7 @@
 
 - **边界检查脚本**（`scripts/check-boundaries.cjs` + `docs/adr/0001-frontend-layering.md`）：
   把分层约束变成 CI 可执行的规则，而不是文档里的君子协定。
-  Campus 已经有 `scripts/smoke/*.cjs` 与 pnpm workspace 边界，可以再加一条
+  Campulse 已经有 `scripts/smoke/*.cjs` 与 pnpm workspace 边界，可以再加一条
   "widget 不得直接 import repository 的具体实现，只能依赖抽象"之类的规则。
   **两条改进**：① 它用的是 denylist（`BANNED_COMPONENT_SERVICES` 手写 12 项），
   新增一个 service 不会被拦住 —— 校园版应写成 **allowlist**（只允许依赖抽象接口）；
@@ -599,14 +599,14 @@
 - **"事实归 Core、评分归插件"的边界纪律**（`docs/plans/2026-09-17-product-roadmap.md` §2.1）：
   核心只提供可验证的事实，判断与评分留给上层。这与 §6 的结论一致，值得保留。
 - **`routeMode`（可选后端 / 直连）这条路子**对校园有直接价值：
-  开发期直连演示数据、上线后走 API。Campus 的 `DataSourceMode` +
+  开发期直连演示数据、上线后走 API。Campulse 的 `DataSourceMode` +
   `offline_first_campus_repository.dart` + `remote/in_memory` 双实现已经是同一思路 —— **方向是对的，保持。**
-- **契约先发布、实现后做**（GSM `docs/plugins/v1-development.md`；Campus `PLUGIN_SPEC.md` §0 也是这个做法）。
+- **契约先发布、实现后做**（GSM `docs/plugins/v1-development.md`；Campulse `PLUGIN_SPEC.md` §0 也是这个做法）。
   这让 Store 能在没有 Runtime 的情况下展示"这个应用要什么权限、会被怎样隔离"。
 
 ### 校园场景要改什么
 
-- **Campus 的数据源抽象已经明显好于 GSM，要守住它。**
+- **Campulse 的数据源抽象已经明显好于 GSM，要守住它。**
   `packages/university-adapter` 提供六个 Provider 接口 + `UniversityAdapter` + 注册表，
   `ARCHITECTURE.md` §3 写明"接入第二所高校就是加一行 `createECNUAdapter()`"。
   **校园真正的"新数据源" = 一所新学校**，而不是一个新站点类型。
@@ -616,11 +616,11 @@
 - **校园还有一种 GSM 完全没有的数据源：运营手工维护与学生投稿（§27.4 / §18）。**
   它们应该走**和 adapter 同一张表**（`CampusService.sourceSystem` 已预留
   `manual` / `developer-submission` / `official-directory`），**而不是另一张表**。
-  这样搜索、分组、收藏、失效反馈全都不用改 —— 这是 Campus 相对 GSM 的架构优势，别浪费。
+  这样搜索、分组、收藏、失效反馈全都不用改 —— 这是 Campulse 相对 GSM 的架构优势，别浪费。
   唯一需要新增的是**审核状态与提交者**（见 §10 差距）。
 - **不要为了"将来支持非 GitHub 源"提前泛化。** GSM 的教训是反面：
   它的 `Repository` 类型既不想泛化、又塞满了 GitHub 特有字段，
-  于是"扩展"变成"到处加可选字段"。Campus 现在的做法（每个来源一类条目 +
+  于是"扩展"变成"到处加可选字段"。Campulse 现在的做法（每个来源一类条目 +
   统一的 `LaunchTarget` 穷举 + `SearchDocument` 归一）是对的：
   **在"打开方式"和"搜索"这两个维度上归一，在"实体"维度上保持各自清晰。**
 
@@ -646,7 +646,7 @@
 3. **`lastVerifiedAt` 式的新鲜度没有被任何同步事件驱动。**
    GSM 的对应问题是：health 事实**不入后端**（`server/src/db/schema.ts` 无 `archived` 等列），
    于是"跨设备一看，事实全变未知"。
-   Campus 的对应问题是：`syncFromAdapter()` 不写 `lastVerifiedAt`。
+   Campulse 的对应问题是：`syncFromAdapter()` 不写 `lastVerifiedAt`。
    → 教训是同一个：**只要"事实"和"事实产生的事件"没有一起落库，它迟早会丢。**
 
 4. **同一概念多套判定口径。**
@@ -674,7 +674,7 @@
    `src/services/aiService.ts` ≈ 113KB、`repositoryChatService.ts` ≈ 113KB、
    `githubApi.ts` ≈ 87KB、`repositoryChatService.test.ts` ≈ 52KB。
    可读性、测试粒度、迁移成本都被拖垮。
-   → Campus 的 `packages/models/src/` 按领域分文件（`service.ts` / `campus-app.ts` / `academic.ts`…）
+   → Campulse 的 `packages/models/src/` 按领域分文件（`service.ts` / `campus-app.ts` / `academic.ts`…）
    是正确的，**继续保持"一个文件一个关注点"，不要长出一个 5000 行的 service。**
 
 7. **AI 表面过大且强耦合。**
@@ -694,7 +694,7 @@
    `github-stars-discovery-analysis`）；**持久化 schema 已经迁移到 `version: 16`**，
    `migrate()` 手工补 `categoryOrder` / `defaultCollapsedSidebarCategoryCount` / `defaultCategoryOverrides`。
    对单机工具成立，对校园（跨设备、多角色、投稿审核）不成立。
-   → Campus 的 `apps/api/prisma/schema.prisma` 是唯一真源（`ARCHITECTURE.md` §6），**继续**。
+   → Campulse 的 `apps/api/prisma/schema.prisma` 是唯一真源（`ARCHITECTURE.md` §6），**继续**。
    注意：**收藏目前是本地 key 集合**（`PreferenceStore` 只有语言/主题/收藏三类键，很克制）——
    一旦要跨设备，就应该**搬去后端**，而不是继续在本地加迁移版本。
 
@@ -702,7 +702,7 @@
    `src/locales/{de,en,es,fr,ja,ko,pt-BR,ru,zh,zh-TW}/…`，
    还有 `scripts/codemods/i18n-migrate.mjs` 与 `parity.test.ts` 维护它。
    这是它规模与用户群的产物。
-   → Campus 只需要 zh-CN + en（`app_zh.arb` / `app_en.arb` 已有），**别提前铺开**。
+   → Campulse 只需要 zh-CN + en（`app_zh.arb` / `app_en.arb` 已有），**别提前铺开**。
    但值得抄一条：**语言之间要有 parity 测试**（GSM 有 `src/i18n/parity.test.ts`），
    防止加了中文忘了英文。
 
@@ -727,7 +727,7 @@
     但插件**至今不能注册数据源**，Host API 本身也是 `github.*` 命名。
     也就是说：**先有了插件 API，后要改数据源抽象时，得把 Host API 再改一遍** —— 重构顺序被锁死。
     文档自己也承认太早：§5.2「Worker 不是安全沙箱」、§15.8「初期维护者人数有限时，不应立刻承诺公共商城」。
-    → Campus 的顺序要反过来（也正是 §14 已经定的）：
+    → Campulse 的顺序要反过来（也正是 §14 已经定的）：
     **先把条目模型与来源抽象钉死（Store 阶段），再谈 SDK / Runtime。**
     `PLUGIN_SPEC.md` 已经用"契约先发布、实现后做"处理了这个问题，**继续，但别提前实现加载器**。
 
@@ -772,7 +772,7 @@
     这类决策**没有留下任何依据**，下一个人只能靠读代码反推。
     → 校园的教训是**过程性要求**：把 §27.2 这类信息架构决策（三板块为什么互斥、
     为什么点一下直达、为什么不做收藏页）连同"被否决的方案与原因"写进文档，
-    并且每加一个页面就更新一次走查基线。Campus 的文档风格（大量"为什么这样做/为什么不那样做"）
+    并且每加一个页面就更新一次走查基线。Campulse 的文档风格（大量"为什么这样做/为什么不那样做"）
     已经比 GSM 好，**保持并把它变成习惯**。
 
 ---
@@ -924,7 +924,7 @@ CampusAppSubmission
 
 ---
 
-## 11. 与 Campus 现有实现的差距
+## 11. 与 Campulse 现有实现的差距
 
 ### 11.1 `CampusService`（`packages/models/src/service.ts` / `apps/mobile/lib/data/models/campus_service.dart`）
 

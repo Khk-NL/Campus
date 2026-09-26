@@ -1,6 +1,6 @@
-# Campus 远程后端：上线前操作手册
+# Campulse 远程后端：上线前操作手册
 
-当前目标服务器使用 Linux + 1Panel，且已有其他网站。2026-09-26 通过远程终端确认：实际由现有 Caddy 管理 80/443，并非 OpenResty。应复用 Caddy，仅新增 Campus 站点，不能覆盖原配置或另启反向代理抢占端口。具体部署见 [阿里云共享服务器部署](ALIYUN_DEPLOYMENT.md)；下面各节仍保留通用双域名示例。
+当前目标服务器使用 Linux + 1Panel，且已有其他网站。2026-09-26 通过远程终端确认：实际由现有 Caddy 管理 80/443，并非 OpenResty。应复用 Caddy，仅新增 Campulse 站点，不能覆盖原配置或另启反向代理抢占端口。具体部署见 [阿里云共享服务器部署](ALIYUN_DEPLOYMENT.md)；下面各节仍保留通用双域名示例。
 
 本版支持 PocketBase 多用户邮箱注册、密码重置，以及经过用户身份和资料所有权校验的 ChatECNU 课程问答。**EduWork Studio 的远程成果生成尚未实现**；`GET /v1/status` 中 `ready=false`、`aiReady=true` 正确表示“模型问答可用，EduWork 未接通”。学校 SSO、教务 API、文件检索、Quiz/闪卡/思维导图也不因填写地址而自动启用。
 
@@ -21,7 +21,7 @@
 4. 用 `deploy/Caddyfile.example` 替换为自己的真实域名，启用 Caddy。它负责公网 HTTPS：`https://pb.你的域名` → `127.0.0.1:8090`，`https://ai.你的域名` → `127.0.0.1:8787`。先从手机网络打开 `https://pb.你的域名/api/health`，确认是有效 HTTPS、返回正常，再继续。
 5. 在 `https://pb.你的域名/_/` 创建**新的**生产管理员账号。设置 App URL、发件人、SMTP，并发送测试邮件。开启限流和定时备份；备份保存在不同磁盘或对象存储，验证能恢复。管理员账号绝不用于手机登录。
 
-生产迁移将 `users` 的匿名创建规则设为开放、登录规则设为 `verified = true`，用户只可查看/更新自己；个人课程、笔记和学习记录沿用基础迁移的 `owner` 规则。邮箱注册只是 Campus 自有身份，不代表已通过华师大统一认证。如果需要“仅校内人员注册”，需另做学校授权的 SSO 或批准机制，不能仅凭用户自填邮箱认定其身份。
+生产迁移将 `users` 的匿名创建规则设为开放、登录规则设为 `verified = true`，用户只可查看/更新自己；个人课程、笔记和学习记录沿用基础迁移的 `owner` 规则。邮箱注册只是 Campulse 自有身份，不代表已通过华师大统一认证。如果需要“仅校内人员注册”，需另做学校授权的 SSO 或批准机制，不能仅凭用户自填邮箱认定其身份。
 
 ## 2. 配置并启动 AI 网关
 
@@ -43,6 +43,6 @@
 
 ## 4. 下一阶段：真正适配 EduWork
 
-EduWork 目前公开的是本机 Host/Studio RPC 与桌面装配，不是 Campus 可直接部署的多租户 HTTP 服务。[EduWork 构建说明](https://github.com/ECNU/EduWork/blob/main/docs/BUILD.md)中的本机私有 Web URL 不能公开给手机用户。要实现 Quiz、闪卡、思维导图等，需另建受限 Host worker、每用户工作区映射、异步任务队列、成果持久化、授权撤销与资源清理；确认运行环境和许可后再把 `ready` 与 `eduworkRevision` 改成真实值。不要把 ChatECNU 问答和 EduWork 成果生成混称为同一件事。
+EduWork 目前公开的是本机 Host/Studio RPC 与桌面装配，不是 Campulse 可直接部署的多租户 HTTP 服务。[EduWork 构建说明](https://github.com/ECNU/EduWork/blob/main/docs/BUILD.md)中的本机私有 Web URL 不能公开给手机用户。要实现 Quiz、闪卡、思维导图等，需另建受限 Host worker、每用户工作区映射、异步任务队列、成果持久化、授权撤销与资源清理；确认运行环境和许可后再把 `ready` 与 `eduworkRevision` 改成真实值。不要把 ChatECNU 问答和 EduWork 成果生成混称为同一件事。
 
 官方参考：[PocketBase 正式部署](https://pocketbase.io/docs/going-to-production/)、[访问规则](https://pocketbase.io/docs/api-rules-and-filters/)、[华师大模型首次调用](https://developer.ecnu.edu.cn/vitepress/llm/index.html)、[ChatECNU 配额](https://developer.ecnu.edu.cn/vitepress/llm/limit.html)。

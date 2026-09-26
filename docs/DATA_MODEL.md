@@ -1,4 +1,4 @@
-# Campus 数据模型 / Data Model
+# Campulse 数据模型 / Data Model
 
 > 真源是 `apps/api/prisma/schema.prisma`。本文档解释**为什么这样设计**，以及 TypeScript
 > 领域模型与数据库列之间的对应关系。

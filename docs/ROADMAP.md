@@ -1,4 +1,4 @@
-# Campus 路线图 / Roadmap
+# Campulse 路线图 / Roadmap
 
 > 本文件只保留**版本级与 Issue 级**计划，不重复 [`DEVELOPMENT.md`](./DEVELOPMENT.md) 里的
 > 架构说明。
@@ -13,8 +13,8 @@
 | Phase 1 | ECNU 校园服务入口 MVP | ⬜ 未开始 |
 | Phase 2 | 课程与个人事务 | ⬜ 未开始 |
 | Phase 2.5 | 班级 / 课程共享事务 | ⬜ 未开始 |
-| Phase 3 | Campus Store v1 | ⬜ 未开始 |
-| Phase 4 | Campus Plugin Runtime | ⬜ 未开始 |
+| Phase 3 | Campulse Store v1 | ⬜ 未开始 |
+| Phase 4 | Campulse Plugin Runtime | ⬜ 未开始 |
 | Phase 5 | 开发者生态 | ⬜ 未开始 |
 | Phase 6 | 学校官方深度接入 | ⬜ 未开始 |
 
@@ -41,12 +41,12 @@
 - [ ] 核实 ECNU 的 `term_weeks` / `periods_per_day`（当前 18 / 13 未经确认）
 - [ ] 核实服务目录里 7 条入口的真实 URL 与小程序 ID（现为 `mock:` 占位值）
 
-## Campus v0.1 —— 服务入口（§20）
+## Campulse v0.1 —— 服务入口（§20）
 
-目标：验证「Campus 是否能成为比收藏网页 / 搜微信更方便的校园入口」。
+目标：验证「Campulse 是否能成为比收藏网页 / 搜微信更方便的校园入口」。
 
 - [ ] ECNU 服务目录（分类、搜索、收藏、最近使用）
-- [ ] Campus Launcher 的 Flutter 端实现（`in-app-webview` / `external-browser` /
+- [ ] Campulse Launcher 的 Flutter 端实现（`in-app-webview` / `external-browser` /
       `wechat-mini-program` / `native-deep-link`）
 - [ ] WebView 与外部浏览器回退链路
 - [ ] 深链与微信小程序跳转
@@ -56,22 +56,22 @@
 
 **明确不做**：Plugin Runtime、推荐算法、社交、自动抓取全部学校服务。
 
-## Campus v0.2 —— 共享事务（§20）
+## Campulse v0.2 —— 共享事务（§20）
 
 - [ ] Group（班级 / 课程 / 社团）与成员角色
 - [ ] Publisher 发布事务
 - [ ] 结构化反馈（§10 的三个联合类型落地）
-- [ ] 微信分享卡片：Campus 创建事务 → 分享到群 → 微信触达 → Campus 管理
+- [ ] 微信分享卡片：Campulse 创建事务 → 分享到群 → 微信触达 → Campulse 管理
 
-## Campus v0.3 —— 开发者生态入口（§20）
+## Campulse v0.3 —— 开发者生态入口（§20）
 
-- [ ] Campus Store 投稿与人工审核（§18 检查清单驱动后台流程）
+- [ ] Campulse Store 投稿与人工审核（§18 检查清单驱动后台流程）
 - [ ] Developer Center：创建应用、上传版本、更新日志
 - [ ] Feedback 与 GitHub 集成（Repository / Stars / Issues / Contributors）
 
-## Campus v0.4 —— Plugin Runtime（§20）
+## Campulse v0.4 —— Plugin Runtime（§20）
 
-- [ ] Runtime 加载器（受限 Web App + Campus Bridge）
+- [ ] Runtime 加载器（受限 Web App + Campulse Bridge）
 - [ ] Manifest 落地、权限授权与撤销
 - [ ] Sandbox 生效（已写好契约，见 `PLUGIN_SPEC.md`）
 - [ ] 版本回滚
@@ -84,4 +84,4 @@
 | 「最近使用」仅按 `lastVerifiedAt` 排序 | 不是真正的使用记录 | Phase 1 引入使用记录 |
 | mock 服务目录的 URL 全部未核实 | 上线即错误入口 | 接入前逐条确认 |
 | 只有冒烟脚本，没有单元测试框架 | 回归保护不足 | Phase 0 收尾 |
-| JDK 25 与 AGP 的兼容性未验证 | Flutter Android 构建可能失败 | 真出错时再为 Campus 单独装 JDK 17 |
+| JDK 25 与 AGP 的兼容性未验证 | Flutter Android 构建可能失败 | 真出错时再为 Campulse 单独装 JDK 17 |

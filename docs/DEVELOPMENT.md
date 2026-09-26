@@ -1,4 +1,4 @@
-# Campus 开发文档
+# Campulse 开发文档
 
 > 版本：v0.1  
 > 状态：规划阶段  
@@ -36,16 +36,16 @@ CampusService
 
 ## 1. 项目概述
 
-Campus 是一个面向高校学生的独立校园数字工作台。
+Campulse 是一个面向高校学生的独立校园数字工作台。
 
 它不试图重新开发学校已经存在的全部系统，也不试图替代微信、学习通、企业微信或学校官方平台，而是将散落在不同网站、微信小程序、独立 App、官方工作台中的校园服务重新组织，并在其上提供结构化校园事务与学生开发者生态。
 
-Campus 的长期目标不是“做一个拥有一百个功能的校园 App”，而是：
+Campulse 的长期目标不是“做一个拥有一百个功能的校园 App”，而是：
 
 > **做一个能让一百个校园应用生长出来的平台。**
 
 
-Campus 的三个核心方向：
+Campulse 的三个核心方向：
 
 1. **校园服务统一入口**
    - 聚合学校网站、微信小程序、独立 App、官方工作台等现有服务。
@@ -56,12 +56,12 @@ Campus 的三个核心方向：
    - 将课程、班级、学院、社团等产生的信息从“聊天消息”转化为结构化事务。
    - 区分 Announcement、Event、Task 等对象。
    - 与日历、待办、导航、附件、确认状态联动。
-   - 原则：**微信负责交流，Campus 负责事务。**
+   - 原则：**微信负责交流，Campulse 负责事务。**
 
 3. **学生开发者生态**
-   - 允许学生开发的校园工具进入 Campus Store。
+   - 允许学生开发的校园工具进入 Campulse Store。
    - 支持应用发现、安装/打开、反馈、版本、开源仓库与共同维护。
-   - 后期提供 Campus SDK 与 Plugin Runtime。
+   - 后期提供 Campulse SDK 与 Plugin Runtime。
 
 ---
 
@@ -69,7 +69,7 @@ Campus 的三个核心方向：
 
 ### 2.1 为什么不做“另一个微信”
 
-Campus 不提供完整 IM。
+Campulse 不提供完整 IM。
 
 原则上不实现：
 
@@ -80,7 +80,7 @@ Campus 不提供完整 IM。
 - 朋友圈式信息流
 - 以“未读消息数量”为核心的产品体验
 
-Campus 关注的是：
+Campulse 关注的是：
 
 > **今天学校里有什么事情需要我知道、确认或完成？**
 
@@ -103,9 +103,9 @@ Campus 关注的是：
 
 ### 2.2 与“随师办”的关系
 
-对于 ECNU，Campus 不与“随师办”进行简单替代竞争。
+对于 ECNU，Campulse 不与“随师办”进行简单替代竞争。
 
-“随师办”可以被视为 ECNU 官方服务的重要聚合入口之一；Campus 则强调：
+“随师办”可以被视为 ECNU 官方服务的重要聚合入口之一；Campulse 则强调：
 
 - 独立 App，与微信环境解耦
 - 校园事务结构化
@@ -114,32 +114,32 @@ Campus 关注的是：
 - 统一搜索与跨来源聚合
 - 后续插件平台
 
-Campus 对“随师办”采用三阶段策略：
+Campulse 对“随师办”采用三阶段策略：
 
 #### 阶段 A：兼容
 
 将随师办作为官方服务入口之一。
 
 ```text
-Campus
+Campulse
 └── ECNU 官方服务
     └── 随师办
 ```
 
 #### 阶段 B：解耦
 
-对于可通过网页、Deep Link、OpenSDK、官方 API 等方式直接接入的高频服务，逐步减少“Campus → 微信 → 随师办 → 服务”的跳转层级。
+对于可通过网页、Deep Link、OpenSDK、官方 API 等方式直接接入的高频服务，逐步减少“Campulse → 微信 → 随师办 → 服务”的跳转层级。
 
 #### 阶段 C：增强
 
-在官方服务之上增加 Campus 自己的数据组织能力。
+在官方服务之上增加 Campulse 自己的数据组织能力。
 
 例如：
 
 ```text
 官方课表
 ↓
-Campus Course
+Campulse Course
 ↓
 课程事务 / 作业 / 调课 / 考试
 ↓
@@ -150,7 +150,7 @@ Task + Event + Calendar
 
 ## 3. 高校适配策略
 
-Campus 的业务模型从第一天起保持高校无关，但第一阶段只面向 ECNU 做真实落地。
+Campulse 的业务模型从第一天起保持高校无关，但第一阶段只面向 ECNU 做真实落地。
 
 ### 3.1 原则
 
@@ -161,9 +161,9 @@ Campus 的业务模型从第一天起保持高校无关，但第一阶段只面�
 推荐发展顺序：
 
 ```text
-Campus Core
+Campulse Core
     ↓
-Campus · ECNU
+Campulse · ECNU
     ↓
 真实用户验证
     ↓
@@ -208,29 +208,29 @@ class ECNUStudentProfileProvider {}
 
 ```text
 ┌──────────────────────────────────────────────┐
-│                Campus Client                 │
+│                Campulse Client                 │
 │                                              │
 │  顶栏 / top bar:  通知   搜索                 │
 │                                              │
 │  底栏 / bottom:  首页  应用  课程表  我的      │
 └──────────────────────┬───────────────────────┘
                        │
-                Campus Application
+                Campulse Application
                        │
        ┌───────────────┼────────────────┐
        │               │                │
-   Launcher       Transaction       Campus Store
+   Launcher       Transaction       Campulse Store
        │             Engine               │
        │               │                 │
        └───────────────┼─────────────────┘
                        │
-                  Campus Core
+                  Campulse Core
                        │
        ┌───────────────┼────────────────┐
        │               │                │
  University Adapter   API        Plugin Runtime
        │                                │
-     ECNU                         Campus SDK
+     ECNU                         Campulse SDK
        │
  ┌─────┼────────────────────────────────────┐
  │     │             │            │         │
@@ -422,11 +422,11 @@ CampusApp
 
 ---
 
-## 7. Campus Launcher
+## 7. Campulse Launcher
 
-Launcher 是 Campus 最重要的基础模块之一。
+Launcher 是 Campulse 最重要的基础模块之一。
 
-Campus 不要求所有资源都运行在自己内部，而是统一负责：
+Campulse 不要求所有资源都运行在自己内部，而是统一负责：
 
 > **发现 + 判断类型 + 使用最合适方式打开**
 
@@ -435,7 +435,7 @@ Campus 不要求所有资源都运行在自己内部，而是统一负责：
 优先使用内置 WebView。
 
 ```text
-Campus
+Campulse
 → WebView
 → School Website
 ```
@@ -447,37 +447,37 @@ Campus
 通过微信支持的能力拉起指定小程序。
 
 ```text
-Campus
+Campulse
 → WeChat
 → Mini Program
 ```
 
-Campus 不尝试通过普通 WebView 直接运行现有微信小程序。
+Campulse 不尝试通过普通 WebView 直接运行现有微信小程序。
 
 ### Native App
 
 通过 Deep Link / URL Scheme / Universal Link 打开。
 
 ```text
-Campus
+Campulse
 → Existing Native App
 ```
 
 若未安装：
 
 ```text
-Campus
+Campulse
 → Fallback URL / App Store
 ```
 
-### Campus App
+### Campulse App
 
-后续由 Campus Plugin Runtime 运行。
+后续由 Campulse Plugin Runtime 运行。
 
 ```text
-Campus
+Campulse
 → Plugin Runtime
-→ Campus App
+→ Campulse App
 ```
 
 ### 统一描述示例
@@ -514,7 +514,7 @@ Campus
 }
 ```
 
-#### Campus App
+#### Campulse App
 
 ```json
 {
@@ -593,7 +593,7 @@ Campus
 - 去重
 - 冲突检测
 
-Campus 中进一步将其升级为多人共享模型。
+Campulse 中进一步将其升级为多人共享模型。
 
 例如：
 
@@ -669,12 +669,12 @@ Task
 
 ## 11. 统一搜索
 
-统一搜索是 Campus 区别于“收藏夹”的关键能力。
+统一搜索是 Campulse 区别于“收藏夹”的关键能力。
 
 搜索对象包括：
 
 - 校园服务
-- Campus App
+- Campulse App
 - Course
 - Announcement
 - Event
@@ -730,7 +730,7 @@ Tasks
 • 实验报告 · 明天截止
 • 奖学金材料 · 3 天后截止
 
-Campus
+Campulse
 
 • 图书馆开放时间调整
 
@@ -774,7 +774,7 @@ Quick Access
 底部导航**有且仅有四个**：
 
 - **首页** —— 今日与待办（今日待办放在首页）、校园动态、快捷入口
-- **应用** —— Campus Store 与服务入口的发现
+- **应用** —— Campulse Store 与服务入口的发现
 - **课程表** —— 按周次 × 节次的课表，并承载课程相关的待办与通知
 - **我的** —— 登录与设置
 
@@ -795,7 +795,7 @@ Quick Access
 - 导航完整
 - 核心模型固定
 - 客户端与后端解耦
-- ECNU 特有逻辑不进入 Campus Core
+- ECNU 特有逻辑不进入 Campulse Core
 
 ---
 
@@ -805,7 +805,7 @@ Quick Access
 
 验证：
 
-> Campus 是否能成为比收藏网页 / 搜微信更方便的校园入口？
+> Campulse 是否能成为比收藏网页 / 搜微信更方便的校园入口？
 
 ### 功能
 
@@ -814,7 +814,7 @@ Quick Access
 - 搜索
 - 收藏
 - 最近使用
-- Campus Launcher
+- Campulse Launcher
 - WebView
 - 外部浏览器 fallback
 - Deep Link
@@ -842,7 +842,7 @@ Quick Access
 
 ### 验收标准
 
-一名 ECNU 学生能在 Campus 中：
+一名 ECNU 学生能在 Campulse 中：
 
 1. 搜索某个服务
 2. 收藏服务
@@ -934,7 +934,7 @@ Quick Access
 支持：
 
 ```text
-Campus 创建事务
+Campulse 创建事务
 ↓
 生成分享卡片 / 链接
 ↓
@@ -942,16 +942,16 @@ Campus 创建事务
 ↓
 微信完成触达
 ↓
-Campus 完成事务管理
+Campulse 完成事务管理
 ```
 
 ### 验收标准
 
-班委可以在 Campus 发布事务，并分享至微信；同学可以在 Campus 完成确认和任务管理。
+班委可以在 Campulse 发布事务，并分享至微信；同学可以在 Campulse 完成确认和任务管理。
 
 ---
 
-## Phase 3：Campus Store v1
+## Phase 3：Campulse Store v1
 
 ### 目标
 
@@ -1013,11 +1013,11 @@ All Universities
 
 ---
 
-## Phase 4：Campus Plugin Runtime
+## Phase 4：Campulse Plugin Runtime
 
 ### 目标
 
-让学生新应用真正运行在 Campus 内。
+让学生新应用真正运行在 Campulse 内。
 
 ### 技术方向
 
@@ -1030,7 +1030,7 @@ All Universities
 
 不允许插件加载任意原生二进制代码。
 
-### Campus App 结构
+### Campulse App 结构
 
 ```text
 competition-team/
@@ -1056,7 +1056,7 @@ competition-team/
 }
 ```
 
-### Campus SDK v1
+### Campulse SDK v1
 
 只提供少量稳定接口。
 
@@ -1076,11 +1076,11 @@ Campus.notification.request()
 
 第三方开发者可以：
 
-1. 创建 Campus App
+1. 创建 Campulse App
 2. 使用 Manifest
 3. 安装并运行
 4. 请求有限权限
-5. 调用 Campus SDK
+5. 调用 Campulse SDK
 6. 无法访问未授权数据
 
 ---
@@ -1119,7 +1119,7 @@ Campus.notification.request()
 ↓
 学生开发
 ↓
-Campus Store
+Campulse Store
 ↓
 学生使用
 ↓
@@ -1138,7 +1138,7 @@ GitHub Issue
 
 ### 前提
 
-只有当 Campus 已经证明有真实用户价值后才进入这一阶段。
+只有当 Campulse 已经证明有真实用户价值后才进入这一阶段。
 
 ### 可能接入
 
@@ -1166,13 +1166,13 @@ GitHub Issue
 
 ---
 
-## 14. Campus Store 与 Plugin Runtime 必须分离
+## 14. Campulse Store 与 Plugin Runtime 必须分离
 
 非常重要：
 
 > **Store 不等于 Plugin Runtime。**
 
-Campus Store 可以很早实现。
+Campulse Store 可以很早实现。
 
 它首先解决：
 
@@ -1183,7 +1183,7 @@ Campus Store 可以很早实现。
 
 Plugin Runtime 则解决：
 
-- 应用在 Campus 内直接运行
+- 应用在 Campulse 内直接运行
 - 权限
 - SDK
 - 沙箱
@@ -1204,7 +1204,7 @@ Runtime
 
 ## 15. 权限系统
 
-Campus 后期成为应用平台后，权限模型必须作为核心基础设施。
+Campulse 后期成为应用平台后，权限模型必须作为核心基础设施。
 
 ### 示例权限
 
@@ -1258,7 +1258,7 @@ service.open
 
 优先：
 
-> **受限 Web App + Campus Bridge**
+> **受限 Web App + Campulse Bridge**
 
 ---
 
@@ -1289,7 +1289,7 @@ Group
 
 ## 18. 应用审核与治理
 
-开放 Campus Store 后需要最低限度治理。
+开放 Campulse Store 后需要最低限度治理。
 
 ### 应用审核
 
@@ -1311,7 +1311,7 @@ Group
 - External
 - Open Source
 
-未经学校授权，不将 Campus 或学生项目包装成学校官方产品。
+未经学校授权，不将 Campulse 或学生项目包装成学校官方产品。
 
 ---
 
@@ -1342,7 +1342,7 @@ Group
 
 真正的第一版不应该包含全部愿景。
 
-### Campus v0.1
+### Campulse v0.1
 
 只做：
 
@@ -1369,7 +1369,7 @@ Group
 
 仅做只读 Demo 或少量真实学生项目展示。
 
-### Campus v0.2
+### Campulse v0.2
 
 增加：
 
@@ -1377,9 +1377,9 @@ Group
 - Publisher
 - 结构化反馈
 - 微信分享
-- Campus Store 投稿
+- Campulse Store 投稿
 
-### Campus v0.3
+### Campulse v0.3
 
 增加：
 
@@ -1388,7 +1388,7 @@ Group
 - GitHub
 - Store 版本管理
 
-### Campus v0.4
+### Campulse v0.4
 
 增加：
 
@@ -1417,7 +1417,7 @@ Group
 - 自己重新做拼车
 - 自己重新做竞赛组队
 
-这些长尾功能应该尽量由 Campus Store 中的应用承担。
+这些长尾功能应该尽量由 Campulse Store 中的应用承担。
 
 ---
 
@@ -1524,7 +1524,7 @@ Phase 1 完成后，不以代码量作为成功指标。
 
 ### 使用频率
 
-用户是否愿意把 Campus 留在手机上，并作为校园入口重复打开？
+用户是否愿意把 Campulse 留在手机上，并作为校园入口重复打开？
 
 ### 解耦价值
 
@@ -1536,7 +1536,7 @@ Phase 1 完成后，不以代码量作为成功指标。
 
 ### 生态价值
 
-学生开发者是否愿意把自己的项目放进 Campus？
+学生开发者是否愿意把自己的项目放进 Campulse？
 
 这些问题比“实现多少 Feature”更重要。
 
@@ -1544,7 +1544,7 @@ Phase 1 完成后，不以代码量作为成功指标。
 
 ## 25. 最终愿景
 
-Campus 最终希望形成：
+Campulse 最终希望形成：
 
 ```text
 学校
@@ -1555,7 +1555,7 @@ Campus 最终希望形成：
        │
        ▼
 ┌──────────────────┐
-│      Campus      │
+│      Campulse      │
 │                  │
 │ Service          │
 │ Transaction      │
@@ -1567,12 +1567,12 @@ Campus 最终希望形成：
        │
 学生 / 班级 / 社团 / 开发者
        │
-       ├── Campus App
+       ├── Campulse App
        ├── Open Source
        └── Feedback
 ```
 
-Campus 不取代校园中已经存在的系统。
+Campulse 不取代校园中已经存在的系统。
 
 它将这些系统重新连接起来，并为学生创造新的校园服务提供统一入口。
 
@@ -1590,7 +1590,7 @@ Campus 不取代校园中已经存在的系统。
 
 1. **它是在解决校园事务，还是在重新发明社交软件？**
 2. **学校已有服务能否直接接入，而不是重写？**
-3. **这个功能应该由 Campus Core 提供，还是更适合作为 Campus App？**
+3. **这个功能应该由 Campulse Core 提供，还是更适合作为 Campulse App？**
 4. **它是否只对 ECNU 有效？如果是，应放入 ECNU Adapter。**
 5. **没有这个 Feature，当前阶段的核心假设还能否验证？**
 6. **能否先用更简单的方式验证需求？**
@@ -1600,7 +1600,7 @@ Campus 不取代校园中已经存在的系统。
 
 ---
 
-> Campus  
+> Campulse  
 > **让校园里的服务有一个入口，让校园里的想法有机会成为真正的应用。**
 
 ---
@@ -1714,7 +1714,7 @@ Store 与生态的优先级高于 Plugin Runtime，且**生态的信息架构值
 2. **班级码是加入的第一道门槛，管理员审批是第二道。** 两道都不能省：
    没有码则任何人都能申请（骚扰），没有审批则码一泄漏就形同虚设。
 3. **班级会自然死亡**（课程结束、没人再用了）。因此需要**沉寂状态**与**退出 / 解散**能力，
-   否则用户的班级列表里会堆满废弃班级 —— 这是微信群最被诟病的一点，Campus 应当做得更好。
+   否则用户的班级列表里会堆满废弃班级 —— 这是微信群最被诟病的一点，Campulse 应当做得更好。
 
 ### 27.8 首页是「概览」而不是「全量列表」（覆盖 §12 的信息密度）
 

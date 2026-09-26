@@ -1,4 +1,4 @@
-# Campus 阿里云共享服务器部署
+# Campulse 阿里云共享服务器部署
 
 ## 已确认的环境
 
@@ -7,9 +7,9 @@
 - IP：47.100.32.82；系统 Ubuntu 24.04.2，CPU x86_64。
 - 内存约 1.6 GiB，当时可用约 359 MiB；磁盘可用约 32 GiB。
 - 已有 Caddy 占用 80/443；1Panel core/agent 正在运行，未发现运行中的 OpenResty 容器。
-- 现有 Node 为 18.19.1；Campus 网关要求 Node 22+，应单独安装运行时，不替换现有网站使用的 Node。
+- 现有 Node 为 18.19.1；Campulse 网关要求 Node 22+，应单独安装运行时，不替换现有网站使用的 Node。
 - 当前 Caddy 已管理主域名、1panel、api、afrigo-api 等站点；保留这些配置。
-- campus.scsldr.cn 已解析到该服务器。DNS 正确不代表 HTTPS 或 Campus 后端已经可用。
+- campus.scsldr.cn 已解析到该服务器。DNS 正确不代表 HTTPS 或 Campulse 后端已经可用。
 
 ## 确定的地址
 
@@ -18,7 +18,7 @@
 | PocketBase / App 数据 | https://campus.scsldr.cn |
 | PocketBase 后台 | https://campus.scsldr.cn/_/ |
 | 健康检查 | https://campus.scsldr.cn/api/health |
-| Campus AI 网关基址 | https://campus.scsldr.cn/ai |
+| Campulse AI 网关基址 | https://campus.scsldr.cn/ai |
 | 已登录网关状态 | https://campus.scsldr.cn/ai/v1/status |
 
 客户端会保留网关基址中的 `/ai`。Caddy 的 `handle_path /ai/*` 在转发时移除 `/ai`，因此网关仍接收 `/v1/status`、`/v1/ask`，不需要修改后端路由。
@@ -31,7 +31,7 @@
 4. 按 [通用操作手册](REMOTE_DEPLOYMENT.md)应用七个生产迁移（四个基础、注册策略、站点元数据、Brevo 设置），部署网关及两个 systemd 服务；AI 服务模板中的 Node 路径须改为独立运行时的真实路径。不得复制本机管理员凭据或包含个人数据的试点库。
 5. 网关私有配置采用 `/etc/campus/ai.env`，PocketBase 内网地址为 `http://127.0.0.1:8090`。未填模型 Key 时保持未就绪，不伪造成功状态。
 6. 后端本机检查通过后，把 `deploy/campus.Caddyfile.example` 的单站点块加入现有 Caddy 配置。先校验配置，再平滑加载，不覆盖其他站点。公开注册服务前需要确认开放范围，并由用户完成生产管理员凭据设置。
-7. 核对 Campus HTTPS 证书、PocketBase 健康接口、网关未登录拒绝访问，以及原网站仍正常。上线失败时恢复本次新增路由；不要删除已有数据库或原站点。
+7. 核对 Campulse HTTPS 证书、PocketBase 健康接口、网关未登录拒绝访问，以及原网站仍正常。上线失败时恢复本次新增路由；不要删除已有数据库或原站点。
 
 ## 用户需填写的配置
 

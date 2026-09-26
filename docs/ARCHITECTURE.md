@@ -1,4 +1,4 @@
-# Campus 架构 / Architecture
+# Campulse 架构 / Architecture
 
 > 本文档描述**当前已实现**的架构。愿景与路线见 [`DEVELOPMENT.md`](./DEVELOPMENT.md)。
 
@@ -126,7 +126,7 @@ Launcher 只做三件事：发现 → 判断类型 → 用最合适方式打开�
 ## 8. 安全边界 / security boundaries
 
 - **认证**（§19）：`AuthProvider` 没有任何接受口令的方法。口令只在校方认证页面输入，
-  Campus 永远看不到。生产环境使用 mock 认证会**启动即失败**。
+  Campulse 永远看不到。生产环境使用 mock 认证会**启动即失败**。
 - **插件**（§15/§16）：清单解析拒绝目录穿越；桥接方法与权限的映射表是默认拒绝的落点；
   网络策略默认拒绝明文 http。
 - **最小权限**（§0.8）：`SENSITIVE_PERMISSIONS` 单独列出，需要单独提示。

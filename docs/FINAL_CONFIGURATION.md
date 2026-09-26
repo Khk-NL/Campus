@@ -31,7 +31,7 @@ unset CAMPUS_ADMIN_EMAIL CAMPUS_ADMIN_PASSWORD
 
 | 字段 | 填写内容 |
 | --- | --- |
-| Sender name | Campus（已预设） |
+| Sender name | Campulse（已预设） |
 | Sender address | Brevo 中已验证的发件地址 |
 | SMTP host | smtp-relay.brevo.com（已预设） |
 | Port | 465（已预设） |

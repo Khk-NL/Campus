@@ -34,10 +34,10 @@ OAuth2 授权码模式。端点：
 
 ## 2. 身份映射 / identity mapping
 
-`/profile` 的响应形状与被转换后的 Campus 模型见 `adapters/ecnu/src/constants.ts` 与
+`/profile` 的响应形状与被转换后的 Campulse 模型见 `adapters/ecnu/src/constants.ts` 与
 `adapters/ecnu/src/auth/oauth2-auth.provider.ts` 的 `toStudentProfile()`。
 
-| ECNU 字段 | Campus 字段 | 说明 |
+| ECNU 字段 | Campulse 字段 | 说明 |
 | --- | --- | --- |
 | `attributes.XGH` | `externalUserId` | 学号 / 工号 |
 | `attributes.XM` | `displayName` | 姓名 |
@@ -96,10 +96,10 @@ Provider —— 那样只会把问题推迟到更难排查的地方。
 
 ## 6. 后续阶段（§2.2）/ later phases
 
-Campus 对「随师办」采用三阶段策略，目前处于**阶段 A：兼容** —— 把随师办作为官方入口之一，
+Campulse 对「随师办」采用三阶段策略，目前处于**阶段 A：兼容** —— 把随师办作为官方入口之一，
 不替代它。
 
 - **阶段 B：解耦** —— 对可通过网页 / Deep Link / OpenSDK / 官方 API 直接接入的高频服务，
-  减少「Campus → 微信 → 随师办 → 服务」的跳转层级
-- **阶段 C：增强** —— 在官方服务之上叠加 Campus 自己的事务组织能力（课表 → Campus Course
+  减少「Campulse → 微信 → 随师办 → 服务」的跳转层级
+- **阶段 C：增强** —— 在官方服务之上叠加 Campulse 自己的事务组织能力（课表 → Campulse Course
   → Task + Event + Calendar）
