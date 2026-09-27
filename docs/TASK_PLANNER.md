@@ -31,3 +31,5 @@
 `task_planner_test.dart` 覆盖完成/恢复、保存失败回滚、旧数据兼容、字段持久化、390px 布局、创建、标签去重、搜索、子任务及选中图标。
 
 `scripts/production_repository_test.dart` 使用专用普通测试账号验收公网 PocketBase 的跨登录归档/恢复和用户隔离，结束后清理验收任务。APK 仍由 GitHub Actions 构建发布，版本 1.1.1。
+
+2026-09-27 验收：本机静态检查无问题，完整 App 套件及新增目录刷新测试通过；公网计划同步/隔离与笔记/课程验收共两项通过。[GitHub 构建](https://github.com/Khk-NL/Campus/actions/runs/36281120906)成功，已发布 1.1.1 到 `campulse-preview`，自动更新 `release/`。未做 MuMu 逐屏点击验收。安装入口为 [GitHub Release](https://github.com/Khk-NL/Campus/releases/tag/campulse-preview)。
