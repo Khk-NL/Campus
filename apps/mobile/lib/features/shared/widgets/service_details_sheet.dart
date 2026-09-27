@@ -156,18 +156,6 @@ class _ServiceDetailsSheet extends StatelessWidget {
                       label: Text(l10n.actionOpen),
                     ),
                   ),
-                  if (!CampusLauncher.isLaunchable(service.launchTarget)) ...<Widget>[
-                    const SizedBox(height: 8),
-                    Text(
-                      // Phase 0 的能力边界要说清楚，而不是给一个点了没反应的按钮。
-                      // Phase 0's limits are stated plainly rather than left as a dead
-                      // button.
-                      '${l10n.stateMockBadge}: '
-                      '${CampusLauncher.unsupportedHint(l10n, service.launchTarget)}',
-                      style: theme.textTheme.bodySmall
-                          ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-                    ),
-                  ],
                 ],
               ),
             );
