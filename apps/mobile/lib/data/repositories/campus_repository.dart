@@ -177,6 +177,13 @@ abstract class CampusAccountRepository {
   void signOut();
 }
 
+class CampusAccountException implements Exception {
+  const CampusAccountException(this.message);
+  final String message;
+  @override
+  String toString() => message;
+}
+
 abstract class CampusProbeRepository {
   Future<DataSourceMode> probe();
 }

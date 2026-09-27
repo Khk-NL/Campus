@@ -16,6 +16,8 @@ import 'package:campus_mobile/data/models/app_user.dart';
 import 'package:campus_mobile/data/models/university.dart';
 import 'package:campus_mobile/data/repositories/campus_repository.dart';
 import 'package:campus_mobile/data/repositories/data_source_mode.dart';
+import 'package:campus_mobile/data/repositories/pocketbase_campus_repository.dart';
+import 'package:campus_mobile/core/pocketbase_session.dart';
 import 'package:campus_mobile/features/shared/widgets/state_views.dart';
 import 'package:campus_mobile/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -269,6 +271,11 @@ class _ProfilePageState extends State<ProfilePage> {
           ScaffoldMessenger.of(context)
               .showSnackBar(const SnackBar(content: Text('如果该邮箱已注册，请查收验证邮件。')));
         }
+      } on CampusAccountException catch (error) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text(error.message)));
+        }
       } on Exception {
         if (context.mounted) {
           ScaffoldMessenger.of(context)
@@ -359,8 +366,15 @@ class _ProfilePageState extends State<ProfilePage> {
       await state.registerWithPassword(address, secret);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('注册成功，验证邮件已发送；请完成邮箱验证后登录。')),
+          const SnackBar(
+            content: Text('账号已创建，验证邮件已请求发送；收到后请打开最新邮件完成验证，再返回登录。'),
+          ),
         );
+      }
+    } on CampusAccountException catch (error) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(error.message)));
       }
     } on StateError catch (error) {
       if (context.mounted) {
@@ -549,6 +563,7 @@ class _ProfilePageState extends State<ProfilePage> {
     AppState state,
   ) {
     final DataSourceMode services = state.sourceMode(DataSourceSource.services);
+    final Object backend = state.repository;
     final bool everythingIsDemo =
         <DataSourceSource>[
           DataSourceSource.courses,
@@ -563,6 +578,14 @@ class _ProfilePageState extends State<ProfilePage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
+        if (backend is PocketBaseCampusRepository) ...<Widget>[
+          Text('PocketBase · ${PocketBaseSession.baseUrl}'),
+          if (backend.lastConnectionError != null)
+            Text(
+              backend.lastConnectionError!,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+        ],
         Text(
           l10n.profileDataSource,
           style: Theme.of(context).textTheme.labelLarge?.copyWith(

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:campus_mobile/data/repositories/campus_repository.dart';
 import 'package:campus_mobile/data/repositories/data_source_mode.dart';
@@ -9,6 +10,111 @@ import 'package:http/testing.dart';
 import 'package:pocketbase/pocketbase.dart';
 
 void main() {
+  test('邮箱重复注册提示登录或重发，不继续请求邮件', () async {
+    final List<String> paths = <String>[];
+    final transport = MockClient((request) async {
+      paths.add(request.url.path);
+      return http.Response(
+        jsonEncode({
+          'message': 'Failed to create record.',
+          'data': {
+            'email': {'code': 'validation_not_unique'},
+          },
+        }),
+        400,
+        headers: {'content-type': 'application/json'},
+      );
+    });
+    final repository = PocketBaseCampusRepository(
+      client: PocketBase(
+        'https://example.test',
+        httpClientFactory: () => transport,
+      ),
+    );
+    try {
+      await expectLater(
+        repository.register('student@example.test', 'password'),
+        throwsA(
+          isA<CampusAccountException>().having(
+            (error) => error.message,
+            'message',
+            contains('不要重复注册'),
+          ),
+        ),
+      );
+      expect(paths, ['/api/collections/users/records']);
+    } finally {
+      repository.dispose();
+      transport.close();
+    }
+  });
+
+  test('账号创建成功但邮件响应失败时保留已创建状态提示', () async {
+    final transport = MockClient((request) async {
+      return request.url.path.endsWith('/records')
+          ? http.Response(
+              jsonEncode({'id': 'newstudent12345'}),
+              200,
+              headers: {'content-type': 'application/json'},
+            )
+          : http.Response(
+              '{"message":"mail unavailable"}',
+              500,
+              headers: {'content-type': 'application/json'},
+            );
+    });
+    final repository = PocketBaseCampusRepository(
+      client: PocketBase(
+        'https://example.test',
+        httpClientFactory: () => transport,
+      ),
+    );
+    try {
+      await expectLater(
+        repository.register('student@example.test', 'password'),
+        throwsA(
+          isA<CampusAccountException>().having(
+            (error) => error.message,
+            'message',
+            contains('账号已创建'),
+          ),
+        ),
+      );
+    } finally {
+      repository.dispose();
+      transport.close();
+    }
+  });
+
+  test('HTTPS 握手错误不误报为 SMTP 或证书错误', () async {
+    final transport = MockClient((request) async {
+      throw const HandshakeException('Connection terminated during handshake');
+    });
+    final repository = PocketBaseCampusRepository(
+      client: PocketBase(
+        'https://example.test',
+        httpClientFactory: () => transport,
+      ),
+    );
+    try {
+      expect(await repository.probe(), DataSourceMode.mock);
+      expect(repository.lastConnectionError, contains('HTTPS 握手失败'));
+      await expectLater(
+        repository.register('student@example.test', 'password'),
+        throwsA(
+          isA<CampusAccountException>().having(
+            (error) => error.message,
+            'message',
+            contains('HTTPS 握手失败'),
+          ),
+        ),
+      );
+    } finally {
+      repository.dispose();
+      transport.close();
+    }
+  });
+
   test('普通用户注册后请求邮箱验证，密码重置走 users 集合', () async {
     final List<String> paths = <String>[];
     final MockClient transport = MockClient((http.Request request) async {

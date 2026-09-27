@@ -27,6 +27,7 @@ android {
         // flag during build.
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        resValue("string", "wechat_app_id", System.getenv("CAMPUS_WECHAT_APP_ID") ?: "")
     }
 
     val cloudPreviewKey = System.getenv("CAMPULSE_PREVIEW_KEYSTORE_PATH")

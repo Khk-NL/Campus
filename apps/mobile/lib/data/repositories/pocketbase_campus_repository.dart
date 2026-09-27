@@ -31,6 +31,20 @@ class PocketBaseCampusRepository
   );
   final ValueNotifier<int> _sourceNotifier = ValueNotifier(0);
   final Map<DataSourceSource, DataSourceMode> _sourceModes = {};
+  String? lastConnectionError;
+
+  String _connectionError(ClientException error) {
+    if (error.statusCode > 0) return '服务器返回 HTTP ${error.statusCode}';
+    final String detail = '${error.originalError}';
+    if (detail.contains('CERTIFICATE')) {
+      return 'HTTPS 证书校验失败，请检查设备时间和网络';
+    }
+    if (detail.contains('Handshake')) {
+      return 'HTTPS 握手失败，请检查服务器 TLS 配置或设备网络';
+    }
+    if (detail.contains('host lookup')) return '无法解析服务器域名';
+    return '无法连接服务器，请检查设备网络';
+  }
 
   @override
   DataSourceMode get mode => _mode.value;
@@ -50,7 +64,9 @@ class PocketBaseCampusRepository
     try {
       await client.collection('campus_content').getList(page: 1, perPage: 1);
       _mode.value = DataSourceMode.remote;
-    } on ClientException {
+      lastConnectionError = null;
+    } on ClientException catch (error) {
+      lastConnectionError = _connectionError(error);
       _mode.value = DataSourceMode.mock;
     }
     return _mode.value;
@@ -63,25 +79,50 @@ class PocketBaseCampusRepository
 
   @override
   Future<void> register(String email, String password) async {
-    await client
-        .collection('users')
-        .create(
-          body: <String, dynamic>{
-            'email': email,
-            'password': password,
-            'passwordConfirm': password,
-          },
+    try {
+      await client
+          .collection('users')
+          .create(
+            body: <String, dynamic>{
+              'email': email,
+              'password': password,
+              'passwordConfirm': password,
+            },
+          );
+    } on ClientException catch (error) {
+      final Object? fields = error.response['data'];
+      final Object? emailError = fields is Map ? fields['email'] : null;
+      if (emailError is Map && emailError['code'] == 'validation_not_unique') {
+        throw const CampusAccountException(
+          '这个邮箱已有账号，请验证邮箱后登录；不要重复注册，可使用“重发验证邮件”或“忘记密码”。',
         );
+      }
+      if (error.statusCode == 400) {
+        throw const CampusAccountException('注册信息未通过检查，请确认邮箱格式、密码长度及是否已经注册。');
+      }
+      throw CampusAccountException(_connectionError(error));
+    }
     try {
       await requestVerification(email);
     } on Exception {
-      throw StateError('账号已创建，但验证邮件未发送；请稍后点击重发验证邮件。');
+      throw const CampusAccountException(
+        '账号已创建，但邮件请求结果尚未确认。如已收到邮件，请打开最新邮件验证后登录；未收到时再重发，不要重复注册。',
+      );
     }
   }
 
   @override
-  Future<void> requestVerification(String email) =>
-      client.collection('users').requestVerification(email);
+  Future<void> requestVerification(String email) async {
+    try {
+      await client.collection('users').requestVerification(email);
+    } on ClientException catch (error) {
+      throw CampusAccountException(
+        error.statusCode == 0
+            ? '邮件请求结果尚未确认；如已收到邮件，请直接完成验证，否则稍后重发。'
+            : '验证邮件请求失败（HTTP ${error.statusCode}），请稍后重试。',
+      );
+    }
+  }
 
   @override
   Future<void> requestPasswordReset(String email) =>
@@ -117,6 +158,7 @@ class PocketBaseCampusRepository
           ),
         );
     _mode.value = DataSourceMode.remote;
+    lastConnectionError = null;
     _setSource(
       source,
       records.isNotEmpty &&
@@ -148,7 +190,8 @@ class PocketBaseCampusRepository
   ) async {
     try {
       return await remote();
-    } on ClientException {
+    } on ClientException catch (error) {
+      lastConnectionError = _connectionError(error);
       _mode.value = DataSourceMode.mock;
       _setSource(source, DataSourceMode.mock);
       return fallback();
