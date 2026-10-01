@@ -14,11 +14,12 @@ import 'package:campus_mobile/features/study/pocketbase_study_repository.dart';
 import 'package:campus_mobile/features/study/study_repository.dart';
 
 void main() {
+ final baseUrl=Platform.environment['CAMPULSE_TEST_BASE_URL'] ?? 'https://campus.scsldr.cn';
  test('production plans: completion sync, restoration and user isolation', () async {
   final users=jsonDecode(File(Platform.environment['CAMPULSE_TEST_USERS']!).readAsStringSync()) as List;
-  final a=PocketBase('https://campus.scsldr.cn');
-  final a2=PocketBase('https://campus.scsldr.cn');
-  final b=PocketBase('https://campus.scsldr.cn');
+  final a=PocketBase(baseUrl);
+  final a2=PocketBase(baseUrl);
+  final b=PocketBase(baseUrl);
   for(final pair in [(a,users[0]),(a2,users[0]),(b,users[1])]){
    await pair.$1.collection('users').authWithPassword(pair.$2['email'] as String,pair.$2['password'] as String);
   }
@@ -57,9 +58,9 @@ void main() {
  },timeout:const Timeout(Duration(minutes:2)));
  test('production repositories: real notes sync and catalog parsing', () async {
   final users=jsonDecode(File(Platform.environment['CAMPULSE_TEST_USERS']!).readAsStringSync()) as List;
-  final a=PocketBase('https://campus.scsldr.cn');
-  final a2=PocketBase('https://campus.scsldr.cn');
-  final b=PocketBase('https://campus.scsldr.cn');
+  final a=PocketBase(baseUrl);
+  final a2=PocketBase(baseUrl);
+  final b=PocketBase(baseUrl);
   for(final pair in [(a,users[0]),(a2,users[0]),(b,users[1])]){
    await pair.$1.collection('users').authWithPassword(pair.$2['email'] as String,pair.$2['password'] as String);
   }
