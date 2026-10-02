@@ -1,7 +1,7 @@
 import https from 'node:https';
 import tls from 'node:tls';
 
-const host = 'campus.scsldr.cn';
+const host = process.env.CAMPULSE_CHECK_HOST || 'campus.scsldr.cn';
 
 function checkTls(version) {
   return new Promise((resolve, reject) => {

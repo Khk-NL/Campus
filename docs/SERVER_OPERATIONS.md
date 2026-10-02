@@ -4,7 +4,11 @@
 
 另一条独立问题：公网 `campus.scsldr.cn` 的 TLS 1.2 握手被断开；同一 IP 的 `campus.allezafrique.cn` 和 `1panel.allezafrique.cn` 可以完成 TLS 1.2 握手。PocketBase 健康页可通过 TLS 1.3 打开，但 Dart 客户端仍在握手阶段失败。不能把健康页正常等同于 App 已连通，也不能把这次失败归咎于 Brevo 发信。
 
-2026-10-01 用两名已有的普通测试用户，通过旧域名 `campus.allezafrique.cn` 完成了线上计划、笔记同步及跨用户隔离测试；经该域名登录后，AI 网关 `/ai/v1/status` 返回 `aiReady=true`、`ready=false`、能力为 `chat`。这些结果只证明 PocketBase 和 ChatECNU 网关的对应链路在旧域名可用，不代表正式域名或 APK 验收通过。不要把旧域名重新写进生产 APK 作为永久规避方案。
+2026-10-02 用两名已有的普通测试用户，通过旧域名 `campus.allezafrique.cn` 再次完成线上计划、笔记、课程同步及跨用户隔离测试；该域名 TLS 1.2、TLS 1.3 和健康接口均通过。AI 网关此前返回 `aiReady=true`、`ready=false`、能力为 `chat`。这些结果尚不能代替新 APK 的界面验收。
+
+正式域名的外部 TLS 连接在 ClientHello 之后收到入站 RST，Caddy 未发出 TLS 响应；相同域名在服务器本机使用 TLS 1.2 可正常握手。原因尚未定位到 Caddy 或上游网络的具体设备。为恢复 App 联网，当前云构建临时使用同一台服务器、同一套 PocketBase 与 AI 网关的 `campus.allezafrique.cn`；官网和邮件中的应用地址仍为 `campus.scsldr.cn`。这是有待撤销的传输绕行，不能当成主域名问题已解决。主域名恢复并通过 MuMu 实测后，把 `apps/mobile/config/eduwork.production.example.json` 改回主域名并重新发布 APK。
+
+服务器已安装 `atop`，`/etc/default/atop` 设为 30 秒采样、保留 7 天，`atop.service` 运行且 `/var/log/atop/atop_20261002` 已生成。原配置备份为 `/etc/default/atop.campulse-pre-20261002`。当前磁盘占用 18%，I/O pressure 的 10/60/300 秒均为 0；此前的 I/O 峰值原因仍未知。
 
 ## 先留下故障证据
 
@@ -34,6 +38,6 @@ docker stats --no-stream
 
 在本地仓库运行 `node scripts/check-public-endpoint.mjs`，它只进行 3 个轻量只读检查：TLS 1.2、TLS 1.3 和 PocketBase 健康接口。三项都 OK 后，再用实际 Dart SDK 和 APK 登录、同步测试。
 
-仓库中的 `scripts/production_repository_test.dart` 默认检查正式域名。若要在修复前临时确认后端本身，可设置 `CAMPULSE_TEST_BASE_URL=https://campus.allezafrique.cn` 后运行该脚本；测试账号仍从忽略提交的 `CAMPULSE_TEST_USERS` 路径读取。这个覆盖只用于诊断，不修改 App 的正式地址。
+仓库中的 `scripts/production_repository_test.dart` 默认检查正式域名。要复验当前 APK 的临时后端，可设置 `CAMPULSE_TEST_BASE_URL=https://campus.allezafrique.cn` 后运行该脚本；测试账号仍从忽略提交的 `CAMPULSE_TEST_USERS` 路径读取。`CAMPULSE_CHECK_HOST=campus.allezafrique.cn` 可对该域名运行轻量 TLS 探测。
 
 若仅 `campus.scsldr.cn` 的 TLS 1.2 失败，先检查 443 端口的真实管理程序和该域名的现行配置。Caddy 默认允许 TLS 1.2～1.3，不能盲目覆盖其他站点；若确认该域名单独设成了 TLS 1.3-only，备份现行配置、只改该站点，先验证配置，再平滑重载，并检查其他网站。不要关闭证书验证，也不要改用公网 HTTP。[Caddy TLS 文档](https://caddyserver.com/docs/caddyfile/directives/tls)。

@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import crypto from 'node:crypto';
 const env = Object.fromEntries(fs.readFileSync(process.env.CAMPULSE_ACCEPTANCE_ENV || '.tools/remote-acceptance.env', 'utf8').split(/\r?\n/).filter(l => l.includes('=') && !l.trim().startsWith('#')).map(l => { const i=l.indexOf('='); return [l.slice(0,i).trim(),l.slice(i+1).trim().replace(/^['"]|['"]$/g,'')]; }));
-const base = 'https://campus.scsldr.cn';
+const base = process.env.CAMPULSE_ACCEPTANCE_BASE_URL || 'https://campus.scsldr.cn';
 async function request(path, token, method='GET', body) {
   const r=await fetch(base+path,{method,headers:{'Content-Type':'application/json',...(token?{Authorization:token}:{})},body:body?JSON.stringify(body):undefined,signal:AbortSignal.timeout(60000)});
   let data; try { data=await r.json(); } catch { data={}; }
@@ -12,6 +12,29 @@ function check(name, ok, status) { result.push({name,passed:!!ok,status}); conso
 const admin=await request('/api/collections/_superusers/auth-with-password',null,'POST',{identity:env.REMOTE_ADMIN_EMAIL,password:env.REMOTE_ADMIN_PASSWORD});
 check('公网管理员认证',admin.status===200,admin.status);
 if(admin.status!==200) process.exit(1);
+if(process.argv.includes('--settings-status')) {
+ const settings=await request('/api/settings',admin.data.token);
+ if(settings.status!==200) { check('生产配置读取',false,settings.status); process.exit(1); }
+ const smtp=settings.data.smtp || {};
+ console.log(JSON.stringify({
+   appUrl:settings.data.meta?.appURL || null,
+   senderAddressConfigured:!!settings.data.meta?.senderAddress,
+   smtpEnabled:!!smtp.enabled,
+   smtpHost:smtp.host || null,
+   smtpPort:smtp.port || null,
+   smtpUsernameConfigured:!!smtp.username,
+   smtpPasswordConfigured:!!smtp.password,
+   smtpFieldNames:Object.keys(smtp).sort(),
+ },null,2));
+ process.exit();
+}
+if(process.argv.includes('--test-email')) {
+ const sent=await request('/api/settings/test/email',admin.data.token,'POST',{
+   collection:'users',email:env.REMOTE_ADMIN_EMAIL,template:'verification'
+ });
+ check('PocketBase 经 Brevo 提交测试邮件',sent.status===204,sent.status);
+ process.exit(sent.status===204?0:1);
+}
 if(process.argv.includes('--registration-policy')) {
  const email=`campulse.registration.${Date.now()}@example.com`,password=crypto.randomBytes(24).toString('base64url');
  const created=await request('/api/collections/users/records',null,'POST',{email,password,passwordConfirm:password});
@@ -35,16 +58,27 @@ if(process.argv.includes('--schema')) {
 }
 const users=[];
 const stamp=Date.now();
-for (const label of ['a','b']) {
- const email=`campulse.acceptance.${stamp}.${label}@example.com`, password=crypto.randomBytes(24).toString('base64url');
- const created=await request('/api/collections/users/records',admin.data.token,'POST',{email,password,passwordConfirm:password,verified:true});
- check(`专用测试用户 ${label} 创建`,created.status===200,created.status);
- if(created.status!==200) throw new Error('测试用户创建失败');
- const auth=await request('/api/collections/users/auth-with-password',null,'POST',{identity:email,password});
- check(`普通用户 ${label} 登录`,auth.status===200,auth.status);
- users.push({email,password,id:created.data.id,token:auth.data.token});
+if(process.argv.includes('--existing-users')) {
+ const saved=JSON.parse(fs.readFileSync(process.env.CAMPULSE_TEST_USERS || '.tools/remote-test-users.json','utf8'));
+ for(const [index,user] of saved.slice(0,2).entries()) {
+  const auth=await request('/api/collections/users/auth-with-password',null,'POST',{identity:user.email,password:user.password});
+  check(`已有测试用户 ${index+1} 登录`,auth.status===200,auth.status);
+  if(auth.status!==200) process.exit(1);
+  users.push({...user,token:auth.data.token});
+ }
+ if(users.length!==2) throw new Error('需要两名已有普通测试用户');
+} else {
+ for (const label of ['a','b']) {
+  const email=`campulse.acceptance.${stamp}.${label}@example.com`, password=crypto.randomBytes(24).toString('base64url');
+  const created=await request('/api/collections/users/records',admin.data.token,'POST',{email,password,passwordConfirm:password,verified:true});
+  check(`专用测试用户 ${label} 创建`,created.status===200,created.status);
+  if(created.status!==200) throw new Error('测试用户创建失败');
+  const auth=await request('/api/collections/users/auth-with-password',null,'POST',{identity:email,password});
+  check(`普通用户 ${label} 登录`,auth.status===200,auth.status);
+  users.push({email,password,id:created.data.id,token:auth.data.token});
+ }
+ fs.writeFileSync('.tools/remote-test-users.json',JSON.stringify(users.map(({token,...u})=>u),null,2));
 }
-fs.writeFileSync('.tools/remote-test-users.json',JSON.stringify(users.map(({token,...u})=>u),null,2));
 const [a,b]=users;
 const note=await request('/api/collections/course_notes/records',a.token,'POST',{owner:a.id,courseId:'acceptance-course',title:'验收笔记',content:'验收资料：Campulse 的测试暗号是红枫。',schemaVersion:1});
 check('创建云端笔记',note.status===200,note.status);
@@ -62,9 +96,15 @@ if(note.status===200) {
 const publicApps=await request('/api/collections/campus_content/records?perPage=100');check('公开应用目录',publicApps.status===200,publicApps.status);
 for (const collection of ['user_courses','study_workspaces']) {
  const body={owner:a.id,payload:collection==='user_courses'?{id:'acceptance-course',name:'验收课程'}:{activities:[],sessions:[],evidence:[],knowledgeBases:[],wikiEntries:[],agents:[]},schemaVersion:1};
- const row=await request(`/api/collections/${collection}/records`,a.token,'POST',body);
+ const list=collection==='study_workspaces'
+  ? await request(`/api/collections/${collection}/records?filter=${encodeURIComponent(`owner="${a.id}"`)}`,a.token)
+  : null;
+ const existing=list?.data?.items?.[0];
+ const row=existing
+  ? await request(`/api/collections/${collection}/records/${existing.id}`,a.token,'PATCH',{payload:body.payload})
+  : await request(`/api/collections/${collection}/records`,a.token,'POST',body);
  check(`${collection} 云端保存`,row.status===200,row.status);
- if(row.status===200){const path=`/api/collections/${collection}/records/${row.data.id}`; const own=await request(path,a.token);check(`${collection} 云端读取`,own.status===200,own.status);const foreign=await request(path,b.token);check(`${collection} 账号隔离`,foreign.status===404||foreign.status===403,foreign.status);await request(path,a.token,'DELETE');}
+ if(row.status===200){const path=`/api/collections/${collection}/records/${row.data.id}`;try{const own=await request(path,a.token);check(`${collection} 云端读取`,own.status===200,own.status);const foreign=await request(path,b.token);check(`${collection} 账号隔离`,foreign.status===404||foreign.status===403,foreign.status);}finally{if(existing)await request(path,a.token,'PATCH',{payload:existing.payload});else await request(path,a.token,'DELETE');}}
 }
 const appBody={kind:'app',universityId:'ecnu',payload:{id:'acceptance-app',name:'验收应用',description:'测试目录发布',launchTarget:{type:'web',url:'https://www.ecnu.edu.cn'}},schemaVersion:1,published:true,demo:false};
 const entry=await request('/api/collections/campus_content/records',admin.data.token,'POST',appBody);
