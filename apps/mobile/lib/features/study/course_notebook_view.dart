@@ -5,7 +5,7 @@ import 'package:campus_mobile/features/study/task_planner.dart';
 import 'package:flutter/material.dart';
 
 /// A mobile-first course workspace: sources, questions, then work products.
-/// AI output is intentionally absent until a real gateway is available.
+/// AI answers are shown in the linked study session, not duplicated here.
 class CourseNotebookView extends StatefulWidget {
   const CourseNotebookView({
     super.key,
@@ -335,7 +335,7 @@ class _CourseNotebookViewState extends State<CourseNotebookView> {
         _sectionTitle(
           context,
           '围绕这门课继续探究',
-          '先记录问题和引用范围；接入 EduWork 后再提供基于资料的回答。',
+          '选好资料并记录问题，随后可在学习记录中向 AI 提问。',
         ),
         const SizedBox(height: 14),
         Card(

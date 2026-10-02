@@ -6,9 +6,11 @@
 
 2026-10-02 用两名已有的普通测试用户，通过旧域名 `campus.allezafrique.cn` 再次完成线上计划、笔记、课程同步及跨用户隔离测试；该域名 TLS 1.2、TLS 1.3 和健康接口均通过。AI 网关此前返回 `aiReady=true`、`ready=false`、能力为 `chat`。这些结果尚不能代替新 APK 的界面验收。
 
-正式域名的外部 TLS 连接在 ClientHello 之后收到入站 RST，Caddy 未发出 TLS 响应；相同域名在服务器本机使用 TLS 1.2 可正常握手。原因尚未定位到 Caddy 或上游网络的具体设备。为恢复 App 联网，当前云构建临时使用同一台服务器、同一套 PocketBase 与 AI 网关的 `campus.allezafrique.cn`；官网和邮件中的应用地址仍为 `campus.scsldr.cn`。这是有待撤销的传输绕行，不能当成主域名问题已解决。主域名恢复并通过 MuMu 实测后，把 `apps/mobile/config/eduwork.production.example.json` 改回主域名并重新发布 APK。
+正式域名的外部 TLS 连接在 ClientHello 之后收到入站 RST，Caddy 未发出 TLS 响应；相同域名在服务器本机使用 TLS 1.2 可正常握手。原因尚未定位到 Caddy 或上游网络的具体设备。阿里云[备案阻断排查](https://help.aliyun.com/zh/icp-filing/basic-icp-service/web-site-for-the-record-to-block-1)把未完成网站备案、未接入阿里云列为这种现象的可能原因；`scsldr.cn` 的实际备案状态尚未确认，不能直接断言就是备案导致。为恢复 App 联网，当前云构建临时使用同一台服务器、同一套 PocketBase 与 AI 网关的 `campus.allezafrique.cn`；PocketBase 邮件应用地址也临时改为该域名，以便验证和重置链接可达，发件人配置保持不变。官网目标仍是 `campus.scsldr.cn`。这是有待撤销的传输绕行，不能当成主域名问题已解决。主域名恢复并通过 MuMu 实测后，把 `apps/mobile/config/eduwork.production.example.json` 与 PocketBase `meta.appURL` 均改回主域名，再重新发布 APK。
 
 服务器已安装 `atop`，`/etc/default/atop` 设为 30 秒采样、保留 7 天，`atop.service` 运行且 `/var/log/atop/atop_20261002` 已生成。原配置备份为 `/etc/default/atop.campulse-pre-20261002`。当前磁盘占用 18%，I/O pressure 的 10/60/300 秒均为 0；此前的 I/O 峰值原因仍未知。
+
+2026-10-02 的 GitHub 云构建 APK 已在 MuMu Android 15 上覆盖安装。普通账号从 App 登录成功；在示例课程中点击添加文字资料，独立会话从 PocketBase 查到了该资料；随后在 App 中选择资料、记录问题并点击「向 AI 求助」，ChatECNU 返回了正确答案与资料编号。数据库当前公开目录仅有 6 条 `demo=true` 的演示记录，因此课程和入口仍会标注演示数据；这与服务器离线是两回事。Brevo SMTP 已启用，PocketBase 测试邮件接口返回 204，收件箱最终投递仍需在 Brevo 日志/邮箱确认。微信移动 AppID 已写入 GitHub Actions Secret，MuMu 没安装微信，不能在该模拟器验收小程序唤起。
 
 ## 先留下故障证据
 

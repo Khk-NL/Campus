@@ -18,14 +18,30 @@ if(process.argv.includes('--settings-status')) {
  const smtp=settings.data.smtp || {};
  console.log(JSON.stringify({
    appUrl:settings.data.meta?.appURL || null,
+   metaFieldNames:Object.keys(settings.data.meta || {}).sort(),
+   hardcodedCanonicalOutsideMeta:JSON.stringify({...settings.data,meta:undefined}).includes('https://campus.scsldr.cn'),
    senderAddressConfigured:!!settings.data.meta?.senderAddress,
    smtpEnabled:!!smtp.enabled,
    smtpHost:smtp.host || null,
    smtpPort:smtp.port || null,
    smtpUsernameConfigured:!!smtp.username,
-   smtpPasswordConfigured:!!smtp.password,
-   smtpFieldNames:Object.keys(smtp).sort(),
+   smtpPasswordStatus:'PocketBase 不在设置读取接口返回密码；用 --test-email 验证发信',
  },null,2));
+ process.exit();
+}
+if(process.argv.includes('--set-app-url')) {
+ const target=process.env.CAMPULSE_APP_URL;
+ if(!['https://campus.scsldr.cn','https://campus.allezafrique.cn'].includes(target)) {
+  throw new Error('CAMPULSE_APP_URL 必须是已验收的两个 HTTPS 域名之一');
+ }
+ const current=await request('/api/settings',admin.data.token);
+ if(current.status!==200) throw new Error(`读取设置失败：HTTP ${current.status}`);
+ const changed=await request('/api/settings',admin.data.token,'PATCH',{
+  meta:{...current.data.meta,appURL:target},
+ });
+ check('PocketBase 邮件应用地址更新',changed.status===200&&changed.data.meta?.appURL===target,changed.status);
+ if(changed.status!==200||changed.data.meta?.appURL!==target) process.exit(1);
+ console.log(JSON.stringify({appUrl:changed.data.meta.appURL,senderAddressPreserved:changed.data.meta.senderAddress===current.data.meta.senderAddress}));
  process.exit();
 }
 if(process.argv.includes('--test-email')) {
