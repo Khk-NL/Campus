@@ -545,7 +545,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileDataSourceRemote => 'Online (backend API)';
 
   @override
-  String get profileDataSourceMock => 'Offline demo data';
+  String get profileDataSourceMock => 'Demo data';
 
   @override
   String get profileAbout => 'About';

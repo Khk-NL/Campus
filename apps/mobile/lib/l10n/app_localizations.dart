@@ -1073,7 +1073,7 @@ abstract class AppLocalizations {
   /// No description provided for @profileDataSourceMock.
   ///
   /// In zh, this message translates to:
-  /// **'离线演示数据'**
+  /// **'演示数据'**
   String get profileDataSourceMock;
 
   /// No description provided for @profileAbout.

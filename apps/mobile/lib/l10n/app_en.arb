@@ -204,7 +204,7 @@
   "profileThemeDark": "Dark",
   "profileDataSource": "Data source",
   "profileDataSourceRemote": "Online (backend API)",
-  "profileDataSourceMock": "Offline demo data",
+  "profileDataSourceMock": "Demo data",
   "profileAbout": "About",
   "profileVersion": "Version",
   "profileAboutBody": "Campulse is a campus digital workbench for university students: it gathers services scattered across websites, mini programs and native apps into one entry point, and turns campus information into structured transactions.",

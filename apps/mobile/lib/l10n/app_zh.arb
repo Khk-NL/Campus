@@ -217,7 +217,7 @@
   "profileThemeDark": "深色",
   "profileDataSource": "数据源",
   "profileDataSourceRemote": "在线（后端 API）",
-  "profileDataSourceMock": "离线演示数据",
+  "profileDataSourceMock": "演示数据",
   "profileAbout": "关于",
   "profileVersion": "版本",
   "profileAboutBody": "Campulse 是面向高校学生的校园数字工作台：把散落在网站、小程序与独立 App 中的校园服务聚合为一个入口，并把校园信息组织成结构化事务。",

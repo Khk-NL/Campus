@@ -598,6 +598,8 @@ class _ProfilePageState extends State<ProfilePage> {
           label: l10n.dataSourceLabelServices,
           value: services == DataSourceMode.remote
               ? l10n.dataSourceCatalogueOnline
+              : state.dataSourceMode == DataSourceMode.remote
+              ? '${l10n.profileDataSourceRemote} · ${l10n.dataSourceMode(services)}'
               : l10n.dataSourceMode(services),
         ),
         if (everythingIsDemo) ...<Widget>[
@@ -609,7 +611,7 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
           ),
         ],
-        if (services != DataSourceMode.remote) ...<Widget>[
+        if (state.dataSourceMode != DataSourceMode.remote) ...<Widget>[
           const SizedBox(height: 6),
           Text(
             l10n.stateOfflineBody,

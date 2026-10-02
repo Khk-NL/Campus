@@ -534,7 +534,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get profileDataSourceRemote => '在线（后端 API）';
 
   @override
-  String get profileDataSourceMock => '离线演示数据';
+  String get profileDataSourceMock => '演示数据';
 
   @override
   String get profileAbout => '关于';
