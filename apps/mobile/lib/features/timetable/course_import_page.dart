@@ -69,6 +69,7 @@ class _CourseImportPageState extends State<CourseImportPage> {
         _csv.text,
         universityId: config.universityId,
         termWeeks: config.termWeeks,
+        periodsPerDay: config.periodsPerDay,
       );
       setState(() {
         _rows = rows;

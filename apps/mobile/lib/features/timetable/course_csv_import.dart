@@ -14,6 +14,7 @@ class CourseCsvImport {
     String source, {
     required String universityId,
     required int termWeeks,
+    required int periodsPerDay,
   }) {
     final List<List<String>> rows = _csvRows(source);
     if (rows.isEmpty) return const <CourseImportRow>[];
@@ -68,7 +69,7 @@ class CourseCsvImport {
           lastPeriod == null ||
           firstPeriod < 1 ||
           lastPeriod < firstPeriod ||
-          lastPeriod > 20) {
+          lastPeriod > periodsPerDay) {
         error = '课程名、星期或节次无效';
       } else if (startWeek == null ||
           endWeek == null ||
@@ -132,10 +133,11 @@ class CourseCsvImport {
   }
 
   static String? _field(String raw) {
-    final String key = raw.trim().toLowerCase().replaceAll(
-      RegExp(r'[_\s-]'),
-      '',
-    );
+    final String key = raw
+        .replaceFirst('\uFEFF', '')
+        .trim()
+        .toLowerCase()
+        .replaceAll(RegExp(r'[_\s-]'), '');
     for (final MapEntry<String, Set<String>> entry in <String, Set<String>>{
       'name': <String>{'课程名称', '课程', 'name', 'course', 'coursename'},
       'teacher': <String>{'教师', '老师', 'teacher'},

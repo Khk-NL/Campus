@@ -16,6 +16,7 @@ void main() {
       '操作系统,李老师,二教305,周五,3,4,1,16,每周,"1,3,6-8"',
       universityId: 'ecnu',
       termWeeks: 18,
+      periodsPerDay: 13,
     );
     final Course first = rows.first.course!;
     expect(first.scheduleRules, hasLength(2));
@@ -38,6 +39,7 @@ void main() {
       '丙,王,103,周一,1,2,1,16,每周,',
       universityId: 'ecnu',
       termWeeks: 18,
+      periodsPerDay: 13,
     );
     expect(rows[0].valid, isFalse);
     expect(rows[1].valid, isFalse);
@@ -46,6 +48,7 @@ void main() {
       '坏周次,张,101,周一,1,2,abc,16,每周,',
       universityId: 'ecnu',
       termWeeks: 18,
+      periodsPerDay: 13,
     );
     expect(malformed.every((CourseImportRow row) => !row.valid), isTrue);
     final Course course = rows[2].course!;
@@ -86,6 +89,36 @@ void main() {
     expect(coursesOverlap(course, flat), isTrue);
   });
 
+  test('CSV 节次上限跟随学校课表配置', () {
+    const String csv = '$header\n边界课程,张老师,一教201,周一,12,14,1,16,每周,';
+    final List<CourseImportRow> thirteenPeriods = CourseCsvImport.parse(
+      csv,
+      universityId: 'ecnu',
+      termWeeks: 18,
+      periodsPerDay: 13,
+    );
+    expect(thirteenPeriods.single.valid, isFalse);
+
+    final List<CourseImportRow> fourteenPeriods = CourseCsvImport.parse(
+      csv,
+      universityId: 'ecnu',
+      termWeeks: 18,
+      periodsPerDay: 14,
+    );
+    expect(fourteenPeriods.single.valid, isTrue);
+    expect(fourteenPeriods.single.course!.endPeriod, 14);
+  });
+
+  test('带 UTF-8 BOM 的 CSV 表头可以导入', () {
+    final List<CourseImportRow> rows = CourseCsvImport.parse(
+      '\uFEFF$header\n数据结构,张老师,一教201,周一,1,2,1,16,每周,',
+      universityId: 'ecnu',
+      termWeeks: 18,
+      periodsPerDay: 13,
+    );
+    expect(rows.single.valid, isTrue);
+  });
+
   testWidgets('同批重复行不会默认选中，冲突行需手动勾选', (WidgetTester tester) async {
     final _TestCourseRepository repository = _TestCourseRepository();
     await tester.pumpWidget(
@@ -124,6 +157,7 @@ void main() {
       '$header\n数据结构,张老师,一教201,"周一,周三",1,2,1,16,每周,',
       universityId: 'ecnu',
       termWeeks: 18,
+      periodsPerDay: 13,
     ).single.course!;
     await tester.pumpWidget(
       MaterialApp(
@@ -148,6 +182,7 @@ void main() {
       '$header\n数据结构,张老师,一教201,周一,1,2,1,16,单周,',
       universityId: 'ecnu',
       termWeeks: 18,
+      periodsPerDay: 13,
     ).single.course!;
     await tester.pumpWidget(
       MaterialApp(
