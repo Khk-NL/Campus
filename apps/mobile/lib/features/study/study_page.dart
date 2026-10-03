@@ -222,7 +222,7 @@ class _StudyPageState extends State<StudyPage> {
       await _repository!.save(workspace);
       if (mounted) setState(() {});
       return true;
-    } catch (error) {
+    } on Exception catch (error) {
       if (index < 0) {
         workspace.activities.remove(activity);
       } else {

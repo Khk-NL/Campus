@@ -19,23 +19,22 @@ class _AgentExplorerState extends State<AgentExplorer> {
   @override
   void initState() {
     super.initState();
-    _reload();
+    _data = _loadData();
+  }
+
+  Future<(StudyRepository, StudyWorkspace)>? _loadData() {
+    final PocketBaseSession? session = PocketBaseSession.instance;
+    if (session != null && !session.signedIn) return null;
+    return () async {
+      final StudyRepository repository = session == null
+          ? LocalStudyRepository(await SharedPreferences.getInstance())
+          : PocketBaseStudyRepository(session.client);
+      return (repository, await repository.load());
+    }();
   }
 
   void _reload() {
-    final PocketBaseSession? session = PocketBaseSession.instance;
-    if (session != null && !session.signedIn) {
-      setState(() => _data = null);
-      return;
-    }
-    setState(() {
-      _data = () async {
-        final StudyRepository repository = session == null
-            ? LocalStudyRepository(await SharedPreferences.getInstance())
-            : PocketBaseStudyRepository(session.client);
-        return (repository, await repository.load());
-      }();
-    });
+    setState(() => _data = _loadData());
   }
 
   @override
@@ -69,8 +68,10 @@ class _AgentExplorerState extends State<AgentExplorer> {
             }
             return RefreshIndicator(
               onRefresh: () async {
-                _reload();
-                await _data;
+                final Future<(StudyRepository, StudyWorkspace)>? reloaded =
+                    _loadData();
+                setState(() => _data = reloaded);
+                if (reloaded != null) await reloaded;
               },
               child: ListView(
                 padding: const EdgeInsets.all(16),
