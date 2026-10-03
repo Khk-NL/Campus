@@ -37,6 +37,8 @@ jobs:
           flutter pub get
           flutter analyze
           flutter test
+      - name: Check production endpoints
+        run: node scripts/check-mobile-production-config.mjs
       - name: Restore stable preview signing key
         env:
           KEYSTORE: ${{ secrets.CAMPULSE_PREVIEW_KEYSTORE_BASE64 }}
