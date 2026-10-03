@@ -17,6 +17,9 @@ out/
 # the Flutter SDK, the Android SDK and the pnpm store all live under .tools.
 # They must never be committed.
 .tools/
+# 旧位置曾误放远程验收凭据；保留防误提交护栏。
+Campus.tools/
+**/remote-acceptance.env
 
 # ---------- 环境变量 / Environment ----------
 .env

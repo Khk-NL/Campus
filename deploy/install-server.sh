@@ -23,7 +23,7 @@ install -m 755 "$workdir/pocketbase" /opt/campus/pocketbase/pocketbase
 tar -xf /opt/campus/node-v22.23.3-linux-x64.tar.xz -C /opt/campus/runtime
 cp /opt/campus/source/experiments/pocketbase/pb_migrations/*.js /opt/campus/pocketbase/pb_migrations/
 cp /opt/campus/source/deploy/pocketbase/pb_migrations/*.js /opt/campus/pocketbase/pb_migrations/
-cp /opt/campus/source/deploy/pocketbase/pb_public/* /opt/campus/pocketbase/pb_public/
+cp -R /opt/campus/source/deploy/pocketbase/pb_public/* /opt/campus/pocketbase/pb_public/
 cp -R /opt/campus/source/apps/ai-gateway/src /opt/campus/source/apps/ai-gateway/test /opt/campus/ai-gateway/
 install -m 644 /opt/campus/source/apps/ai-gateway/package.json /opt/campus/ai-gateway/package.json
 if [[ ! -f /etc/campus/ai.env ]]; then
