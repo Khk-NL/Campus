@@ -50,7 +50,9 @@ async function bootstrap(): Promise<void> {
   );
   SwaggerModule.setup('api/docs', app, document);
 
-  await app.listen(env.port);
+  // 此历史 API 尚无写接口鉴权；只监听本机，避免误部署时直接暴露到公网。
+  // A reverse proxy must not publish it until authentication/authorization is added.
+  await app.listen(env.port, '127.0.0.1');
 
   const logger = new Logger('Bootstrap');
   logger.log(`API      http://127.0.0.1:${env.port}/api`);

@@ -3,6 +3,7 @@ package cn.campus.campus_mobile
 import com.tencent.mm.opensdk.modelbiz.WXLaunchMiniProgram
 import com.tencent.mm.opensdk.openapi.IWXAPI
 import com.tencent.mm.opensdk.openapi.WXAPIFactory
+import cn.campus.campus_mobile.wxapi.WeChatAppIdStore
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodCall
@@ -49,7 +50,7 @@ class MainActivity : FlutterActivity() {
         if (appId.isEmpty()) return false
         val wxApi = WXAPIFactory.createWXAPI(applicationContext, appId, true)
         api = wxApi
-        return wxApi.registerApp(appId)
+        return wxApi.registerApp(appId) && WeChatAppIdStore.save(this, appId)
     }
 
     /** 发一次拉起请求 / send one launch request. */

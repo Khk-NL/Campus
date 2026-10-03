@@ -48,15 +48,20 @@ class _HomePageState extends State<HomePage> {
   // Empty futures rather than `late` fields, so the first build can never throw
   // LateInitializationError even if dependencies are not ready yet — each section simply
   // shows its loading state.
-  Future<List<Course>> _courses = Future<List<Course>>.value(const <Course>[]);
-  Future<List<CampusEvent>> _events = Future<List<CampusEvent>>.value(const <CampusEvent>[]);
-  Future<List<CampusTask>> _tasks = Future<List<CampusTask>>.value(const <CampusTask>[]);
+  Future<List<CampusTask>> _tasks = Future<List<CampusTask>>.value(
+    const <CampusTask>[],
+  );
   Future<List<Announcement>> _announcements = Future<List<Announcement>>.value(
     const <Announcement>[],
   );
   Future<List<CampusService>> _quickAccess = Future<List<CampusService>>.value(
     const <CampusService>[],
   );
+  Future<({List<Course> courses, List<CampusEvent> events})> _today =
+      Future<({List<Course> courses, List<CampusEvent> events})>.value((
+        courses: const <Course>[],
+        events: const <CampusEvent>[],
+      ));
 
   /// 首次加载已经排过队了吗。/ whether the first load has already been queued.
   bool _loadQueued = false;
@@ -84,7 +89,8 @@ class _HomePageState extends State<HomePage> {
     final Future<List<Course>> courses = repository.fetchCourses();
     final Future<List<CampusEvent>> events = repository.fetchEvents();
     final Future<List<CampusTask>> tasks = repository.fetchTasks();
-    final Future<List<Announcement>> announcements = repository.fetchAnnouncements();
+    final Future<List<Announcement>> announcements = repository
+        .fetchAnnouncements();
     final Future<List<CampusService>> quickAccess = repository.listServices(
       CampusServicesQuery(
         // 首页快捷入口只需要少量服务，由 repository 决定来源。
@@ -94,20 +100,25 @@ class _HomePageState extends State<HomePage> {
         limit: 8,
       ),
     );
+    final Future<({List<Course> courses, List<CampusEvent> events})> today =
+        Future.wait<Object>(<Future<Object>>[courses, events]).then(
+          (List<Object> results) => (
+            courses: results[0] as List<Course>,
+            events: results[1] as List<CampusEvent>,
+          ),
+        );
     if (!mounted) {
-      _courses = courses;
-      _events = events;
       _tasks = tasks;
       _announcements = announcements;
       _quickAccess = quickAccess;
+      _today = today;
       return;
     }
     setState(() {
-      _courses = courses;
-      _events = events;
       _tasks = tasks;
       _announcements = announcements;
       _quickAccess = quickAccess;
+      _today = today;
     });
   }
 
@@ -153,48 +164,55 @@ class _HomePageState extends State<HomePage> {
       title: l10n.homeToday,
       icon: Icons.today_outlined,
       trailing: const DemoSourceBadge(source: DataSourceSource.courses),
-      future: Future.wait<Object>(<Future<Object>>[_courses, _events]).then(
-        (List<Object> results) =>
-            (courses: results[0] as List<Course>, events: results[1] as List<CampusEvent>),
-      ),
+      future: _today,
       emptyMessage: l10n.homeNoTodayItems,
-      builder: (BuildContext context, ({List<Course> courses, List<CampusEvent> events}) data) {
-        final DateTime now = DateTime.now();
-        // 教学周从**同一个**学期日历取，首页与课表不再各算一份（此前两份实现都在用
-        // `DemoTerm` 的滚动锚点，同一天可能给出不同的周号）。
-        // The teaching week comes from the **same** term calendar as the timetable; the two no
-        // longer each compute their own from a rolling anchor, which could disagree on the same
-        // day.
-        final int week = UniversityConfigs.defaultConfig.termCalendar(now).currentWeekOf(now) ?? 1;
-        // 节次 → 时刻同理：从配置/后端来的作息表回答，首页不再自带一套"08:00 + 45 分钟"。
-        // Period → clock time likewise comes from the configured schedule; Home no longer carries
-        // its own "08:00 plus 45 minutes".
-        final PeriodSchedule schedule =
-            AppScope.of(context).university?.config.periodSchedule ??
-            UniversityConfigs.defaultConfig.periodSchedule;
-        final List<HomeTodayItem> items = <HomeTodayItem>[
-          // §12 的 Today 是"今天的课"：只有真在今天上、且本周确实结课的课程才算数，
-          // 否则首页会把整学期的课都摊在"今日"里。
-          // §12's Today means today's classes, so only courses that really meet today and
-          // are still running this week qualify; otherwise the whole term lands under
-          // "Today".
-          for (final Course course in data.courses)
-            if (course.weekday == now.weekday && course.meetsInWeek(week))
-              fromCourse(course, schedule: schedule),
-          for (final CampusEvent event in data.events)
-            // 调课事件只属于它调的那一周（`concernsWeek`）：否则"第 5 周调课"会出现在今天的
-            // 日程里，而它影响的是一周之后的课。
-            // A schedule change belongs to the week it moves: otherwise a week-5 change shows up
-            // in today's list while it actually affects a class a week away.
-            if (event.occursOn(now) && event.concernsWeek(week))
-              fromEvent(event, timeLabel: formatClock(event.startAt)),
-        ];
-        sortTodayItems(items);
-        if (items.isEmpty) return const SizedBox.shrink();
-        return Column(
-          children: <Widget>[for (final HomeTodayItem item in items) _TodayTile(item: item)],
-        );
-      },
+      builder:
+          (
+            BuildContext context,
+            ({List<Course> courses, List<CampusEvent> events}) data,
+          ) {
+            final DateTime now = DateTime.now();
+            // 教学周从**同一个**学期日历取，首页与课表不再各算一份（此前两份实现都在用
+            // `DemoTerm` 的滚动锚点，同一天可能给出不同的周号）。
+            // The teaching week comes from the **same** term calendar as the timetable; the two no
+            // longer each compute their own from a rolling anchor, which could disagree on the same
+            // day.
+            final int week =
+                UniversityConfigs.defaultConfig
+                    .termCalendar(now)
+                    .currentWeekOf(now) ??
+                1;
+            // 节次 → 时刻同理：从配置/后端来的作息表回答，首页不再自带一套"08:00 + 45 分钟"。
+            // Period → clock time likewise comes from the configured schedule; Home no longer carries
+            // its own "08:00 plus 45 minutes".
+            final PeriodSchedule schedule =
+                AppScope.of(context).university?.config.periodSchedule ??
+                UniversityConfigs.defaultConfig.periodSchedule;
+            final List<HomeTodayItem> items = <HomeTodayItem>[
+              // §12 的 Today 是"今天的课"：只有真在今天上、且本周确实结课的课程才算数，
+              // 否则首页会把整学期的课都摊在"今日"里。
+              // §12's Today means today's classes, so only courses that really meet today and
+              // are still running this week qualify; otherwise the whole term lands under
+              // "Today".
+              for (final Course course in data.courses)
+                if (course.weekday == now.weekday && course.meetsInWeek(week))
+                  fromCourse(course, schedule: schedule),
+              for (final CampusEvent event in data.events)
+                // 调课事件只属于它调的那一周（`concernsWeek`）：否则"第 5 周调课"会出现在今天的
+                // 日程里，而它影响的是一周之后的课。
+                // A schedule change belongs to the week it moves: otherwise a week-5 change shows up
+                // in today's list while it actually affects a class a week away.
+                if (event.occursOn(now) && event.concernsWeek(week))
+                  fromEvent(event, timeLabel: formatClock(event.startAt)),
+            ];
+            sortTodayItems(items);
+            if (items.isEmpty) return const SizedBox.shrink();
+            return Column(
+              children: <Widget>[
+                for (final HomeTodayItem item in items) _TodayTile(item: item),
+              ],
+            );
+          },
     );
   }
 
@@ -222,7 +240,9 @@ class _HomePageState extends State<HomePage> {
           return left.compareTo(right);
         });
         return Column(
-          children: <Widget>[for (final CampusTask task in open.take(4)) TaskTile(task: task)],
+          children: <Widget>[
+            for (final CampusTask task in open.take(4)) TaskTile(task: task),
+          ],
         );
       },
     );
@@ -238,7 +258,10 @@ class _HomePageState extends State<HomePage> {
       emptyMessage: l10n.homeNoCampusItems,
       builder: (BuildContext context, List<Announcement> announcements) {
         final List<Announcement> sorted = List<Announcement>.of(announcements)
-          ..sort((Announcement a, Announcement b) => b.publishedAt.compareTo(a.publishedAt));
+          ..sort(
+            (Announcement a, Announcement b) =>
+                b.publishedAt.compareTo(a.publishedAt),
+          );
         return Column(
           children: <Widget>[
             for (final Announcement announcement in sorted.take(3))
@@ -264,7 +287,10 @@ class _HomePageState extends State<HomePage> {
       future: _quickAccess,
       emptyMessage: l10n.stateEmpty,
       builder: (BuildContext context, List<CampusService> services) {
-        return QuickAccessGrid(services: services, repository: CampusRepositoryScope.of(context));
+        return QuickAccessGrid(
+          services: services,
+          repository: CampusRepositoryScope.of(context),
+        );
       },
     );
   }

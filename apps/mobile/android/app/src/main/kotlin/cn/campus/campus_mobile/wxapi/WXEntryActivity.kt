@@ -4,7 +4,6 @@ import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
-import cn.campus.campus_mobile.R
 import com.tencent.mm.opensdk.modelbase.BaseReq
 import com.tencent.mm.opensdk.modelbase.BaseResp
 import com.tencent.mm.opensdk.openapi.IWXAPIEventHandler
@@ -24,7 +23,7 @@ class WXEntryActivity : Activity(), IWXAPIEventHandler {
     }
 
     private fun handleCallback(intent: Intent) {
-        val appId = getString(R.string.wechat_app_id)
+        val appId = WeChatAppIdStore.read(this)
         if (appId.isBlank()) {
             finish()
             return

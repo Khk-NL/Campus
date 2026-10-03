@@ -14,7 +14,11 @@
  * Read only by the Prisma CLI (migrate / studio / db seed); not part of the app build.
  */
 import 'dotenv/config';
-import { defineConfig, env } from 'prisma/config';
+import { defineConfig } from 'prisma/config';
+
+// Client generation is a build step and does not connect to a database. Keep the
+// URL optional here so a clean CI checkout can compile; migrate still needs it.
+const databaseUrl = process.env['DATABASE_URL'];
 
 export default defineConfig({
   schema: 'prisma/schema.prisma',
@@ -26,7 +30,5 @@ export default defineConfig({
     // @campus/*. Order: `pnpm build`, then `prisma db seed`.
     seed: 'node dist/prisma/seed.js',
   },
-  datasource: {
-    url: env('DATABASE_URL'),
-  },
+  datasource: databaseUrl ? { url: databaseUrl } : undefined,
 });

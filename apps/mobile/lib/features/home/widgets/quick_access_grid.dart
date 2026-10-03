@@ -17,8 +17,12 @@ import 'package:campus_mobile/features/home/widgets/service_card.dart';
 import 'package:flutter/material.dart';
 
 /// 快捷入口网格 / the quick access grid.
-class QuickAccessGrid extends StatelessWidget {
-  const QuickAccessGrid({required this.services, required this.repository, super.key});
+class QuickAccessGrid extends StatefulWidget {
+  const QuickAccessGrid({
+    required this.services,
+    required this.repository,
+    super.key,
+  });
 
   /// 要展示的服务 / the services to show.
   final List<CampusService> services;
@@ -31,43 +35,68 @@ class QuickAccessGrid extends StatelessWidget {
   final CampusRepository repository;
 
   @override
+  State<QuickAccessGrid> createState() => _QuickAccessGridState();
+}
+
+class _QuickAccessGridState extends State<QuickAccessGrid> {
+  late Future<Map<String, LocalizedText>> _names;
+
+  @override
+  void initState() {
+    super.initState();
+    _names = widget.repository.fetchServiceNames();
+  }
+
+  @override
+  void didUpdateWidget(covariant QuickAccessGrid oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.repository != widget.repository ||
+        !identical(oldWidget.services, widget.services)) {
+      _names = widget.repository.fetchServiceNames();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return FutureBuilder<Map<String, LocalizedText>>(
       // 双语名称来自 repository：远端模式回退到后端的中文名，演示模式自带英文。
       // Bilingual names come from the repository: remote falls back to the Chinese name,
       // demo data carries English.
-      future: repository.fetchServiceNames(),
-      builder: (
-        BuildContext context,
-        AsyncSnapshot<Map<String, LocalizedText>> snapshot,
-      ) {
-        final Map<String, LocalizedText> names =
-            snapshot.data ?? const <String, LocalizedText>{};
-        final String languageCode = Localizations.localeOf(context).languageCode;
-        return GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: services.length,
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            mainAxisSpacing: 10,
-            crossAxisSpacing: 10,
-            childAspectRatio: 2.6,
-          ),
-          itemBuilder: (BuildContext context, int index) {
-            final CampusService service = services[index];
-            final LocalizedText? localized = names[service.id];
-            final String label =
-                localized?.resolve(languageCode) ?? service.name;
-            return ServiceCard(
-              service: service,
-              label: label,
-              onOpen: () =>
-                  CampusLauncher.of(context).launch(context, service.launchTarget),
+      future: _names,
+      builder:
+          (
+            BuildContext context,
+            AsyncSnapshot<Map<String, LocalizedText>> snapshot,
+          ) {
+            final Map<String, LocalizedText> names =
+                snapshot.data ?? const <String, LocalizedText>{};
+            final String languageCode = Localizations.localeOf(context)
+                .languageCode;
+            return GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: widget.services.length,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                mainAxisSpacing: 10,
+                crossAxisSpacing: 10,
+                childAspectRatio: 2.6,
+              ),
+              itemBuilder: (BuildContext context, int index) {
+                final CampusService service = widget.services[index];
+                final LocalizedText? localized = names[service.id];
+                final String label =
+                    localized?.resolve(languageCode) ?? service.name;
+                return ServiceCard(
+                  service: service,
+                  label: label,
+                  onOpen: () =>
+                      CampusLauncher.of(context)
+                          .launch(context, service.launchTarget),
+                );
+              },
             );
           },
-        );
-      },
     );
   }
 }

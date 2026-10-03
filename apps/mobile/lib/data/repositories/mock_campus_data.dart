@@ -288,7 +288,7 @@ List<Announcement> buildMockAnnouncements() {
       sourceName: '教务处',
     ),
     Announcement(
-      id: 'announcement-library-hours',
+      id: 'announcement-library-midterm-hours',
       title: '图书馆延长开放时间',
       body: '期中周起，主馆自习区开放至 23:00。',
       priority: AnnouncementPriority.normal,
