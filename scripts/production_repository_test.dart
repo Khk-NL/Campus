@@ -78,7 +78,7 @@ void main() {
    await repo.fetchCampusApps(const CampusAppsQuery());
    expect(repo.mode,DataSourceMode.remote);
    repo.dispose();
-   final imported=CourseCsvImport.parse('课程名称,教师,地点,星期,开始节次,结束节次,开始周,结束周\n$course,验收教师,验收教室,周一,1,2,1,16',universityId:UniversityConfigs.defaultConfig.universityId,termWeeks:16).single.course!;
+   final imported=CourseCsvImport.parse('课程名称,教师,地点,星期,开始节次,结束节次,开始周,结束周\n$course,验收教师,验收教室,周一,1,2,1,16',universityId:UniversityConfigs.defaultConfig.universityId,termWeeks:16,periodsPerDay:UniversityConfigs.defaultConfig.periodsPerDay).single.course!;
    await PocketBaseUserCourseRepository(a).create(imported);
    final records=await a.collection('user_courses').getFullList();
    final created=records.singleWhere((r)=>(r.data['payload'] as Map)['name']==course);

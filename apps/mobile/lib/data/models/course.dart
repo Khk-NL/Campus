@@ -163,7 +163,8 @@ class CourseScheduleRule {
   static List<CourseScheduleRule> listFromJson(Object? value) {
     return <CourseScheduleRule>[
       for (final Map<String, Object?> row in asMapList(value))
-        if (CourseScheduleRule.tryFromJson(row) case final CourseScheduleRule rule)
+        if (CourseScheduleRule.tryFromJson(row)
+            case final CourseScheduleRule rule)
           rule,
     ];
   }
@@ -209,6 +210,7 @@ class Course {
     this.startPeriod,
     this.endPeriod,
     this.externalCourseId,
+    this.isDemo = false,
   });
 
   /// 主键 / the id.
@@ -273,6 +275,9 @@ class Course {
   /// 学校系统内的课程标识 / the id inside the school system.
   final String? externalCourseId;
 
+  /// 是否为演示课程；个人导入的课程默认不是演示数据。
+  final bool isDemo;
+
   /// 能否放进课程表网格 / whether it can be placed on the timetable grid.
   bool get isScheduled =>
       weekday != null &&
@@ -294,7 +299,9 @@ class Course {
     final List<CourseScheduleRule>? rules = scheduleRules;
     if (rules != null) {
       if (rules.isEmpty) return false;
-      return rules.any((CourseScheduleRule rule) => ruleAppliesInWeek(rule, week));
+      return rules.any(
+        (CourseScheduleRule rule) => ruleAppliesInWeek(rule, week),
+      );
     }
     return week >= startWeek && week <= endWeek;
   }
@@ -322,11 +329,14 @@ class Course {
       // 区分"后端没给规则"（null，退回扁平区间）与"给了但全部非法"（空列表，未排课）。
       // Distinguish "no rules sent" (null, use the flat range) from "sent but all
       // illegal" (empty list, unscheduled).
-      scheduleRules: rawRules == null ? null : CourseScheduleRule.listFromJson(rawRules),
+      scheduleRules: rawRules == null
+          ? null
+          : CourseScheduleRule.listFromJson(rawRules),
       weekday: asInt(json['weekday']),
       startPeriod: asInt(json['startPeriod']),
       endPeriod: asInt(json['endPeriod']),
       externalCourseId: asNonEmptyString(json['externalCourseId']),
+      isDemo: json['demo'] == true,
     );
   }
 

@@ -173,6 +173,7 @@ class PocketBaseCampusRepository
             ...Map<String, dynamic>.from(record.data['payload'] as Map),
             'id': record.id,
             'universityId': record.data['universityId'],
+            'demo': record.data['demo'],
           }),
     ];
   }

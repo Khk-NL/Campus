@@ -1,8 +1,6 @@
 import 'package:campus_mobile/core/app_scope_repository.dart';
 import 'package:campus_mobile/core/pocketbase_session.dart';
 import 'package:campus_mobile/data/models/course.dart';
-import 'package:campus_mobile/data/repositories/campus_repository.dart';
-import 'package:campus_mobile/data/repositories/data_source_mode.dart';
 import 'package:campus_mobile/features/study/course_space_entry.dart';
 import 'package:campus_mobile/features/study/agent_explorer.dart';
 import 'package:campus_mobile/features/timetable/timetable_page.dart';
@@ -80,9 +78,6 @@ class _CourseHubPageState extends State<CourseHubPage> {
 
   @override
   Widget build(BuildContext context) {
-    final CampusRepository repository = CampusRepositoryScope.of(context);
-    final bool demo =
-        repository.sourceMode(DataSourceSource.courses) == DataSourceMode.mock;
     if (_byAgent) {
       return Column(
         children: <Widget>[
@@ -140,7 +135,6 @@ class _CourseHubPageState extends State<CourseHubPage> {
             ),
           ),
           const SizedBox(height: 12),
-          if (demo) const Text('演示课程 · 未同步'),
           FutureBuilder<List<Course>>(
             future: _courses,
             builder:
@@ -182,6 +176,7 @@ class _CourseHubPageState extends State<CourseHubPage> {
                                 if (course.location.isNotEmpty) course.location,
                                 if (course.scheduleRule != null)
                                   course.scheduleRule!,
+                                if (course.isDemo) '演示课程',
                               ].join(' · '),
                             ),
                             trailing: const Icon(Icons.chevron_right),

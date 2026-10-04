@@ -48,25 +48,32 @@ class CampusApp extends StatelessWidget {
         // registration. Without it the capability stays unwired and the UI says so.
         child: CampusLauncherScope(
           launcher: DefaultCampusLauncher(
-            miniPrograms: bootstrap.weChatMiniPrograms ??
+            miniPrograms:
+                bootstrap.weChatMiniPrograms ??
                 const UnwiredMiniProgramTransport(),
-            weChatAppId: bootstrap.config.hasWeChatAppId ? bootstrap.config.weChatAppId : '',
+            weChatAppId: bootstrap.config.hasWeChatAppId
+                ? bootstrap.config.weChatAppId
+                : '',
           ),
-          child: MaterialApp(
-            // `onGenerateTitle` 而不是 `title`：标题也要走 i18n（§0.8）。
-            // `onGenerateTitle` rather than `title`, so the app title is localized too.
-            onGenerateTitle: (BuildContext context) => AppLocalizations.of(context).appTitle,
-            debugShowCheckedModeBanner: false,
-            theme: CampusTheme.light(),
-            darkTheme: CampusTheme.dark(),
-            themeMode: state.themeMode,
-            // null = 跟随系统；非 null 时是用户在 Profile 里的选择。
-            // null means "follow the system"; otherwise it is the user's own pick.
-            locale: state.locale,
-            localeResolutionCallback: resolveSupportedLocale,
-            supportedLocales: AppLocalizations.supportedLocales,
-            localizationsDelegates: AppLocalizations.localizationsDelegates,
-            home: const AppShell(),
+          child: ListenableBuilder(
+            listenable: state,
+            builder: (BuildContext context, Widget? child) => MaterialApp(
+              // `onGenerateTitle` 而不是 `title`：标题也要走 i18n（§0.8）。
+              // `onGenerateTitle` rather than `title`, so the app title is localized too.
+              onGenerateTitle: (BuildContext context) =>
+                  AppLocalizations.of(context).appTitle,
+              debugShowCheckedModeBanner: false,
+              theme: CampusTheme.light(),
+              darkTheme: CampusTheme.dark(),
+              themeMode: state.themeMode,
+              // null = 跟随系统；非 null 时是用户在 Profile 里的选择。
+              // null means "follow the system"; otherwise it is the user's own pick.
+              locale: state.locale,
+              localeResolutionCallback: resolveSupportedLocale,
+              supportedLocales: AppLocalizations.supportedLocales,
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              home: const AppShell(),
+            ),
           ),
         ),
       ),

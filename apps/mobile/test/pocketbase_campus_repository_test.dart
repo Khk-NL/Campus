@@ -227,6 +227,7 @@ void main() {
       final courses = await repository.fetchCourses();
       expect(courses.single.name, '测试课程');
       expect(courses.single.id, 'testrecord00001');
+      expect(courses.single.isDemo, isTrue);
       expect(
         repository.sourceMode(DataSourceSource.courses),
         DataSourceMode.mock,

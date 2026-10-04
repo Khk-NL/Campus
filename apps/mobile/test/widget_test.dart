@@ -19,6 +19,7 @@
 library;
 
 import 'package:campus_mobile/core/app_scope_repository.dart';
+import 'package:campus_mobile/core/app_startup.dart';
 import 'package:campus_mobile/core/app_state.dart';
 import 'package:campus_mobile/core/config/app_config.dart';
 import 'package:campus_mobile/core/config/preference_store.dart';
@@ -32,6 +33,7 @@ import 'package:campus_mobile/features/study/study_page.dart';
 import 'package:campus_mobile/features/shell/app_shell.dart';
 import 'package:campus_mobile/features/timetable/timetable_page.dart';
 import 'package:campus_mobile/l10n/app_localizations.dart';
+import 'package:campus_mobile/main.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -71,6 +73,38 @@ void main() {
       ),
     );
   }
+
+  testWidgets('根应用响应语言与主题切换', (WidgetTester tester) async {
+    final AppState state = await buildState();
+    await tester.pumpWidget(
+      CampusApp(
+        bootstrap: AppBootstrap(state: state, config: state.config),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    NavigationBar navigation() =>
+        tester.widget<NavigationBar>(find.byType(NavigationBar));
+    expect(
+      (navigation().destinations.first as NavigationDestination).label,
+      '首页',
+    );
+
+    await state.setLocale(const Locale('en'));
+    await tester.pumpAndSettle();
+    expect(
+      (navigation().destinations.first as NavigationDestination).label,
+      'Home',
+    );
+
+    await state.setThemeMode(ThemeMode.dark);
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<MaterialApp>(find.byType(MaterialApp)).themeMode,
+      ThemeMode.dark,
+    );
+    state.dispose();
+  });
 
   testWidgets('底部栏只有 4 个 Tab / the bottom bar holds exactly four tabs', (
     WidgetTester tester,
@@ -227,6 +261,8 @@ void main() {
     await tester.tap(find.text(l10n.navTimetable).last);
     await tester.pumpAndSettle();
     expect(find.text('我的课程'), findsOneWidget);
+    expect(find.textContaining('演示课程'), findsWidgets);
+    expect(find.text('演示课程 · 未同步'), findsNothing);
     final Finder courseInHub = find.descendant(
       of: find.byType(CourseHubPage),
       matching: find.text('现代软件工程'),

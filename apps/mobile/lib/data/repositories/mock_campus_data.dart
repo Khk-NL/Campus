@@ -158,6 +158,7 @@ List<Course> buildMockCourses() {
       startPeriod: 3,
       endPeriod: 4,
       externalCourseId: 'demo-course-1',
+      isDemo: true,
     ),
     Course(
       id: 'course-modern-se',
@@ -185,6 +186,7 @@ List<Course> buildMockCourses() {
       startPeriod: 7,
       endPeriod: 8,
       externalCourseId: 'demo-course-2',
+      isDemo: true,
     ),
     Course(
       id: 'course-advanced-math',
@@ -199,6 +201,7 @@ List<Course> buildMockCourses() {
       startPeriod: 1,
       endPeriod: 2,
       externalCourseId: 'demo-course-3',
+      isDemo: true,
     ),
     Course(
       id: 'course-college-english',
@@ -228,6 +231,7 @@ List<Course> buildMockCourses() {
       startPeriod: 5,
       endPeriod: 6,
       externalCourseId: 'demo-course-4',
+      isDemo: true,
     ),
     Course(
       id: 'course-data-structures',
@@ -242,6 +246,7 @@ List<Course> buildMockCourses() {
       startPeriod: 3,
       endPeriod: 4,
       externalCourseId: 'demo-course-5',
+      isDemo: true,
     ),
     Course(
       id: 'course-physics-lab',
@@ -256,6 +261,7 @@ List<Course> buildMockCourses() {
       startPeriod: 5,
       endPeriod: 8,
       externalCourseId: 'demo-course-6',
+      isDemo: true,
     ),
   ];
 }
@@ -352,7 +358,11 @@ List<CampusEvent> buildMockEvents() {
       // The wall-clock time is **derived from the academic coordinates**. Typing "today 07:00"
       // would drop a change that affects next week into today's list, treating (week, weekday,
       // period) as decoration.
-      startAt: _teachingSlotStart(week: 5, dayOfWeek: DateTime.tuesday, period: 7),
+      startAt: _teachingSlotStart(
+        week: 5,
+        dayOfWeek: DateTime.tuesday,
+        period: 7,
+      ),
       endAt: _teachingSlotEnd(week: 5, dayOfWeek: DateTime.tuesday, period: 8),
       location: '文史楼 305',
       relatedCourseId: 'course-modern-se',
@@ -367,7 +377,8 @@ List<CampusEvent> buildMockEvents() {
 }
 
 /// 演示学期（与运行时同一套换算）/ the demo term, using the same conversion as the app.
-TermCalendar _demoTerm() => UniversityConfigs.defaultConfig.termCalendar(DateTime.now());
+TermCalendar _demoTerm() =>
+    UniversityConfigs.defaultConfig.termCalendar(DateTime.now());
 
 /// 演示作息表 / the demo period schedule.
 PeriodSchedule _demoPeriodSchedule() =>
@@ -546,6 +557,6 @@ Map<String, LocalizedText> buildMockServiceDescriptions() {
 
 /// 首页 Quick Access 使用的服务 id（§12）/ the service ids Home's Quick Access uses.
 List<String> get mockQuickAccessServiceIds => <String>[
-      for (final EcnuServiceEntry entry in ecnuFallbackServices)
-        if (entry.isQuickAccess) entry.service.id,
-    ];
+  for (final EcnuServiceEntry entry in ecnuFallbackServices)
+    if (entry.isQuickAccess) entry.service.id,
+];
