@@ -116,17 +116,22 @@ type UniversityScope =
 `CampusEvent`，而**不是**就地修改 `Course`。原课表是事实，调课是一次事件；改写 Course 会让
 「这学期原本的安排是什么」永久丢失。
 
-## 6. 待补的模型 / models still to come
+## 6. 现有表与尚未映射的领域模型 / current tables and remaining models
 
-Phase 0 只落地了 `University` / `User` / `CampusService`。以下已在 `@campus/models` 中定义类型，
-但尚未建表：
+`apps/api/prisma/schema.prisma` 当前有 9 个模型、6 个 migration：`University`、`User`、
+`CampusService`、`CampusApp`、`CampusAppUsage`、`CampusAppTag`、`CampusAppTagAlias`、
+`CampusAppTagLink`、`CampusAppLike`。`CampusApp` 已建表，不再属于待补模型；
+`University.firstPeriodStart`、`University.periodMinutes` 及服务/应用的 `openCount` 也已入表。
+这套 NestJS/Prisma API **未部署到现网**；生产 App 使用 PocketBase，不能把两套数据库当作同一份线上 schema。
+
+以下领域模型尚未映射到旧 API 的 Prisma 表；PocketBase 中的 `user_courses`、
+`course_notes`、`study_workspaces` 和 `campus_content` 是当前 MVP 的独立存储，不代表旧 API 已有同名表：
 
 | 模型 | 计划阶段 |
 | --- | --- |
 | `Course` + `CourseScheduleRule` | Phase 2 |
 | `Announcement` / `CampusEvent` / `CampusTask` | Phase 2 |
 | `Group` / `GroupMembership` | Phase 2.5 |
-| `CampusApp` | Phase 3 |
 
 `CourseScheduleRule` 已经实现了 §9 的单双周与自定义周语义（`ruleAppliesInWeek`），并且
 **自定义周非空时覆盖** `startWeek`/`endWeek`/`parity` —— 这覆盖「第 3、5、9 周上课」这类不规则
