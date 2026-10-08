@@ -3,6 +3,8 @@ import 'package:campus_mobile/core/app_state.dart';
 import 'package:campus_mobile/core/pocketbase_session.dart';
 import 'package:campus_mobile/features/study/pocketbase_study_repository.dart';
 import 'package:campus_mobile/features/study/pocketbase_course_note_repository.dart';
+import 'package:campus_mobile/features/study/pocketbase_review_card_repository.dart';
+import 'package:campus_mobile/core/config/app_config.dart';
 import 'package:campus_mobile/features/study/sqlite_study_repository.dart';
 import 'package:campus_mobile/features/study/study_page.dart';
 import 'package:flutter/material.dart';
@@ -68,6 +70,10 @@ class _CourseSpaceEntryState extends State<CourseSpaceEntry> {
         course: widget.course,
         repository: PocketBaseStudyRepository(account.client),
         noteRepository: PocketBaseCourseNoteRepository(account.client),
+        reviewCardRepository: PocketBaseReviewCardRepository(
+          account.client,
+          AppConfig.configuredEduWorkGatewayUrl,
+        ),
         remote: true,
         onSignOut: () {
           account.signOut();

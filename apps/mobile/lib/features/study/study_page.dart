@@ -3,6 +3,8 @@ import 'package:campus_mobile/core/config/app_config.dart';
 import 'package:campus_mobile/core/pocketbase_session.dart';
 import 'package:campus_mobile/features/study/course_note_repository.dart';
 import 'package:campus_mobile/features/study/course_notes_page.dart';
+import 'package:campus_mobile/features/study/review_card_repository.dart';
+import 'package:campus_mobile/features/study/review_cards_page.dart';
 import 'package:campus_mobile/features/study/course_notebook_view.dart';
 import 'package:campus_mobile/features/study/eduwork_gateway_probe.dart';
 import 'package:campus_mobile/features/study/study_repository.dart';
@@ -21,6 +23,7 @@ class StudyPage extends StatefulWidget {
     this.onSignOut,
     this.localStorageName,
     this.noteRepository,
+    this.reviewCardRepository,
     this.plansOnly = false,
   });
   final StudyRepository? repository;
@@ -29,6 +32,7 @@ class StudyPage extends StatefulWidget {
   final VoidCallback? onSignOut;
   final String? localStorageName;
   final CourseNoteRepository? noteRepository;
+  final ReviewCardRepository? reviewCardRepository;
   final bool plansOnly;
 
   @override
@@ -150,12 +154,30 @@ class _StudyPageState extends State<StudyPage> {
     if (!mounted) return;
     await Navigator.of(context).push<void>(
       MaterialPageRoute<void>(
-        builder: (BuildContext context) =>
-            CourseNotesPage(courseId: course.id, repository: repository),
+        builder: (BuildContext context) => CourseNotesPage(
+          courseId: course.id,
+          repository: repository,
+          reviewCardRepository: widget.reviewCardRepository,
+        ),
       ),
     );
     final List<CourseNote> notes = await repository.list(course.id);
     if (mounted) setState(() => _notes = notes);
+  }
+
+  Future<void> _openCards() async {
+    final Course? course = widget.course;
+    if (course == null) return;
+    final ReviewCardRepository repository =
+        widget.reviewCardRepository ??
+        LocalReviewCardRepository(await SharedPreferences.getInstance());
+    if (!mounted) return;
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (BuildContext context) =>
+            ReviewCardsPage(courseId: course.id, repository: repository),
+      ),
+    );
   }
 
   Future<void> _addKnowledgeBase() async {
@@ -337,6 +359,7 @@ class _StudyPageState extends State<StudyPage> {
             onAddSource: _addWikiEntry,
             onAddKnowledgeBase: _addKnowledgeBase,
             onOpenNotes: _openNotes,
+            onOpenCards: _openCards,
             onSubmitQuestion: _captureQuestion,
             onOpenSession: (StudySession session) =>
                 _openSession(_activityFor(workspace, session)),

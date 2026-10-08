@@ -16,6 +16,7 @@ class CourseNotebookView extends StatefulWidget {
     required this.onAddSource,
     required this.onAddKnowledgeBase,
     required this.onOpenNotes,
+    required this.onOpenCards,
     required this.onSubmitQuestion,
     required this.onOpenSession,
     required this.onAddActivity,
@@ -31,6 +32,7 @@ class CourseNotebookView extends StatefulWidget {
   final VoidCallback onAddSource;
   final VoidCallback onAddKnowledgeBase;
   final VoidCallback onOpenNotes;
+  final VoidCallback onOpenCards;
   final Future<bool> Function(String question, Set<String> sourceIds)
   onSubmitQuestion;
   final ValueChanged<StudySession> onOpenSession;
@@ -56,7 +58,8 @@ class _CourseNotebookViewState extends State<CourseNotebookView> {
   Set<String> _availableIds(CourseNotebookView view) => <String>{
     for (final StudyWikiEntry source in view.workspace.wikiEntries)
       if (source.courseId == view.course.id) _wikiId(source),
-    for (final CourseNote note in view.notes) _noteId(note),
+    for (final CourseNote note in view.notes)
+      if (note.content.trim().isNotEmpty) _noteId(note),
   };
 
   @override
@@ -249,6 +252,11 @@ class _CourseNotebookViewState extends State<CourseNotebookView> {
             icon: const Icon(Icons.note_alt_outlined),
             label: const Text('课程笔记'),
           ),
+          OutlinedButton.icon(
+            onPressed: widget.onOpenCards,
+            icon: const Icon(Icons.style_outlined),
+            label: const Text('复习卡片'),
+          ),
         ],
       ),
       const SizedBox(height: 12),
@@ -284,27 +292,34 @@ class _CourseNotebookViewState extends State<CourseNotebookView> {
         ),
       for (final CourseNote note in widget.notes)
         Card(
-          child: CheckboxListTile(
-            value: _selected.contains(_noteId(note)),
-            onChanged: (bool? selected) => setState(() {
-              if (selected == true) {
-                _selected.add(_noteId(note));
-              } else {
-                _selected.remove(_noteId(note));
-              }
-            }),
-            title: Text(note.title),
-            subtitle: Text(
-              note.content,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-            secondary: IconButton(
-              tooltip: '阅读笔记',
-              icon: const Icon(Icons.open_in_new),
-              onPressed: () => _readSource(note.title, note.content),
-            ),
-          ),
+          child: note.content.trim().isEmpty
+              ? ListTile(
+                  leading: const Icon(Icons.picture_as_pdf_outlined),
+                  title: Text(note.title),
+                  subtitle: const Text('PDF 资料 · 打开课程笔记阅读'),
+                  onTap: widget.onOpenNotes,
+                )
+              : CheckboxListTile(
+                  value: _selected.contains(_noteId(note)),
+                  onChanged: (bool? selected) => setState(() {
+                    if (selected == true) {
+                      _selected.add(_noteId(note));
+                    } else {
+                      _selected.remove(_noteId(note));
+                    }
+                  }),
+                  title: Text(note.title),
+                  subtitle: Text(
+                    note.content,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  secondary: IconButton(
+                    tooltip: '阅读笔记',
+                    icon: const Icon(Icons.open_in_new),
+                    onPressed: () => _readSource(note.title, note.content),
+                  ),
+                ),
         ),
       const SizedBox(height: 20),
       _sectionTitle(context, '资料集', '可先建立资料集；文件上传和检索仍需接入服务。'),
@@ -332,11 +347,7 @@ class _CourseNotebookViewState extends State<CourseNotebookView> {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: <Widget>[
-        _sectionTitle(
-          context,
-          '围绕这门课继续探究',
-          '选好资料并记录问题，随后可在学习记录中向 AI 提问。',
-        ),
+        _sectionTitle(context, '围绕这门课继续探究', '选好资料并记录问题，随后可在学习记录中向 AI 提问。'),
         const SizedBox(height: 14),
         Card(
           color: Theme.of(context).colorScheme.surfaceContainerLow,
@@ -443,6 +454,14 @@ class _CourseNotebookViewState extends State<CourseNotebookView> {
             ),
             const Divider(height: 1),
             ListTile(
+              leading: const Icon(Icons.style_outlined),
+              title: const Text('复习卡片'),
+              subtitle: const Text('制作卡片，按到期时间复习'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: widget.onOpenCards,
+            ),
+            const Divider(height: 1),
+            ListTile(
               leading: const Icon(Icons.add_task_outlined),
               title: const Text('学习任务'),
               subtitle: Text(
@@ -488,7 +507,6 @@ class _CourseNotebookViewState extends State<CourseNotebookView> {
         runSpacing: 8,
         children: const <Widget>[
           _PendingProduct(Icons.quiz_outlined, '测验'),
-          _PendingProduct(Icons.style_outlined, '闪卡'),
           _PendingProduct(Icons.account_tree_outlined, '思维导图'),
           _PendingProduct(Icons.summarize_outlined, '学习指南'),
         ],

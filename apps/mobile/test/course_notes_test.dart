@@ -48,6 +48,33 @@ void main() {
     expect(await repository.list('course-b'), hasLength(1));
   });
 
+  test('连续新建两篇笔记不会互相覆盖', () async {
+    final LocalCourseNoteRepository repository = LocalCourseNoteRepository(
+      await SharedPreferences.getInstance(),
+    );
+    final DateTime now = DateTime(2026, 10, 8);
+    final CourseNote first = await repository.save(
+      CourseNote(
+        id: '',
+        courseId: 'course-a',
+        title: '笔记一',
+        content: 'A',
+        updatedAt: now,
+      ),
+    );
+    final CourseNote second = await repository.save(
+      CourseNote(
+        id: '',
+        courseId: 'course-a',
+        title: '笔记二',
+        content: 'B',
+        updatedAt: now,
+      ),
+    );
+    expect(first.id, isNot(second.id));
+    expect(await repository.list('course-a'), hasLength(2));
+  });
+
   testWidgets('课程笔记可新建并重新打开', (WidgetTester tester) async {
     final SharedPreferences preferences = await SharedPreferences.getInstance();
     final LocalCourseNoteRepository repository = LocalCourseNoteRepository(

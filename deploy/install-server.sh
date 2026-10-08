@@ -30,6 +30,7 @@ if [[ ! -f /etc/campus/ai.env ]]; then
   install -o root -g campus -m 640 /opt/campus/source/apps/ai-gateway/.env.example /etc/campus/ai.env
 fi
 cd /opt/campus/ai-gateway
+/opt/campus/runtime/node-v22.23.3-linux-x64/bin/npm install --omit=dev --no-audit --no-fund --package-lock=false
 /opt/campus/runtime/node-v22.23.3-linux-x64/bin/node --test
 cd /opt/campus/pocketbase
 sudo -u campus ./pocketbase migrate up

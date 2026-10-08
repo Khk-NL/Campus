@@ -85,3 +85,48 @@ test('cross-course source is rejected before model invocation', async () => {
   assert.equal(result.status, 403);
   assert.equal(modelCalls, 0);
 });
+
+test('review schedules a card with FSRS and writes the next due date to PocketBase', async () => {
+  let updated;
+  const base = await serve(config, async (url, options) => {
+    if (url.endsWith('/auth-refresh')) return Response.json({ record: { id: 'user123', verified: true } });
+    if (url.includes('/course_review_cards/records/')) {
+      if (options.method === 'PATCH') {
+        updated = JSON.parse(options.body);
+        return Response.json({ id: 'abc123def456ghi', owner: 'user123',
+          courseId: 'course1', front: '问题', back: '答案', ...updated });
+      }
+      return Response.json({ id: 'abc123def456ghi', owner: 'user123',
+        courseId: 'course1', front: '问题', back: '答案', scheduler: {} });
+    }
+    throw new Error(`unexpected request ${url}`);
+  });
+  const result = await fetch(`${base}/v1/cards/abc123def456ghi/review`, {
+    method: 'POST',
+    headers: { Authorization: 'Bearer user-token', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ rating: 3 }),
+  });
+  assert.equal(result.status, 200);
+  assert.ok(updated.scheduler.reps >= 1);
+  assert.ok(Date.parse(updated.due) > 0);
+  assert.equal(updated.reviewHistory.length, 1);
+});
+
+test('review rejects invalid rating and another owner before writing', async () => {
+  let writes = 0;
+  const base = await serve(config, async (url, options) => {
+    if (url.endsWith('/auth-refresh')) return Response.json({ record: { id: 'user123', verified: true } });
+    if (options.method === 'PATCH') writes++;
+    return Response.json({ id: 'abc123def456ghi', owner: 'someone-else', scheduler: {} });
+  });
+  const headers = { Authorization: 'Bearer user-token', 'Content-Type': 'application/json' };
+  const invalid = await fetch(`${base}/v1/cards/abc123def456ghi/review`, {
+    method: 'POST', headers, body: JSON.stringify({ rating: 5 }),
+  });
+  assert.equal(invalid.status, 400);
+  const forbidden = await fetch(`${base}/v1/cards/abc123def456ghi/review`, {
+    method: 'POST', headers, body: JSON.stringify({ rating: 3 }),
+  });
+  assert.equal(forbidden.status, 403);
+  assert.equal(writes, 0);
+});
