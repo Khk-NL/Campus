@@ -2,7 +2,7 @@
 
 本文是当前验收基线。旧记录保留历史现场，不把接口通过、旧版 APK 点击成功、邮件提交成功误写成**当前发布包的完整用户闭环**。产品仍处于预览/试点阶段。
 
-课程 PDF/Markdown 导入与复习卡片已进入 `main`，GitHub 预览 APK 的 `sourceCommit` 为 `978ce14`。生产迁移、网关更新和设备验收仍待执行；验收前按 [课程资料导入与卡片复习](NOTEBOOK_IMPORT_REVIEW.md) 的四步顺序推进。本文后续旧版 APK 结果只作历史基线。
+课程 PDF/Markdown 导入与复习卡片已进入 `main`，首个对应预览 APK 的 `sourceCommit` 为 `978ce14`；之后的包以 `release/Campulse-latest.json` 为准。生产迁移、网关更新和设备验收仍待执行；验收前按 [课程资料导入与卡片复习](NOTEBOOK_IMPORT_REVIEW.md) 的四步顺序推进。本文后续旧版 APK 结果只作历史基线。
 
 ## 环境与判定
 
