@@ -77,3 +77,16 @@ $env:CAMPULSE_TEST_USERS = 'D:\Code\Projects\Campulse\.tools\remote-test-users.j
 6. 在有微信的 Android 真机安装同一签名的 Release APK，核对开放平台包名、签名及实际小程序原始 ID，再测试唤起；MuMu 结果不可代替。
 
 正式上线门槛还包括：目标域名在外部 TLS 1.2/1.3 与 Android 上都可连接；把 APK 配置及 PocketBase `meta.appURL` 同步改回 `campus.scsldr.cn` 后重新云构建，并**重跑本表**。完整 EduWork 能力属于独立开发/验收项，不能以 ChatECNU 问答通过来关闭。
+
+## 2026-10-09 课程笔记发布包复核
+
+本节针对 GitHub 云构建 APK 的 `sourceCommit=5f299ef`，不覆盖上方 10-06 的历史矩阵。仓库 `release/Campulse-latest.apk` 的 SHA-256 为 `de918af1b615496b62083b32e226c918c6c473fdd21044d2bc702f2b1695daee`；在 MuMu `127.0.0.1:16416` 用 `adb install -r` 覆盖安装成功，设备报告 `1.1.2 (1017)`，原有登录态保留。
+
+| 情景 | 设备与公网观察 | 结果 |
+| --- | --- | --- |
+| 课程笔记 Markdown 导入与重启读取 | 在个人课程“操作系统”通过系统文件选择器导入 `qa-import-20261009.md`；列表显示标题和正文。强制停止并重启 App 后，课程空间显示 1 份资料，课程笔记页仍读到相同正文 | **通过（单账号 APK 点击）**；尚需第二账号隔离复核 |
+| 复习卡片入口 | 在同一课程点击“复习卡片”，页面显示“卡片加载失败，点击重试”；公网 `course_review_cards` 记录接口返回 HTTP 404 | **失败**；生产集合迁移待执行 |
+| 复习网关路由 | 公网 `POST /ai/v1/cards/abc123def456ghi/review` 在无令牌请求下返回 HTTP 404；新版路由在认证前应识别路径 | **失败**；生产网关待更新。此检查不代表授权用户评分已验收 |
+| 公网连接 | 临时域名 `/api/health` 返回 HTTP 200；正式域名强制 TLS 1.2 握手失败 | 临时域名可用；正式域名仍未达标 |
+
+这次在测试账号的“操作系统”课程留下 `qa-import-20261009` 笔记，供后续迁移后制作卡片与跨设备验收；只清理该明确测试记录，不影响其他课程数据。生产 PocketBase 迁移与网关发布尚未执行，不能将 Markdown 导入通过写成整套笔记本已上线。
