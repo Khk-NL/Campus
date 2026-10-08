@@ -1,6 +1,7 @@
 import { createServer } from 'node:http';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createEmptyCard, fsrs } from 'ts-fsrs';
 
 const contract = 'campus-eduwork-gateway/v1';
 
@@ -47,10 +48,12 @@ export function createHandler(config, fetcher = fetch) {
   const apiKey = config.CHATECNU_API_KEY || '';
   const busyUsers = new Set();
 
-  async function pb(path, token) {
+  async function pb(path, token, { method, body } = {}) {
     const result = await fetcher(`${pocketBaseUrl}${path}`, {
-      method: path.endsWith('/auth-refresh') ? 'POST' : 'GET',
-      headers: { Authorization: token.slice(7), Accept: 'application/json' },
+      method: method || (path.endsWith('/auth-refresh') ? 'POST' : 'GET'),
+      headers: { Authorization: token.slice(7), Accept: 'application/json',
+        ...(body ? { 'Content-Type': 'application/json' } : {}) },
+      ...(body ? { body: JSON.stringify(body) } : {}),
       signal: AbortSignal.timeout(10000),
     });
     if (!result.ok) throw Object.assign(new Error('账号或资料访问失败'), {
@@ -105,11 +108,51 @@ export function createHandler(config, fetcher = fetch) {
   return async (request, response) => {
     try {
       const path = new URL(request.url, 'http://localhost').pathname;
-      if (path !== '/v1/status' && path !== '/v1/ask') {
+      const reviewMatch = /^\/v1\/cards\/([a-z0-9]{15})\/review$/.exec(path);
+      if (path !== '/v1/status' && path !== '/v1/ask' && !reviewMatch) {
         reply(response, 404, { error: '未找到接口' });
         return;
       }
       const { token, userId } = await authenticate(request);
+      if (reviewMatch) {
+        if (request.method !== 'POST') {
+          reply(response, 405, { error: '请求方法不支持' });
+          return;
+        }
+        const rating = (await readJson(request))?.rating;
+        if (![1, 2, 3, 4].includes(rating)) {
+          reply(response, 400, { error: '评分必须为 1–4' });
+          return;
+        }
+        const id = reviewMatch[1];
+        const row = await pb(`/api/collections/course_review_cards/records/${id}`, token);
+        if (row.owner !== userId) {
+          reply(response, 403, { error: '卡片不属于当前账号' });
+          return;
+        }
+        const now = new Date();
+        const state = row.scheduler && Object.keys(row.scheduler).length
+          ? { ...row.scheduler, due: new Date(row.scheduler.due),
+              last_review: row.scheduler.last_review ? new Date(row.scheduler.last_review) : undefined }
+          : createEmptyCard(now);
+        let next;
+        try {
+          next = fsrs().next(state, now, rating);
+        } catch {
+          reply(response, 400, { error: '卡片复习状态无效' });
+          return;
+        }
+        const history = Array.isArray(row.reviewHistory) ? row.reviewHistory : [];
+        const updated = await pb(`/api/collections/course_review_cards/records/${id}`, token, {
+          method: 'PATCH', body: {
+            scheduler: next.card,
+            due: next.card.due.toISOString(),
+            reviewHistory: [...history.slice(-499), { at: now.toISOString(), rating, log: next.log }],
+          },
+        });
+        reply(response, 200, updated);
+        return;
+      }
       if (path === '/v1/status' && request.method === 'GET') {
         reply(response, 200, {
           contract,
