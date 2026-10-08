@@ -34,6 +34,22 @@ void main() {
     expect(await repo.list('course-a'), isEmpty);
   });
 
+  test('本机复习历史最多保存 500 次', () async {
+    final LocalReviewCardRepository repo = LocalReviewCardRepository(
+      await SharedPreferences.getInstance(),
+    );
+    final ReviewCard card = await repo.save(ReviewCard(
+      id: '', courseId: 'course-a', front: '问题', back: '答案',
+      due: DateTime.now(),
+      reviewHistory: List<Map<String, dynamic>>.generate(500,
+        (int index) => <String, dynamic>{'rating': index}),
+    ));
+    final ReviewCard reviewed = await repo.review(card, 3);
+    expect(reviewed.reviewHistory, hasLength(500));
+    expect(reviewed.reviewHistory.first['rating'], 1);
+    expect(reviewed.reviewHistory.last['rating'], 3);
+  });
+
   testWidgets('可新建卡片并按答案自评', (WidgetTester tester) async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     final LocalReviewCardRepository repo = LocalReviewCardRepository(prefs);

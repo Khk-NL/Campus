@@ -25,10 +25,10 @@
 
 ## 2. 配置并启动 AI 网关
 
-1. 将 `apps/ai-gateway/` 部署到 `/opt/campus/ai-gateway/`。它只使用 Node 内置模块，无需安装 npm 依赖。服务器上执行 `node --test`，确认测试通过。
+1. 将 `apps/ai-gateway/` 部署到 `/opt/campus/ai-gateway/`，按该目录的 `package.json` 安装生产依赖（包括 `ts-fsrs`），再运行网关测试。现有生产库升级前，先按 [课程资料导入与卡片复习](NOTEBOOK_IMPORT_REVIEW.md) 备份并执行新增迁移；不要使用本手册第 1 节的全新安装步骤覆盖现有数据。
 2. 用 `apps/ai-gateway/.env.example` 作字段清单，在服务器创建**私有** `/etc/campus/ai.env`。将 `POCKETBASE_URL` 填成 `http://127.0.0.1:8090`；`CHATECNU_BASE_URL` 默认为学校公布的 OpenAI 兼容基址；`CHATECNU_MODEL` 可先选 `ecnu-plus`；`CHATECNU_API_KEY` 填你从 ChatECNU 获取的真实 Key。此文件仅允许服务账号和管理员读取，不进 Git。
 3. 检查 `deploy/campus-ai.service.example` 的 Node 路径、目录和用户，安装为 systemd 服务。它只监听服务器本机 `127.0.0.1:8787`，公网只能通过 `https://ai.你的域名` 到达。
-4. 网关的 `GET /v1/status` 和 `POST /v1/ask` 都要求 PocketBase **普通、已验证**用户令牌。`/v1/ask` 请求字段是 `courseId`、`question`、`sourceIds`（如 `note:<记录ID>` 或 `wiki:<资料ID>`）；网关重新读取用户资料并检查归属。不能让客户端提供模型 Key 或自行声称 `userId`。首次用一个仅含无敏感内容的测试笔记验证。
+4. 网关的 `GET /v1/status`、`POST /v1/ask` 和 `POST /v1/cards/:id/review` 都要求 PocketBase **普通、已验证**用户令牌。`/v1/ask` 请求字段是 `courseId`、`question`、`sourceIds`（如 `note:<记录ID>` 或 `wiki:<资料ID>`）；网关重新读取用户资料并检查归属。不能让客户端提供模型 Key 或自行声称 `userId`。首次用一个仅含无敏感内容的测试笔记验证。
 
 `CHATECNU_API_KEY` 没填时，`/v1/ask` 返回未配置；`/v1/status` 的 `aiReady=false`。填好并完成真实调用后才可称“模型问答已接通”。本服务不保存 AI 回答；App 当前也只临时显示回答。网关并未实现文件上传、向量检索、异步成果、EduWork Host 调度或多实例分布式限流，不能把这些能力写进上线宣传。
 

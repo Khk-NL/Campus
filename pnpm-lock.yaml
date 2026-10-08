@@ -252,7 +252,7 @@ importers:
   apps/ai-gateway:
     dependencies:
       ts-fsrs:
-        specifier: ^5.4.2
+        specifier: 5.4.2
         version: 5.4.2
 
   apps/api:

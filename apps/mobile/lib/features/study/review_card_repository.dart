@@ -144,7 +144,9 @@ class LocalReviewCardRepository implements ReviewCardRepository {
             : now.add(Duration(days: days)),
         scheduler: <String, dynamic>{'reps': rating == 1 ? 0 : reps + 1},
         reviewHistory: <Map<String, dynamic>>[
-          ...card.reviewHistory,
+          ...card.reviewHistory.skip(
+            card.reviewHistory.length > 499 ? card.reviewHistory.length - 499 : 0,
+          ),
           <String, dynamic>{
             'at': now.toUtc().toIso8601String(),
             'rating': rating,

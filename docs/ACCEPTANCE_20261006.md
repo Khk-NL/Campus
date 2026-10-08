@@ -2,9 +2,11 @@
 
 本文是当前验收基线。旧记录保留历史现场，不把接口通过、旧版 APK 点击成功、邮件提交成功误写成**当前发布包的完整用户闭环**。产品仍处于预览/试点阶段。
 
+课程 PDF/Markdown 导入与复习卡片已进入 `main`，GitHub 预览 APK 的 `sourceCommit` 为 `978ce14`。生产迁移、网关更新和设备验收仍待执行；验收前按 [课程资料导入与卡片复习](NOTEBOOK_IMPORT_REVIEW.md) 的四步顺序推进。本文后续旧版 APK 结果只作历史基线。
+
 ## 环境与判定
 
-- 代码：GitHub `Khk-NL/Campus` 的 `main`；本轮文档编写前 HEAD 为 `747421a`。Android Release 元数据的源码提交为 `6c72cd8`，工作流 [37221032247](https://github.com/Khk-NL/Campus/actions/runs/37221032247)成功；TypeScript 工作流 [37221032221](https://github.com/Khk-NL/Campus/actions/runs/37221032221)成功。
+- 历史验收基线：当时 Android Release 元数据的源码提交为 `6c72cd8`，工作流 [37221032247](https://github.com/Khk-NL/Campus/actions/runs/37221032247)成功；TypeScript 工作流 [37221032221](https://github.com/Khk-NL/Campus/actions/runs/37221032221)成功。当前预览包已更新，需按新源码重新验收。
 - APK：`Campulse-latest.apk`，版本 `1.1.2 (1015)`，SHA-256 `382dfdf9eb672df11066e4f59d8ff31a818f1741d303256768a5b3f891a0d817`。已安装在 MuMu Android 15，设备 `127.0.0.1:7555`。生产配置暂指向 `https://campus.allezafrique.cn`，不是目标域名。
 - 两名普通测试用户从 Git 忽略的 `.tools/remote-test-users.json` 读取；管理员凭据从 `.tools/remote-acceptance.env` 读取。不要把这两个文件、任何密码或令牌写进验收报告或提交 Git。管理员只用于后台操作，不能当 App 普通用户。
 - 状态：**通过**＝本日重跑成功；**历史通过**＝注明日期和包版本、未在本日重跑；**失败**＝实际检查不满足预期；**未验收**＝缺少设备、收件箱或功能实现。预览可用不等于生产发布门槛达成。
