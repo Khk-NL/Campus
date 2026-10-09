@@ -18,6 +18,7 @@ EduWork Knowledge Studio 的 Markdown/PDF 分块解析、中文分词和思维�
 ## 数据和接口
 
 - 新迁移 `1790210008_course_artifacts.js` 创建 `course_artifacts`：owner、courseId、kind、title、payload。成果、作答和对话按账号隔离。
+- `1790210009_note_full_text.js` 将笔记正文上限从 PocketBase 默认的 5000 字符改为 2 MB，匹配 Markdown 导入范围；生产验收发现并修正了此前的隐式限制。
 - `POST /ai/v1/search`：courseId、sourceIds、question。
 - `POST /ai/v1/generate`：courseId、sourceIds、kind（quiz/flashcards/mindmap）、focus。
 - `GET /ai/v1/artifacts?courseId=…` 和 `GET /ai/v1/artifacts/:id?courseId=…`：历史成果及对话。
@@ -26,7 +27,7 @@ EduWork Knowledge Studio 的 Markdown/PDF 分块解析、中文分词和思维�
 - 全部接口使用已验证普通用户的 PocketBase Bearer token。智能体配置由服务端从用户工作台读取。
 - `/v1/status` 检查成果集合是否可读；模型和集合均可用时 `ready=true`，返回能力及固定源码版本。
 
-全文搜索为 EduWork 分词的词项匹配排序。PDF 上限 20 MB、1500 页、100 万文字；扫描版需先 OCR。单次选择最多 12 份资料，模型使用检索出的前 12 个片段。缓存只保存派生的 PDF 文字，最多 8 份、总计 200 万字符。对话保留最近 20 条消息。成果列表目前每门课程读取最新 100 条。
+全文搜索为 EduWork 分词的词项匹配排序。PDF 上限 20 MB、1500 页、100 万文字；扫描版需先 OCR。单次选择最多 12 份资料，总文字上限 2 MB，模型使用检索出的前 12 个片段。缓存只保存派生的 PDF 文字，最多 8 份、总计 200 万字符。对话保留最近 20 条消息。成果列表目前每门课程读取最新 100 条。
 
 ## 部署顺序
 

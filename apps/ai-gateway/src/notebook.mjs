@@ -99,6 +99,7 @@ export function createNotebookRuntime({ pb, fetcher, pocketBaseUrl, modelCall, b
   async function sources(token, userId, courseId, ids) {
     let ws;
     const result = [];
+    let totalChars = 0;
     for (const id of ids) {
       const [kind, recordId] = id.split(':');
       if (!recordId || !['note', 'wiki'].includes(kind)) fail('资料 ID 无效');
@@ -147,6 +148,8 @@ export function createNotebookRuntime({ pb, fetcher, pocketBaseUrl, modelCall, b
           cache.set(key, pages); retainedChars += length;
         }
       }
+      totalChars += pages ? pages.reduce((n, page) => n + page.length, 0) : source.content.length;
+      if (totalChars > 2 * 1024 * 1024) fail('本次资料文字超过 2 MB，请分组选择资料', 413);
       result.push(...evidenceFromPages(source, pages));
     }
     return result;

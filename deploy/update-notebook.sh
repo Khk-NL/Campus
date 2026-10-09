@@ -20,6 +20,7 @@ trap 'systemctl start campus-pocketbase' EXIT
 cp -a /opt/campus/pocketbase/pb_data "$backup/pb_data"
 cmp /opt/campus/pocketbase/pb_data/data.db "$backup/pb_data/data.db"
 install -m 644 "$source_dir/deploy/pocketbase/pb_migrations/1790210008_course_artifacts.js" /opt/campus/pocketbase/pb_migrations/
+install -m 644 "$source_dir/deploy/pocketbase/pb_migrations/1790210009_note_full_text.js" /opt/campus/pocketbase/pb_migrations/
 cd /opt/campus/pocketbase
 sudo -u campus ./pocketbase migrate up
 systemctl start campus-pocketbase
