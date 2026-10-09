@@ -5,7 +5,7 @@
 | 项目 | 来源与许可 | Campulse 当前使用方式 |
 | --- | --- | --- |
 | Study Courses & Timetable（`sp-study-courses`） | [源码](https://github.com/Khk-NL/sp-study-courses) · MIT | 参考其课程导入、教学周、冲突与去重思路；Campulse 的 Dart CSV 解析和课表规则为独立实现。两者数据格式并不相同：参考项目的开始/结束时刻不能直接当作 Campulse 的节次。 |
-| EduWork | [固定源码](https://github.com/ECNU/EduWork/tree/d1943988c44ef3dfcfe0eed54808d86b9d5a3ff3/packages/dsh-knowledge-studio) · MIT，版权归华东师范大学 | 原样使用 `parser.js`、`tokenizer.js`、`mindmap.js`，用于全文分块、检索分词和导图布局；许可与源码一起保存在网关 vendor 目录。成果契约及生成方式参考 Studio 实现，PocketBase 与模型适配由 Campulse 实现。 |
+| EduWork | [固定源码](https://github.com/ECNU/EduWork/tree/d1943988c44ef3dfcfe0eed54808d86b9d5a3ff3/packages/dsh-knowledge-studio) · MIT，版权归华东师范大学 | 原样使用 `parser.js`、`tokenizer.js`、`mindmap.js`、`evidence-labels.js`，用于全文分块、检索分词、导图布局和生成证据映射；许可与源码一起保存在网关 vendor 目录。成果契约及生成方式参考 Studio 实现，PocketBase 与模型适配由 Campulse 实现。 |
 | Open Notebook | [源码](https://github.com/lfnovo/open-notebook) · MIT | 参考“资料—笔记—问答—学习产物”的组织方式；没有部署其 SurrealDB 或复制其 Python/前端代码。 |
 | ts-fsrs | [源码](https://github.com/open-spaced-repetition/ts-fsrs) · MIT | `apps/ai-gateway` 的运行时依赖，登录用户的复习评分由它计算下一次到期时间；本机离线模式使用简化排程，不称为 FSRS。发布时保留其许可与版权信息。 |
 | Anki | [源码及许可](https://github.com/ankitects/anki/blob/main/LICENSE) · AGPL-3.0-or-later | 只参考正反面、自评和待复习队列的产品思路；没有复制 Anki 代码、资源或标识。不能仅凭“后续写说明”就直接并入其源码。 |
