@@ -12,7 +12,7 @@
 | 云端 | PocketBase 与 AI 网关通过临时域名 `https://campus.allezafrique.cn` 使用 |
 | 网关源码 | 生产为 `ab091f4`，知识工作台公网复测通过 |
 | 最新移动端代码 | 152 项 Flutter 测试通过，静态检查零问题；源码 `f24a2a2` 的云构建已触发 |
-| 运营台 | `https://campus.allezafrique.cn/admin.html` 已部署，与 App 共用 PocketBase |
+| 运营台 | 已部署，与 App 共用 PocketBase；入口由管理员自行收藏 |
 | 正式域名 | `campus.scsldr.cn` 备案已提交，阿里云初审中；HTTP 仍为备案拦截、TLS 1.2 重置 |
 
 APK 的校验和、签名及云构建链接见 [本轮验收](NAVIGATION_UX_20261009.md)。测试凭据保存在 Git 忽略的 `.tools/`，不要复制到发布文档。

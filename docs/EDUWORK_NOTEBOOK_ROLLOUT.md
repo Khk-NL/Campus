@@ -17,6 +17,8 @@ EduWork Knowledge Studio 的 Markdown/PDF 分块解析、中文分词和思维�
 
 这是适配移动端的 headless 集成。EduWork 桌面 Host 的文件系统、进程协议、浏览器及媒体工具属于另一套运行环境。智能体当前采用课程检索与角色提示词的受限执行路径。
 
+`/v1/status.eduworkRevision` 是实际导入的四个 EduWork 核心模块的上游来源提交，具体文件及许可见 `src/vendor/eduwork/README.md`；运行方式由 `integration: campulse-headless` 表示。完整 Studio/桌面 Host 的服务部署版本应使用独立的版本字段记录。
+
 ## 数据和接口
 
 - 新迁移 `1790210008_course_artifacts.js` 创建 `course_artifacts`：owner、courseId、kind、title、payload。成果、作答和对话按账号隔离。

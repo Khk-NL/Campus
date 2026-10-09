@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
 import { AdminClient, collections } from '../deploy/pocketbase/pb_public/assets/admin-client.mjs';
+import { pdfFixture } from '../apps/ai-gateway/test/pdf-fixture.mjs';
 
 const envPath = process.env.CAMPULSE_ACCEPTANCE_ENV || '.tools/remote-acceptance.env';
 const env = Object.fromEntries(fs.readFileSync(envPath, 'utf8').split(/\r?\n/)
@@ -13,6 +14,9 @@ let noteId = '';
 try {
   await client.login(env.REMOTE_ADMIN_EMAIL, env.REMOTE_ADMIN_PASSWORD);
   console.log('PASS 运营台管理员认证');
+  const schemas = await client.loadCollections();
+  assert.ok(schemas.some(schema => schema.name === 'course_notes'));
+  console.log('PASS 数据库集合与字段元数据读取');
   for (const [name, label] of Object.entries(collections)) {
     const rows = await client.list(name);
     assert.ok(Array.isArray(rows.items));
@@ -35,6 +39,15 @@ try {
   const adminNotes = await client.list('course_notes', { owner: auth.record.id });
   assert.ok(adminNotes.items.some(note => note.id === noteId));
   console.log('PASS 普通用户保存笔记后运营台按用户读取');
+  await client.saveRecord('course_notes', { title:'管理员编辑验收', content:'Updated through operations console record API.' }, noteId);
+  const updatedResponse = await fetch(base + '/api/collections/course_notes/records/' + noteId, { headers:{ Authorization:auth.token } });
+  assert.equal(updatedResponse.status,200);
+  assert.equal((await updatedResponse.json()).title,'管理员编辑验收');
+  console.log('PASS 管理员编辑笔记后普通用户读回');
+  const fileData = new FormData(); fileData.append('attachment',new Blob([pdfFixture(1)],{type:'application/pdf'}),'acceptance.pdf');
+  const uploaded = await client.saveRecord('course_notes',fileData,noteId);
+  assert.ok(uploaded.attachment);
+  console.log('PASS 通用记录表单 PDF 附件上传');
   const row = await client.publishApp({
     name: `运营台验收-${Date.now()}`, url: 'https://www.ecnu.edu.cn',
     repository: 'https://github.com/Khk-NL/Campus', published: false,
@@ -52,7 +65,7 @@ try {
   assert.equal(publicResponse.status, 404);
   console.log('PASS 作品转为草稿后公开访问隔离');
 } finally {
-  if (appId) await client.api(client.collectionPath('campus_content', appId), 'DELETE');
-  if (noteId) await client.api(client.collectionPath('course_notes', noteId), 'DELETE');
+  if (appId) await client.deleteRecord('campus_content', appId);
+  if (noteId) await client.deleteRecord('course_notes', noteId);
   client.logout();
 }

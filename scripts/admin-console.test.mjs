@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { AdminClient, appPayload, ownerFilter, workspaceSummary } from '../deploy/pocketbase/pb_public/assets/admin-client.mjs';
+import { AdminClient, appPayload, ownerFilter, workspaceSummary, sections, editableFields, searchFilter } from '../deploy/pocketbase/pb_public/assets/admin-client.mjs';
 
 const recordId = '0123456789abcde';
 test('browser fetch is called without a client receiver', async () => {
@@ -75,4 +75,45 @@ test('expired authentication clears the token and surfaces a useful error', asyn
   client.token = 'expired';
   await assert.rejects(client.list('users'), /401/);
   assert.equal(client.token, '');
+});
+
+test('each common partition has its own action and editable fields omit server-controlled values', () => {
+  assert.equal(sections.course_notes.action, '新增笔记');
+  assert.equal(sections.users.action, '新增用户');
+  assert.equal(sections.campus_content.action, '新增目录记录');
+  assert.equal(new Set(Object.values(sections).map(x => x.action)).size, 7);
+  assert.deepEqual(editableFields({fields:[{name:'id',type:'text'},{name:'updated',type:'autodate'},{name:'password',type:'password'},{name:'content',type:'text'},{name:'verified',type:'bool'}]}).map(x=>x.name), ['content','verified']);
+});
+
+test('schema-derived search escapes literals and joins filters', async () => {
+  const schema={name:'course_notes',type:'base',fields:[{name:'owner',type:'relation'},{name:'title',type:'text'},{name:'payload',type:'json'}]};
+  assert.match(searchFilter(schema, 'a" || true'), /title ~ "a\\" \|\| true"/);
+  let requested;
+  const client=new AdminClient('',async url=>{requested=url;return Response.json({items:[]});});
+  client.schemas.set('course_notes',schema);
+  await client.list('course_notes',{owner:recordId,search:'标题'});
+  const filter=new URL(requested,'http://example.com').searchParams.get('filter');
+  assert.match(filter,/owner =/);assert.match(filter,/&& \(/);assert.match(filter,/payload.name ~/);
+});
+
+test('collection catalog paginates and enables CRUD for discovered collections', async () => {
+  const calls=[];
+  const client=new AdminClient('',async(url,options)=>{
+    calls.push({url,options});
+    if(url.startsWith('/api/collections?'))return Response.json({items:[{name:'extra_records',type:'base',fields:[]}],totalPages:1});
+    return options.method==='DELETE'?new Response(null,{status:204}):Response.json({id:recordId});
+  });
+  await client.loadCollections();await client.saveRecord('extra_records',{title:'x'});await client.saveRecord('extra_records',{title:'y'},recordId);await client.deleteRecord('extra_records',recordId);
+  assert.deepEqual(calls.slice(1).map(x=>x.options.method),['POST','PATCH','DELETE']);
+  assert.throws(()=>client.collectionPath('unlisted_collection'));
+  client.schemas.set('read_only',{type:'view'});
+  assert.throws(()=>client.saveRecord('read_only',{}));assert.throws(()=>client.deleteRecord('read_only',recordId));
+});
+
+test('file writes preserve multipart boundaries and include authentication', async () => {
+  let sent;
+  const client=new AdminClient('',async(url,options)=>{sent=options;return Response.json({id:recordId});});client.token='test-only';
+  const data=new FormData();data.append('attachment',new Blob(['PDF']), 'book.pdf');
+  await client.saveRecord('course_notes',data,recordId);
+  assert.equal(sent.body,data);assert.equal(sent.headers.Authorization,'test-only');assert.equal(sent.headers['Content-Type'],undefined);
 });

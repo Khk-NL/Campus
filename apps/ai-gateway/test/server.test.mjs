@@ -3,6 +3,7 @@ import { createServer } from 'node:http';
 import { afterEach, test } from 'node:test';
 import { createHandler } from '../src/server.mjs';
 import { eduworkRevision, evidenceFromPages, rankEvidence, validateArtifact } from '../src/notebook.mjs';
+import { requestLocal as fetch } from './local-http.mjs';
 
 const servers = [];
 afterEach(async () => {

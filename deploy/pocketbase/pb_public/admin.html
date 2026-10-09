@@ -4,14 +4,15 @@
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="robots" content="noindex,nofollow"><meta name="referrer" content="same-origin">
   <title>运营台 · Campulse</title>
-  <link rel="icon" href="/assets/favicon.png"><link rel="stylesheet" href="/assets/admin.css">
-  <script src="/assets/admin.mjs" type="module"></script>
+  <link rel="icon" href="/assets/favicon.png"><link rel="stylesheet" href="/assets/admin.css?v=20261010">
+  <script src="/assets/admin.mjs?v=20261010" type="module"></script>
 </head>
 <body>
-  <header><a href="/">Campulse</a><span>运营台</span><a href="/_/" target="_blank" rel="noopener">数据库后台 ↗</a></header>
+  <header><a class="brand" href="/"><img src="/assets/campulse-logo.png" width="32" height="32" alt="">Campulse</a><span>运营台</span><a href="/_/" target="_blank" rel="noopener">数据库后台 ↗</a></header>
   <main>
     <section id="login" class="card login">
       <h1>管理员登录</h1>
+      <p class="muted">用户、学习内容与校园共建，在同一个工作台维护。</p>
       <form id="login-form">
         <label>邮箱<input name="email" type="email" autocomplete="username" required></label>
         <label>密码<input name="password" type="password" autocomplete="current-password" required></label>
@@ -20,12 +21,19 @@
     </section>
     <p id="message" role="status" aria-live="polite"></p>
     <section id="dashboard" hidden>
-      <div class="toolbar"><div><h1>云端内容</h1><p>手机保存后，刷新即可查看最新记录。</p></div><button id="refresh">刷新</button><button id="logout" class="secondary">退出</button></div>
-      <div class="toolbar"><label>数据分区<select id="collection"></select></label><label id="owner-field">用户 ID<input id="owner" placeholder="点击用户列表中的查看内容"></label><button id="filter">查看</button><button id="new-app">发布校园作品</button></div>
-      <p id="summary"></p>
+      <nav id="sections" class="section-rail" aria-label="运营分区"></nav>
+      <div class="workspace-heading"><div><span class="eyebrow">CAMPULSE / CLOUD WORKSPACE</span><h1 id="section-title">云端内容</h1><p id="section-description">手机保存后，刷新即可查看最新记录。</p></div><div class="toolbar"><button id="refresh" class="secondary">刷新</button><button id="logout" class="quiet">退出</button></div></div>
+      <div class="stats"><div><span>当前筛选记录</span><strong id="record-count">0</strong></div><div><span>数据库集合</span><strong id="collection-count">0</strong></div><div><span>连接</span><strong class="status-text">PocketBase</strong><small id="refreshed-at">等待刷新</small></div></div>
+      <form id="filters" class="filter-panel">
+        <label>数据分区<select id="collection"></select></label><label>搜索<input id="search" type="search" placeholder="标题、邮箱、正文或记录 ID"></label>
+        <label id="owner-field">用户 ID<input id="owner" placeholder="从用户列表查看内容"></label>
+        <label id="kind-field" hidden>目录类型<select id="kind"><option value="">全部</option><option value="app">校园作品</option><option value="service">校园服务</option></select></label>
+        <button id="filter">搜索</button><button id="clear-filter" type="button" class="quiet">清空筛选</button>
+      </form>
+      <div class="toolbar data-actions"><p id="summary"></p><button id="new-record">新增记录</button><button id="new-app" hidden>发布校园作品</button><a id="schema-link" href="/_/" target="_blank" rel="noopener">结构与权限 ↗</a></div>
       <div class="card table-wrap"><table><thead><tr><th>记录</th><th>用户 / 类型</th><th>状态</th><th>操作</th></tr></thead><tbody id="rows"></tbody></table></div>
       <div class="pager"><button id="previous" class="secondary">上一页</button><span id="page"></span><button id="next" class="secondary">下一页</button></div>
-      <section id="detail" class="card" hidden><h2>内容详情</h2><pre id="detail-text"></pre></section>
+      <section id="detail" class="card" hidden><div class="toolbar"><h2>内容详情</h2><button id="close-detail" class="quiet">收起</button></div><pre id="detail-text"></pre></section>
     </section>
     <dialog id="app-dialog">
       <form id="app-form">
@@ -41,6 +49,17 @@
         <p id="app-message" role="status"></p>
         <div class="toolbar"><button type="button" id="cancel-app" class="secondary">取消</button><button>保存作品</button></div>
       </form>
+    </dialog>
+    <dialog id="record-dialog" class="record-dialog">
+      <form id="record-form">
+        <h2 id="record-title">编辑记录</h2><p id="record-context" class="muted"></p>
+        <div id="record-fields" class="editor-grid"></div>
+        <details id="json-options"><summary>JSON 编辑</summary><p class="muted">使用字段对象维护复杂内容。文件上传在字段表单中选择。</p><textarea id="record-json" rows="12" spellcheck="false" aria-label="记录 JSON"></textarea><button id="apply-json" type="button" class="secondary">应用到字段表单</button></details>
+        <p id="record-message" role="status"></p><div class="dialog-actions"><button id="cancel-record" type="button" class="quiet">取消</button><button>保存记录</button></div>
+      </form>
+    </dialog>
+    <dialog id="delete-dialog">
+      <form id="delete-form"><h2>永久删除记录</h2><p>删除后需通过备份恢复。关联记录按数据库级联规则处理；删除用户可能同时删除其个人内容。</p><p id="delete-context"></p><label>输入记录 ID 确认<input id="delete-confirm" required autocomplete="off"></label><p id="delete-message" role="status"></p><div class="dialog-actions"><button id="cancel-delete" type="button" class="quiet">保留记录</button><button class="danger">确认永久删除</button></div></form>
     </dialog>
   </main>
 </body>

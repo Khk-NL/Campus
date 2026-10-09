@@ -35,3 +35,11 @@ test('public website copy retains identity and privacy information with direct w
   assert.ok(privacy.includes('数据库管理员'));
   assert.ok(privacy.includes('发送给 ChatECNU'));
 });
+
+test('public pages keep administrative navigation separate', () => {
+  const directory = new URL('deploy/pocketbase/pb_public/', root);
+  for (const name of ['index', 'features', 'community', 'about', 'download', 'privacy']) {
+    const html = fs.readFileSync(new URL(`${name}.html`, directory), 'utf8');
+    assert.ok(!/href=["'][^"']*(?:admin\.html|\/_\/)/.test(html), name);
+  }
+});

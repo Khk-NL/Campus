@@ -4,6 +4,7 @@ import { createServer } from 'node:http';
 import { evidenceFromPages, rankEvidence, validateArtifact } from '../src/notebook.mjs';
 import { createHandler } from '../src/server.mjs';
 import { pdfFixture } from './pdf-fixture.mjs';
+import { requestLocal as fetch } from './local-http.mjs';
 
 test('search reaches the end of Markdown beyond the old 12000 character excerpt', () => {
   const evidence = evidenceFromPages({ id: 'note:n1', title: '教材', content: `${'普通章节\n'.repeat(4000)}\n# 末章\n罕见算法 zebraAlgorithm` });
