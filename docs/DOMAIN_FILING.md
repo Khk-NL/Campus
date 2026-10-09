@@ -14,7 +14,9 @@
 
 现有服务器位于阿里云中国内地，备案在阿里云办理。域名继续留在腾讯云注册、使用 DNSPod 解析即可。[阿里云备案服务器检查](https://help.aliyun.com/zh/icp-filing/basic-icp-service/user-guide/icp-filing-server-access-information-check)、[网站备案阻断](https://help.aliyun.com/zh/icp-filing/basic-icp-service/web-site-for-the-record-to-block-1)说明了接入商与恢复要求。
 
-## 接下来填写什么
+## 资料补正参考
+
+**2026-10-09 更新：** 已在阿里云订单页面核对，本次新增服务于 11:12 提交，当前处于阿里云初审，管局审核及短信核验尚未开始。下面的填写步骤保留为资料补正参考；当前下一步是留意审核电话、订单补正通知和后续核验短信。正式域名恢复前，App 与 PocketBase 邮件链接继续使用临时域名。
 
 1. 在 Edge 已打开的[阿里云备案系统](https://beian.aliyun.com/pcContainer/myorder)继续“新增/接入其它服务”。已填写网站域名 `scsldr.cn`，校验完成，选择“下一步”。当前账号已有备案主体，本次流程为“有主体新增服务”。
 2. 核对系统带出的主办者信息和腾讯云域名实名认证信息。姓名、证件与联系方式按本人实际信息填写；证件图片、人脸和短信核验直接在官方页面完成。
