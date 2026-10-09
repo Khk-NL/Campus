@@ -50,7 +50,7 @@ async function withServer(callback) {
     state.modelCalls++;
     const messages = JSON.parse(opts.body).messages;
     state.messages = messages;
-    const evidenceId = /evidenceId=([a-f0-9]+)/.exec(JSON.stringify(messages))?.[1];
+    const evidenceId = /Evidence ID: (S\d+)/.exec(JSON.stringify(messages))?.[1];
     const content = messages[0].content.includes('JSON') ? JSON.stringify({title:'光合作用',cards:[{front:'能量转换?',back:'光能转为化学能',evidenceIds:[evidenceId]}]}) : '你认为光能如何转化？[1]';
     return Response.json({choices:[{message:{content}}]});
   });

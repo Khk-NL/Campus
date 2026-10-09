@@ -21,7 +21,7 @@ const [a, b] = await Promise.all(credentials.map(async (c) => {
 }));
 const courseId = `studio-qa-${Date.now()}`;
 const notes = [], artifacts = [], cards = [];
-let ws, savedWorkspace;
+let ws, savedWorkspace, savedSchemaVersion;
 try {
   const status = await good('能力状态', '/ai/v1/status', a.token);
   assert.equal(status.ready, true);
@@ -66,18 +66,18 @@ try {
     if (kind === 'mindmap') assert.ok(artifact.payload.layout.edges.length > 0);
   }
   const list = await good('读取测试用户工作台', '/api/collections/study_workspaces/records?perPage=1', a.token);
-  ws = list.items?.[0]; savedWorkspace = ws?.payload;
+  ws = list.items?.[0]; savedWorkspace = ws?.payload; savedSchemaVersion = ws?.schemaVersion;
   const payload = structuredClone(savedWorkspace || {});
   const agentId = `qa-agent-${Date.now()}`;
   payload.agents = [...(payload.agents || []), { id: agentId, courseId, name: '验收导师', prompt: '先给一句简要解释，再提出一个引导问题。', tools: ['search'], description: '验收', knowledgeBaseIds: [] }];
-  ws = await good('保存测试智能体', ws ? `/api/collections/study_workspaces/records/${ws.id}` : '/api/collections/study_workspaces/records', a.token, { owner: a.id, schemaVersion: 1, payload }, ws ? 'PATCH' : 'POST');
+  ws = await good('保存测试智能体', ws ? `/api/collections/study_workspaces/records/${ws.id}` : '/api/collections/study_workspaces/records', a.token, { owner: a.id, schemaVersion: savedSchemaVersion || 1, payload }, ws ? 'PATCH' : 'POST');
   const first = await good('智能体首轮远程对话', '/ai/v1/agents/ask', a.token, { ...scope, agentId, question: '解释光合作用' }); artifacts.push(first.id);
   const second = await good('智能体第二轮与历史持久化', '/ai/v1/agents/ask', a.token, { ...scope, agentId, conversationId: first.id, question: '叶绿体有什么作用？' });
   assert.equal(second.payload.messages.length, 4); assert.ok(second.payload.messages[3].citations.length > 0);
   console.log('PASS 全部公网学习能力验收');
 } finally {
   if (ws) {
-    const restored = await request(`/api/collections/study_workspaces/records/${ws.id}`, a.token, savedWorkspace ? { payload: savedWorkspace } : undefined, savedWorkspace ? 'PATCH' : 'DELETE');
+    const restored = await request(`/api/collections/study_workspaces/records/${ws.id}`, a.token, savedWorkspace ? { payload: savedWorkspace, schemaVersion: savedSchemaVersion } : undefined, savedWorkspace ? 'PATCH' : 'DELETE');
     assert.ok([200, 204].includes(restored.status));
   }
   for (const [collection, ids] of [['course_review_cards', cards], ['course_artifacts', artifacts], ['course_notes', notes]]) {

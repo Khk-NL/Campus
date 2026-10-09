@@ -264,7 +264,7 @@ export function createHandler(config, fetcher = fetch) {
       }
     } catch (error) {
       const status = Number.isInteger(error.status) ? error.status : 502;
-      reply(response, status, { error: status < 500 ? error.message : '后端暂不可用' });
+      reply(response, status, { error: error.status ? error.message : '后端暂不可用' });
     }
   };
 }
