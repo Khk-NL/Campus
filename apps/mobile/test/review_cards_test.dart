@@ -104,7 +104,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('记得'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('复习未保存'), findsOneWidget);
+    expect(find.textContaining('复习保存失败'), findsOneWidget);
     expect(find.textContaining('今天待复习 1 张'), findsOneWidget);
     expect(tester.takeException(), isNull);
     await tester.pump(const Duration(seconds: 5));

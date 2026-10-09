@@ -191,7 +191,7 @@ class _ReviewCardsPageState extends State<ReviewCardsPage> {
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('复习未保存：$error')));
+            .showSnackBar(SnackBar(content: Text('复习保存失败：$error')));
       }
     }
   }
@@ -238,7 +238,7 @@ class _ReviewCardsPageState extends State<ReviewCardsPage> {
             if (cards.isEmpty)
               const Padding(
                 padding: EdgeInsets.all(24),
-                child: Center(child: Text('还没有卡片。可以从笔记制作，也可以直接新建。')),
+                child: Center(child: Text('从笔记制作卡片，或直接新建卡片。')),
               ),
             for (final ReviewCard card in cards)
               Card(

@@ -161,7 +161,9 @@ class _CourseHubPageState extends State<CourseHubPage> {
                   final List<Course> courses =
                       snapshot.data ?? const <Course>[];
                   if (courses.isEmpty) {
-                    return const Card(child: ListTile(title: Text('暂无课程')));
+                    return const Card(
+                      child: ListTile(title: Text('导入课表，开始整理课程')),
+                    );
                   }
                   return Column(
                     children: <Widget>[

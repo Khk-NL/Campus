@@ -144,7 +144,7 @@ class _CourseNotebookViewState extends State<CourseNotebookView> {
             children: <Widget>[
               Text(title, style: Theme.of(context).textTheme.titleLarge),
               const SizedBox(height: 14),
-              SelectableText(content.isEmpty ? '暂无正文' : content),
+              SelectableText(content.isEmpty ? '请添加笔记正文' : content),
             ],
           ),
         ),
@@ -356,7 +356,7 @@ class _CourseNotebookViewState extends State<CourseNotebookView> {
         ListTile(
           leading: const Icon(Icons.folder_outlined),
           title: Text(base.name),
-          subtitle: const Text('尚无可检索文件'),
+          subtitle: const Text('请先导入可检索的资料'),
         ),
     ],
   );
@@ -434,7 +434,7 @@ class _CourseNotebookViewState extends State<CourseNotebookView> {
         if (_sessions.isEmpty)
           const _NotebookEmpty(
             icon: Icons.question_answer_outlined,
-            title: '还没有问题',
+            title: '开始你的第一个问题',
             detail: '提出第一个问题，从资料和自己的观察开始。',
           ),
         for (final StudySession session in _sessions)

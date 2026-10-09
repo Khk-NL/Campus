@@ -72,7 +72,7 @@ class _StudyPageState extends State<StudyPage> {
         _error = null;
       });
     } on Exception catch (error) {
-      if (mounted) setState(() => _error = '无法读取课程记录：$error');
+      if (mounted) setState(() => _error = '课程记录读取失败：$error');
     }
   }
 
@@ -303,7 +303,7 @@ class _StudyPageState extends State<StudyPage> {
     String title;
     String detail;
     if (url.isEmpty) {
-      title = 'EduWork 网关未配置';
+      title = '请配置 EduWork 网关';
       detail = '请先在本机配置文件中填写 CAMPUS_EDUWORK_GATEWAY_URL 并重新构建应用。';
     } else {
       try {
@@ -314,12 +314,12 @@ class _StudyPageState extends State<StudyPage> {
                   ? session!.client.authStore.token
                   : null,
             );
-        title = status.ready ? '网关已就绪' : '网关在线，EduWork 尚未就绪';
+        title = status.ready ? '网关已就绪' : '网关在线，学习服务准备中';
         detail =
             '契约：${EduWorkGatewayProbe.contract}\n'
-            '课程问答：${status.aiReady ? '已配置' : '未配置'}\n'
-            'EduWork 版本：${status.eduWorkRevision.isEmpty ? '未报告' : status.eduWorkRevision}\n'
-            '可用能力：${status.capabilityIds.isEmpty ? '未报告' : status.capabilityIds.join('、')}';
+            '课程问答：${status.aiReady ? '已配置' : '待配置'}\n'
+            'EduWork 版本：${status.eduWorkRevision.isEmpty ? '待获取' : status.eduWorkRevision}\n'
+            '可用能力：${status.capabilityIds.isEmpty ? '待获取' : status.capabilityIds.join('、')}';
       } on Exception catch (error) {
         title = '网关连接失败';
         detail = '$error';
@@ -472,7 +472,7 @@ class _StudyPageState extends State<StudyPage> {
       child: Text(
         widget.remote
             ? 'PocketBase · 学习记录已同步'
-            : '${widget.localStorageName ?? '本机演示'} · 学习记录未同步',
+            : '${widget.localStorageName ?? '本机演示'} · 本机学习记录',
       ),
     ),
   );
@@ -535,13 +535,13 @@ class _StudyPageState extends State<StudyPage> {
     padding: const EdgeInsets.all(16),
     children: <Widget>[
       if (_sessionsFor(workspace).isEmpty)
-        const _EmptyCard('还没有学习记录。请从“学习任务”开始。'),
+        const _EmptyCard('从“学习任务”开始，记录学习过程。'),
       for (final StudySession session in _sessionsFor(workspace).reversed)
         Card(
           child: ListTile(
             title: Text(_activityFor(workspace, session).title),
             subtitle: Text(
-              session.question.isEmpty ? '尚未填写问题' : session.question,
+              session.question.isEmpty ? '尚请填写问题' : session.question,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
@@ -576,12 +576,12 @@ class _StudyPageState extends State<StudyPage> {
           label: const Text('新建知识库'),
         ),
       ),
-      if (_knowledgeBasesFor(workspace).isEmpty) const _EmptyCard('这门课还没有知识库'),
+      if (_knowledgeBasesFor(workspace).isEmpty) const _EmptyCard('为这门课添加知识库'),
       for (final StudyKnowledgeBase base in _knowledgeBasesFor(workspace))
         Card(
           child: ListTile(
             title: Text(base.name),
-            subtitle: const Text('文件未接入'),
+            subtitle: const Text('资料接入待配置'),
             trailing: TextButton(
               onPressed: () => _remoteNotice('文件上传与 RAG 检索'),
               child: const Text('上传文件'),
@@ -627,7 +627,7 @@ class _StudyPageState extends State<StudyPage> {
           label: const Text('新增条目'),
         ),
       ),
-      if (_wikiEntriesFor(workspace).isEmpty) const _EmptyCard('这门课还没有知识条目'),
+      if (_wikiEntriesFor(workspace).isEmpty) const _EmptyCard('添加这门课的知识条目'),
       for (final StudyWikiEntry entry in _wikiEntriesFor(workspace).where(
         (StudyWikiEntry entry) =>
             (_wikiTopic == null || entry.topic == _wikiTopic) &&
@@ -660,13 +660,13 @@ class _StudyPageState extends State<StudyPage> {
           label: const Text('新建智能体'),
         ),
       ),
-      if (_agentsFor(workspace).isEmpty) const _EmptyCard('这门课还没有智能体草稿'),
+      if (_agentsFor(workspace).isEmpty) const _EmptyCard('创建这门课的智能体'),
       for (final StudyAgent agent in _agentsFor(workspace))
         Card(
           child: ListTile(
             title: Text(agent.name),
             subtitle: Text(
-              '${agent.description}\n工具：${agent.tools.join('、').isEmpty ? '无' : agent.tools.join('、')} · 温度 ${agent.temperature.toStringAsFixed(1)}',
+              '${agent.description}\n工具：${agent.tools.join('、').isEmpty ? '基础对话' : agent.tools.join('、')} · 温度 ${agent.temperature.toStringAsFixed(1)}',
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
             ),
@@ -727,7 +727,7 @@ class _StudyPageState extends State<StudyPage> {
     context: context,
     builder: (BuildContext context) => AlertDialog(
       title: Text('$capability · 待接入'),
-      content: const Text('远程服务未接入。'),
+      content: const Text('请先配置远程服务。'),
       actions: <Widget>[
         TextButton(
           onPressed: () => Navigator.pop(context),
@@ -983,7 +983,7 @@ class _AgentDialogState extends State<_AgentDialog> {
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
               title: const Text('拟共享给班级'),
-              subtitle: const Text('仅保存意向，不会真实发布'),
+              subtitle: const Text('保存发布意向'),
               value: shared,
               onChanged: (bool value) => setState(() => shared = value),
             ),

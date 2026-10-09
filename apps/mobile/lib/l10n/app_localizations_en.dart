@@ -60,8 +60,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get demoDataExplanation =>
-      'The backend does not serve this block yet, so built-in demo data is shown and nothing is synced.';
+  String get demoDataExplanation => 'Built-in demo data for exploring the app.';
 
   @override
   String get dataSourceServicesOnline => 'Catalogue · backend connected';
@@ -108,16 +107,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get actionJoin => 'Join';
 
   @override
-  String get actionDecline => 'Not joining';
+  String get actionDecline => 'Withdraw';
 
   @override
-  String get actionCannotAttend => 'Cannot attend';
+  String get actionCannotAttend => 'Request leave';
 
   @override
   String get actionMaybe => 'Maybe';
 
   @override
-  String get actionNotStarted => 'Not started';
+  String get actionNotStarted => 'To start';
 
   @override
   String get actionInProgress => 'In progress';
@@ -126,7 +125,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get actionDone => 'Done';
 
   @override
-  String get actionCannotComplete => 'Cannot complete';
+  String get actionCannotComplete => 'Needs adjustment';
 
   @override
   String get actionAddToCalendar => 'Add to calendar';
@@ -144,14 +143,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get stateError => 'Something went wrong';
 
   @override
-  String get stateEmpty => 'Nothing here yet';
+  String get stateEmpty => 'Content will appear here';
 
   @override
   String get stateOfflineTitle => 'Offline demo data';
 
   @override
-  String get stateOfflineBody =>
-      'Using local demo data; changes are not synced';
+  String get stateOfflineBody => 'Local demo mode';
 
   @override
   String get stateOnline => 'Connected to the backend';
@@ -160,25 +158,25 @@ class AppLocalizationsEn extends AppLocalizations {
   String get stateMockBadge => 'Demo data';
 
   @override
-  String get stateUnverified => 'Entry not verified';
+  String get stateUnverified => 'Entry awaiting verification';
 
   @override
   String get homeToday => 'Today';
 
   @override
-  String get homeNoTodayItems => 'No classes or events today';
+  String get homeNoTodayItems => 'Your day is open';
 
   @override
   String get homeTasks => 'Tasks';
 
   @override
-  String get homeNoTasks => 'No pending tasks';
+  String get homeNoTasks => 'Add a task to plan what comes next';
 
   @override
   String get homeCampus => 'Campulse';
 
   @override
-  String get homeNoCampusItems => 'No announcements or service updates yet';
+  String get homeNoCampusItems => 'Campus updates will appear here';
 
   @override
   String get homeQuickAccess => 'Quick access';
@@ -193,7 +191,7 @@ class AppLocalizationsEn extends AppLocalizations {
       locale: localeName,
       other: '$count tasks',
       one: '1 task',
-      zero: 'No tasks',
+      zero: '0 tasks',
     );
     return '$_temp0';
   }
@@ -205,7 +203,7 @@ class AppLocalizationsEn extends AppLocalizations {
       locale: localeName,
       other: '$count events',
       one: '1 event',
-      zero: 'No events',
+      zero: '0 events',
     );
     return '$_temp0';
   }
@@ -234,7 +232,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get timetableTermUnverified => 'Term dates unverified';
+  String get timetableTermUnverified => 'Term dates awaiting verification';
 
   @override
   String get timetableCurrentWeek => 'This week';
@@ -251,22 +249,22 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get timetableNoCourses => 'No classes this week';
+  String get timetableNoCourses => 'Your week is open';
 
   @override
-  String get timetableUnscheduled => 'Not scheduled';
+  String get timetableUnscheduled => 'Time to be arranged';
 
   @override
   String get timetableCourseTasks => 'Course tasks';
 
   @override
-  String get timetableNoCourseTasks => 'No course-related tasks';
+  String get timetableNoCourseTasks => 'Add a course task';
 
   @override
   String get timetableCourseNotices => 'Course notices';
 
   @override
-  String get timetableNoCourseNotices => 'No course-related notices';
+  String get timetableNoCourseNotices => 'Course notices will appear here';
 
   @override
   String relativeOverdue(Object days) {
@@ -285,7 +283,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get relativeNoDeadline => 'No deadline';
+  String get relativeNoDeadline => 'Flexible timing';
 
   @override
   String get searchHint => 'Search services, apps, courses, transactions';
@@ -294,7 +292,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get searchTitle => 'Search';
 
   @override
-  String get searchNoResults => 'No matching results';
+  String get searchNoResults => 'Try another keyword or filter';
 
   @override
   String get searchSectionAll => 'All';
@@ -327,7 +325,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get inboxFilterAll => 'All';
 
   @override
-  String get inboxEmpty => 'Nothing needs your attention right now';
+  String get inboxEmpty => 'All caught up';
 
   @override
   String get inboxFeedbackLabel => 'Feedback';
@@ -370,7 +368,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appsForge => 'Campulse projects';
 
   @override
-  String get appsForgeEmpty => 'No student projects yet';
+  String get appsForgeEmpty => 'Student projects will appear here';
 
   @override
   String get appsForgeSearch => 'Search student projects';
@@ -385,10 +383,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appsGroupMiniProgram => 'Mini programs';
 
   @override
-  String get appsGroupEmpty => 'Nothing in this group yet';
+  String get appsGroupEmpty => 'Service entries will appear here';
 
   @override
-  String get appsEmpty => 'No campus services yet';
+  String get appsEmpty => 'Campus services will appear here';
 
   @override
   String appsSubListLabel(String group, int count) {
@@ -399,7 +397,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appsSearchHint => 'Search this sub-list';
 
   @override
-  String get appsSearchEmpty => 'No entry matches';
+  String get appsSearchEmpty => 'Try another keyword or category';
 
   @override
   String get appsSortLabel => 'Sort';
@@ -447,24 +445,25 @@ class AppLocalizationsEn extends AppLocalizations {
   String get launchOpenInBrowser => 'Open in browser';
 
   @override
-  String get launchWebViewFailed => 'This page cannot open in the app';
+  String get launchWebViewFailed =>
+      'Page loading failed. Try opening it in a browser.';
 
   @override
   String get launchMiniProgramNotWired =>
-      'WeChat mini programs are not connected yet';
+      'Update to a build with WeChat launching configured';
 
   @override
   String get launchMiniProgramNoWeChat =>
       'Install WeChat to open this mini program';
 
   @override
-  String get launchCampusAppUnsupported => 'Campulse apps cannot be opened yet';
+  String get launchCampusAppUnsupported => 'App launching awaits integration';
 
   @override
   String get storeTitle => 'Student apps';
 
   @override
-  String get storeEmpty => 'The store is empty';
+  String get storeEmpty => 'Apps will appear here';
 
   @override
   String get storeDeveloperLabel => 'Developer';
@@ -488,10 +487,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get storeTagAll => 'All';
 
   @override
-  String get storeTagEmpty => 'No apps carry this tag';
+  String get storeTagEmpty => 'Try another tag';
 
   @override
-  String get storeDeveloperUnknown => 'Not published';
+  String get storeDeveloperUnknown => 'Developer to be announced';
 
   @override
   String get dataSourceAppsOnline => 'Student apps · connected to the backend';
@@ -558,7 +557,7 @@ class AppLocalizationsEn extends AppLocalizations {
       'Campulse is a campus digital workbench for university students: it gathers services scattered across websites, mini programs and native apps into one entry point, and turns campus information into structured transactions.';
 
   @override
-  String get profileNotSignedIn => 'Not signed in';
+  String get profileNotSignedIn => 'Sign in';
 
   @override
   String get profileSignIn => 'Sign in';
@@ -579,8 +578,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileLoginDialogTitle => 'Sign in';
 
   @override
-  String get profileLoginDialogBody =>
-      'University sign-in is not connected yet. Demo identity only.';
+  String get profileLoginDialogBody => 'Explore the app with a demo identity.';
 
   @override
   String get categoryOfficialHub => 'Official hub';
@@ -643,7 +641,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get transactionTask => 'Task';
 
   @override
-  String get taskStatusNotStarted => 'Not started';
+  String get taskStatusNotStarted => 'To start';
 
   @override
   String get taskStatusInProgress => 'In progress';
@@ -652,11 +650,53 @@ class AppLocalizationsEn extends AppLocalizations {
   String get taskStatusCompleted => 'Completed';
 
   @override
-  String get taskStatusBlocked => 'Blocked';
+  String get taskStatusBlocked => 'Needs adjustment';
 
   @override
-  String get errorServiceLaunchFailed => 'Could not open this service';
+  String get errorServiceLaunchFailed => 'Service opening failed. Try again.';
 
   @override
   String get errorBackendUnreachable => 'Backend unreachable';
+
+  @override
+  String get themeColors => 'Theme colours';
+
+  @override
+  String get themeColorsDefault => 'Default · Red & gold';
+
+  @override
+  String get themeColorsCustom => 'Custom palette';
+
+  @override
+  String get themePrimary => 'Primary';
+
+  @override
+  String get themeAccent => 'Accent';
+
+  @override
+  String get themeHexError => 'Enter a six-digit colour, e.g. #A41F35';
+
+  @override
+  String get themeSave => 'Apply palette';
+
+  @override
+  String get themeReset => 'Restore default';
+
+  @override
+  String get themeSaveError => 'Palette save failed. Try again.';
+
+  @override
+  String get themePreview => 'Palette preview';
+
+  @override
+  String get themePresetRedGold => 'Red & gold';
+
+  @override
+  String get themePresetBlueViolet => 'Blue & violet';
+
+  @override
+  String get themePresetPurplePink => 'Purple & pink';
+
+  @override
+  String get themePresetAmber => 'Amber';
 }

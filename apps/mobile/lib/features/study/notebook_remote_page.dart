@@ -667,20 +667,24 @@ class _NotebookRemotePageState extends State<NotebookRemotePage>
         'conversation': Icons.forum_outlined,
       }[kind] ??
       Icons.article_outlined;
-  Color _kindColor(String kind) => _kindColors.putIfAbsent(
-    '${Theme.of(context).brightness}:$kind:${Theme.of(context).colorScheme.primary.toARGB32()}',
-    () => ColorScheme.fromSeed(
-      seedColor:
-          <String, Color>{
-            'quiz': const Color(0xff9e3451),
-            'flashcards': const Color(0xff536ea7),
-            'mindmap': const Color(0xff7561aa),
-            'conversation': const Color(0xff3b7399),
-          }[kind] ??
-          Theme.of(context).colorScheme.primary,
-      brightness: Theme.of(context).brightness,
-    ).primaryContainer,
-  );
+  Color _kindColor(String kind) {
+    if (kind == 'flashcards') {
+      return Theme.of(context).colorScheme.secondaryContainer;
+    }
+    return _kindColors.putIfAbsent(
+      '${Theme.of(context).brightness}:$kind:${Theme.of(context).colorScheme.primary.toARGB32()}',
+      () => ColorScheme.fromSeed(
+        seedColor:
+            <String, Color>{
+              'quiz': const Color(0xff9e3451),
+              'mindmap': const Color(0xff7561aa),
+              'conversation': const Color(0xff3b7399),
+            }[kind] ??
+            Theme.of(context).colorScheme.primary,
+        brightness: Theme.of(context).brightness,
+      ).primaryContainer,
+    );
+  }
 
   Widget _animatedArtifact() => AnimatedSwitcher(
     duration: MediaQuery.disableAnimationsOf(context)
@@ -942,7 +946,7 @@ class _NotebookRemotePageState extends State<NotebookRemotePage>
                         _evidence
                           ..clear()
                           ..addAll(_maps(result['evidence']));
-                        if (_evidence.isEmpty) _error = '所选资料中未找到相关内容';
+                        if (_evidence.isEmpty) _error = '请调整关键词，或选择其他资料';
                       }),
                 icon: const Icon(Icons.search),
                 label: const Text('搜索所选资料全文'),

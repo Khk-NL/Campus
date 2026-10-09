@@ -63,8 +63,8 @@ class CampusApp extends StatelessWidget {
               onGenerateTitle: (BuildContext context) =>
                   AppLocalizations.of(context).appTitle,
               debugShowCheckedModeBanner: false,
-              theme: CampusTheme.light(),
-              darkTheme: CampusTheme.dark(),
+              theme: CampusTheme.light(colors: state.themeColors),
+              darkTheme: CampusTheme.dark(colors: state.themeColors),
               themeMode: state.themeMode,
               // null = 跟随系统；非 null 时是用户在 Profile 里的选择。
               // null means "follow the system"; otherwise it is the user's own pick.

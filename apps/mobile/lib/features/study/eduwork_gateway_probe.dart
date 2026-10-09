@@ -37,7 +37,7 @@ class EduWorkGatewayProbe {
   }
 
   Future<EduWorkGatewayStatus> check({String? pocketBaseToken}) async {
-    if (baseUrl.trim().isEmpty) throw StateError('尚未配置 EduWork 网关地址');
+    if (baseUrl.trim().isEmpty) throw StateError('请先配置 EduWork 网关地址');
     final http.Client requestClient = client ?? http.Client();
     try {
       final http.Response response = await requestClient
@@ -58,7 +58,7 @@ class EduWorkGatewayProbe {
       }
       final Object? decoded = jsonDecode(response.body);
       if (decoded is! Map<String, dynamic> || decoded['contract'] != contract) {
-        throw const FormatException('响应不是 Campulse EduWork 网关 v1 契约');
+        throw const FormatException('网关响应格式校验失败，请检查服务版本');
       }
       return EduWorkGatewayStatus(
         ready: decoded['ready'] == true,
@@ -120,7 +120,7 @@ class EduWorkGatewayProbe {
       }
       final Object? answer = decoded['answer'];
       if (answer is! String || answer.trim().isEmpty) {
-        throw const FormatException('网关没有返回答案');
+        throw const FormatException('网关返回了空答案，请重试');
       }
       return CampusAiAnswer(
         answer,

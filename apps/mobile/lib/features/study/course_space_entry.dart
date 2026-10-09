@@ -96,7 +96,7 @@ class _CourseSpaceEntryState extends State<CourseSpaceEntry> {
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 8),
-              const Text('首次使用请先到「我的」注册并验证邮箱；此处不是学校统一身份认证。'),
+              const Text('首次使用请先到「我的」注册并验证邮箱。'),
               const SizedBox(height: 20),
               TextField(
                 controller: _email,

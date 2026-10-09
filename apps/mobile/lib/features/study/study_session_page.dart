@@ -87,7 +87,7 @@ class _StudySessionPageState extends State<StudySessionPage> {
     context: context,
     builder: (BuildContext context) => AlertDialog(
       title: Text('$title · 待接入'),
-      content: const Text('远程服务未接入。'),
+      content: const Text('请先配置远程服务。'),
       actions: <Widget>[
         TextButton(
           onPressed: () => Navigator.pop(context),
@@ -244,7 +244,7 @@ class _StudySessionPageState extends State<StudySessionPage> {
                           ),
                         ],
                       ),
-                      if (sources.isEmpty) const Text('暂无来源资料'),
+                      if (sources.isEmpty) const Text('请添加来源资料'),
                       for (final StudyEvidence source in sources)
                         Card(
                           child: ListTile(
@@ -293,7 +293,7 @@ class _StudySessionPageState extends State<StudySessionPage> {
                           items: <DropdownMenuItem<String?>>[
                             const DropdownMenuItem<String?>(
                               value: null,
-                              child: Text('不关联'),
+                              child: Text('独立记录'),
                             ),
                             for (final StudyWikiEntry entry
                                 in widget.workspace.wikiEntries.where(
@@ -323,7 +323,7 @@ class _StudySessionPageState extends State<StudySessionPage> {
                           items: <DropdownMenuItem<String?>>[
                             const DropdownMenuItem<String?>(
                               value: null,
-                              child: Text('不关联'),
+                              child: Text('独立记录'),
                             ),
                             for (final StudyKnowledgeBase base
                                 in widget.workspace.knowledgeBases.where(
@@ -364,7 +364,7 @@ class _StudySessionPageState extends State<StudySessionPage> {
                         items: <DropdownMenuItem<String?>>[
                           const DropdownMenuItem<String?>(
                             value: null,
-                            child: Text('通用助手（未接入）'),
+                            child: Text('通用助手（待配置）'),
                           ),
                           for (final StudyAgent agent
                               in widget.workspace.agents.where(
@@ -384,7 +384,7 @@ class _StudySessionPageState extends State<StudySessionPage> {
                       const SizedBox(height: 14),
                       Text(
                         AppConfig.configuredEduWorkGatewayUrl.isEmpty
-                            ? '学习助手 · 未配置'
+                            ? '学习助手 · 待配置'
                             : '学习助手',
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
@@ -454,7 +454,7 @@ class _StudySessionPageState extends State<StudySessionPage> {
                             ],
                           ),
                         const SizedBox(height: 6),
-                        const Text('AI 生成内容仅供参考；请核对来源。当前回答未保存。'),
+                        const Text('请核对 AI 回答的来源。当前回答保留在本次会话中。'),
                       ],
                     ],
                   ),
@@ -493,7 +493,7 @@ class _StudySessionPageState extends State<StudySessionPage> {
                       Text('反馈', style: Theme.of(context).textTheme.titleLarge),
                       Text(
                         widget.session.feedback.isEmpty
-                            ? '教师反馈未接入'
+                            ? '教师反馈 · 待配置'
                             : widget.session.feedback,
                       ),
                     ],

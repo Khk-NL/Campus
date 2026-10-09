@@ -1,13 +1,13 @@
 /// Campulse 设计规范 / the Campulse design tokens (§0.3, §0.9 手机优先).
 ///
 /// 色值不是猜的：主色取自学校官方的《标准色使用规范》（PANTONE 201C =
-/// `#A41F35`，规范写明"不得任意更改"）；雾蓝与蓝紫作为界面辅助色。所有颜色都从这里
+/// `#A41F35`，规范写明"不得任意更改"）；柔金黄与蓝紫作为界面辅助色。所有颜色都从这里
 /// 取，widget 里不允许出现字面量色值——换主题时改动点只有一个。主题文件**只放色值与
 /// 排版规则**，不出现任何高校专有字样（§3.1）。
 ///
 /// The colours are not guesses: the primary is the university's official standard colour
 /// (PANTONE 201C = `#A41F35`, which the specification says must not be altered) and the
-/// supporting hues are muted blue and blue-violet. Every colour comes from here; widgets never
+/// supporting hues are soft gold and blue-violet. Every colour comes from here; widgets never
 /// hold a literal colour, so re-theming touches one file. This file holds colour values
 /// and typography rules only, never a university-specific string (§3.1).
 ///
@@ -19,6 +19,8 @@
 library;
 
 import 'package:flutter/material.dart';
+
+import 'theme_colors.dart';
 
 /// 颜色令牌 / the colour tokens.
 class CampusColors {
@@ -133,7 +135,7 @@ class CampusStatusColors extends ThemeExtension<CampusStatusColors> {
 
   /// 浅色模式取值 / the light-mode values.
   static const CampusStatusColors light = CampusStatusColors(
-    success: Color(0xFF485FA3),
+    success: Color(0xFF806010),
     warning: Color(0xFF8A5A00),
     info: Color(0xFF1B4F9C),
     neutral: Color(0xFF5F5A63),
@@ -142,7 +144,7 @@ class CampusStatusColors extends ThemeExtension<CampusStatusColors> {
 
   /// 深色模式取值 / the dark-mode values.
   static const CampusStatusColors dark = CampusStatusColors(
-    success: Color(0xFFB4C4FF),
+    success: Color(0xFFEAC671),
     warning: Color(0xFFFFC46B),
     info: Color(0xFF9CC2FF),
     neutral: Color(0xFFC9C2CE),
@@ -191,15 +193,20 @@ class CampusTheme {
   const CampusTheme._();
 
   /// 浅色主题 / the light theme.
-  static ThemeData light() =>
-      _build(Brightness.light, CampusStatusColors.light);
+  static ThemeData light({ThemeColors? colors}) =>
+      _build(Brightness.light, CampusStatusColors.light, colors);
 
   /// 深色主题 / the dark theme.
-  static ThemeData dark() => _build(Brightness.dark, CampusStatusColors.dark);
+  static ThemeData dark({ThemeColors? colors}) =>
+      _build(Brightness.dark, CampusStatusColors.dark, colors);
 
-  static ThemeData _build(Brightness brightness, CampusStatusColors status) {
+  static ThemeData _build(
+    Brightness brightness,
+    CampusStatusColors status,
+    ThemeColors? colors,
+  ) {
     final bool isDark = brightness == Brightness.dark;
-    final ColorScheme scheme =
+    ColorScheme scheme =
         ColorScheme.fromSeed(
           seedColor: CampusColors.primary,
           brightness: brightness,
@@ -212,14 +219,14 @@ class CampusTheme {
           onPrimaryContainer: isDark
               ? CampusColors.primary10
               : CampusColors.primaryDeep,
-          secondary: isDark ? const Color(0xFFAFC6FF) : const Color(0xFF40609B),
-          onSecondary: isDark ? const Color(0xFF112E60) : Colors.white,
+          secondary: isDark ? const Color(0xFFEAC671) : const Color(0xFF7B5B12),
+          onSecondary: isDark ? const Color(0xFF402D00) : Colors.white,
           secondaryContainer: isDark
-              ? const Color(0xFF263951)
-              : const Color(0xFFDDE6FF),
+              ? const Color(0xFF49390F)
+              : const Color(0xFFFFF0C5),
           onSecondaryContainer: isDark
-              ? const Color(0xFFDDE6FF)
-              : const Color(0xFF19345F),
+              ? const Color(0xFFFFF0C5)
+              : const Color(0xFF49360A),
           tertiary: isDark ? const Color(0xFFBFC2FF) : const Color(0xFF555D99),
           onTertiary: isDark ? const Color(0xFF252B5F) : Colors.white,
           tertiaryContainer: isDark
@@ -234,14 +241,40 @@ class CampusTheme {
           error: status.danger,
         );
 
+    if (colors != null) {
+      final ColorScheme accent = ColorScheme.fromSeed(
+        seedColor: colors.secondary,
+        brightness: brightness,
+      );
+      scheme =
+          ColorScheme.fromSeed(
+            seedColor: colors.primary,
+            brightness: brightness,
+          ).copyWith(
+            secondary: accent.primary,
+            onSecondary: accent.onPrimary,
+            secondaryContainer: accent.primaryContainer,
+            onSecondaryContainer: accent.onPrimaryContainer,
+            secondaryFixed: accent.primaryFixed,
+            secondaryFixedDim: accent.primaryFixedDim,
+            onSecondaryFixed: accent.onPrimaryFixed,
+            onSecondaryFixedVariant: accent.onPrimaryFixedVariant,
+          );
+      status = status.copyWith(success: scheme.secondary, danger: scheme.error);
+    }
+
     // 顶部栏：标准色实色块 + 白色内容（官方"反白应用"），深色模式下用更暗的同族色。
     // The top bar: a solid standard-colour block with white content (the official reversed
     // application); dark mode uses a darker shade of the same family.
-    final Color appBarBackground = isDark
+    final Color appBarBackground = colors != null
+        ? scheme.primary
+        : isDark
         ? CampusColors.appBarDark
         : CampusColors.primary;
-    final Color onAppBar = Colors.white;
-    final Color hairline = isDark
+    final Color onAppBar = colors != null ? scheme.onPrimary : Colors.white;
+    final Color hairline = colors != null
+        ? scheme.outlineVariant
+        : isDark
         ? CampusColors.hairlineDark
         : CampusColors.hairlineLight;
 
@@ -249,7 +282,9 @@ class CampusTheme {
       useMaterial3: true,
       colorScheme: scheme,
       brightness: brightness,
-      scaffoldBackgroundColor: isDark
+      scaffoldBackgroundColor: colors != null
+          ? scheme.surface
+          : isDark
           ? CampusColors.scaffoldDark
           : CampusColors.scaffoldLight,
       visualDensity: VisualDensity.standard,
@@ -271,10 +306,10 @@ class CampusTheme {
         backgroundColor: appBarBackground,
         foregroundColor: onAppBar,
         surfaceTintColor: Colors.transparent,
-        iconTheme: const IconThemeData(color: Colors.white),
-        actionsIconTheme: const IconThemeData(color: Colors.white),
-        titleTextStyle: const TextStyle(
-          color: Colors.white,
+        iconTheme: IconThemeData(color: onAppBar),
+        actionsIconTheme: IconThemeData(color: onAppBar),
+        titleTextStyle: TextStyle(
+          color: onAppBar,
           fontSize: 19,
           fontWeight: FontWeight.w600,
         ),

@@ -70,7 +70,7 @@ class CourseCsvImport {
           firstPeriod < 1 ||
           lastPeriod < firstPeriod ||
           lastPeriod > periodsPerDay) {
-        error = '课程名、星期或节次无效';
+        error = '请检查课程名、星期和节次';
       } else if (startWeek == null ||
           endWeek == null ||
           startWeek < 1 ||
@@ -79,7 +79,7 @@ class CourseCsvImport {
         error = '教学周超出学期范围';
       } else if (custom.isNotEmpty &&
           (weeks == null || weeks.isEmpty || parity != WeekParity.all)) {
-        error = '自定义周次无效，或与单双周同时填写';
+        error = '请填写有效周次，并选择自定义周次或单双周其中一种';
       } else if (!<String>{
         '',
         '每周',
@@ -89,7 +89,7 @@ class CourseCsvImport {
         '双周',
         'even',
       }.contains(pattern)) {
-        error = '周次模式不支持';
+        error = '周次模式请填写 all、odd 或 even';
       }
       if (error != null) {
         result.add(CourseImportRow(line: index + 1, error: error));
@@ -244,7 +244,7 @@ class CourseCsvImport {
         field += char;
       }
     }
-    if (quoted) throw const FormatException('CSV 引号未闭合');
+    if (quoted) throw const FormatException('请补齐 CSV 字段的结束引号');
     if (field.isNotEmpty || row.isNotEmpty) {
       row.add(field);
       rows.add(row);

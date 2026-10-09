@@ -14,6 +14,9 @@ import 'package:campus_mobile/data/repositories/data_source_mode.dart';
 import 'package:campus_mobile/data/repositories/pocketbase_campus_repository.dart';
 import 'package:campus_mobile/core/pocketbase_session.dart';
 import 'package:campus_mobile/l10n/app_localizations.dart';
+
+import 'theme_color_settings.dart';
+
 import 'package:flutter/material.dart';
 
 /// 我的 / the profile screen.
@@ -283,7 +286,6 @@ class _ProfilePageState extends State<ProfilePage> {
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
-                const Text('使用 Campulse 账号，不是学校统一身份认证。'),
                 TextField(
                   controller: email,
                   keyboardType: TextInputType.emailAddress,
@@ -551,6 +553,7 @@ class _ProfilePageState extends State<ProfilePage> {
           _languageBlock(l10n, state),
           const SizedBox(height: 12),
           _appearanceBlock(l10n, state),
+          ThemeColorSettings(state: state),
           const SizedBox(height: 12),
           _dataSourceBlock(context, l10n, state),
         ],

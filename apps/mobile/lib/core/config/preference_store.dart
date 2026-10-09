@@ -11,6 +11,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:campus_mobile/core/theme/theme_colors.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// 偏好存储的薄封装 / a thin wrapper over preference storage.
@@ -43,6 +44,26 @@ class PreferenceStore {
 
   static const String _languageKey = 'campus.language';
   static const String _themeModeKey = 'campus.themeMode';
+  static const String _themeColorsKey = 'campulse.themeColors';
+
+  ThemeColors? readThemeColors() {
+    final List<String>? values = _preferences.getStringList(_themeColorsKey);
+    if (values == null || values.length != 2) return null;
+    final Color? primary = ThemeColors.parseHex(values[0]);
+    final Color? secondary = ThemeColors.parseHex(values[1]);
+    if (primary == null || secondary == null) return null;
+    return ThemeColors(primary: primary, secondary: secondary);
+  }
+
+  Future<void> writeThemeColors(ThemeColors? colors) async {
+    final bool saved = colors == null
+        ? await _preferences.remove(_themeColorsKey)
+        : await _preferences.setStringList(_themeColorsKey, <String>[
+            ThemeColors.hex(colors.primary),
+            ThemeColors.hex(colors.secondary),
+          ]);
+    if (!saved) throw StateError('Theme colours could not be saved');
+  }
 
   /// 收藏的键前缀：前缀后接**板块 id**，因此三个分组各占一条键，互不覆盖。
   /// The favorites key prefix; the **board id** follows it, so each group owns its own key

@@ -80,7 +80,7 @@ class _CourseNotesPageState extends State<CourseNotesPage> {
       final Uint8List bytes = await file.readAsBytes();
       if (extension == '.pdf') {
         if (bytes.length < 4 || ascii.decode(bytes.sublist(0, 4)) != '%PDF') {
-          throw const FormatException('所选文件不是有效的 PDF');
+          throw const FormatException('PDF 格式校验失败，请重新选择文件');
         }
         String excerpt = '';
         try {
@@ -99,7 +99,7 @@ class _CourseNotesPageState extends State<CourseNotesPage> {
             SnackBar(
               content: Text(
                 excerpt.isEmpty
-                    ? 'PDF 已导入；未提取到文字，暂不能用于 AI 提问'
+                    ? 'PDF 已导入，可阅读原文件；AI 提问需要包含可提取文字的资料'
                     : 'PDF 已导入；已提取部分文字供课程提问使用',
               ),
             ),
@@ -157,7 +157,7 @@ class _CourseNotesPageState extends State<CourseNotesPage> {
       context: context,
       builder: (BuildContext context) => AlertDialog(
         title: const Text('删除笔记？'),
-        content: Text('“${note.title}”删除后无法恢复。'),
+        content: Text('“${note.title}”将被永久删除，请先备份需要保留的内容。'),
         actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -219,7 +219,7 @@ class _CourseNotesPageState extends State<CourseNotesPage> {
           );
         }
         final List<CourseNote> notes = snapshot.data!;
-        if (notes.isEmpty) return const Center(child: Text('还没有课程笔记'));
+        if (notes.isEmpty) return const Center(child: Text('导入教材或新建笔记'));
         return RefreshIndicator(
           onRefresh: () async {
             _reload();

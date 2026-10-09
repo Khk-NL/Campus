@@ -79,7 +79,7 @@ class PocketBaseReviewCardRepository implements ReviewCardRepository {
   @override
   Future<ReviewCard> review(ReviewCard card, int rating) async {
     _ownerId;
-    if (gatewayUrl.isEmpty) throw StateError('复习排程服务尚未配置');
+    if (gatewayUrl.isEmpty) throw StateError('请先配置复习排程服务');
     final Uri uri = Uri.parse(
       '${gatewayUrl.replaceFirst(RegExp(r'/$'), '')}/v1/cards/${card.id}/review',
     );

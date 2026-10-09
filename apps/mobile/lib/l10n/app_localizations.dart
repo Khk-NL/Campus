@@ -197,7 +197,7 @@ abstract class AppLocalizations {
   /// 为什么这块是演示数据（§13-Phase 2 才建表）/ why this block is demo data
   ///
   /// In zh, this message translates to:
-  /// **'该块数据后端尚未提供接口，当前显示内置演示数据，不会同步。'**
+  /// **'当前展示内置演示数据，供体验操作流程。'**
   String get demoDataExplanation;
 
   /// No description provided for @dataSourceServicesOnline.
@@ -287,13 +287,13 @@ abstract class AppLocalizations {
   /// No description provided for @actionDecline.
   ///
   /// In zh, this message translates to:
-  /// **'不参加'**
+  /// **'退出活动'**
   String get actionDecline;
 
   /// No description provided for @actionCannotAttend.
   ///
   /// In zh, this message translates to:
-  /// **'无法参加'**
+  /// **'请假'**
   String get actionCannotAttend;
 
   /// No description provided for @actionMaybe.
@@ -305,7 +305,7 @@ abstract class AppLocalizations {
   /// No description provided for @actionNotStarted.
   ///
   /// In zh, this message translates to:
-  /// **'未开始'**
+  /// **'待开始'**
   String get actionNotStarted;
 
   /// No description provided for @actionInProgress.
@@ -323,7 +323,7 @@ abstract class AppLocalizations {
   /// No description provided for @actionCannotComplete.
   ///
   /// In zh, this message translates to:
-  /// **'无法完成'**
+  /// **'需调整'**
   String get actionCannotComplete;
 
   /// No description provided for @actionAddToCalendar.
@@ -359,7 +359,7 @@ abstract class AppLocalizations {
   /// No description provided for @stateEmpty.
   ///
   /// In zh, this message translates to:
-  /// **'暂无内容'**
+  /// **'内容将在这里展示'**
   String get stateEmpty;
 
   /// 后端不可用时的横幅标题 / banner title when the backend is unreachable
@@ -371,7 +371,7 @@ abstract class AppLocalizations {
   /// No description provided for @stateOfflineBody.
   ///
   /// In zh, this message translates to:
-  /// **'使用本机演示数据，改动不会同步'**
+  /// **'本机演示模式'**
   String get stateOfflineBody;
 
   /// No description provided for @stateOnline.
@@ -401,7 +401,7 @@ abstract class AppLocalizations {
   /// No description provided for @homeNoTodayItems.
   ///
   /// In zh, this message translates to:
-  /// **'今天没有课程或日程'**
+  /// **'今天可以自由安排'**
   String get homeNoTodayItems;
 
   /// No description provided for @homeTasks.
@@ -413,7 +413,7 @@ abstract class AppLocalizations {
   /// No description provided for @homeNoTasks.
   ///
   /// In zh, this message translates to:
-  /// **'没有待办事项'**
+  /// **'添加一项待办，安排接下来的事'**
   String get homeNoTasks;
 
   /// No description provided for @homeCampus.
@@ -425,7 +425,7 @@ abstract class AppLocalizations {
   /// No description provided for @homeNoCampusItems.
   ///
   /// In zh, this message translates to:
-  /// **'暂无校园公告与服务动态'**
+  /// **'校园公告与动态将在这里更新'**
   String get homeNoCampusItems;
 
   /// No description provided for @homeQuickAccess.
@@ -485,7 +485,7 @@ abstract class AppLocalizations {
   /// 学期锚点是演示值，周号仅供参考 / the term anchor is a demo value, so the week number is indicative only
   ///
   /// In zh, this message translates to:
-  /// **'学期起止未核实'**
+  /// **'学期起止待核实'**
   String get timetableTermUnverified;
 
   /// No description provided for @timetableCurrentWeek.
@@ -515,13 +515,13 @@ abstract class AppLocalizations {
   /// No description provided for @timetableNoCourses.
   ///
   /// In zh, this message translates to:
-  /// **'本周没有课程'**
+  /// **'本周可以自由安排'**
   String get timetableNoCourses;
 
   /// No description provided for @timetableUnscheduled.
   ///
   /// In zh, this message translates to:
-  /// **'未排课'**
+  /// **'时间待安排'**
   String get timetableUnscheduled;
 
   /// No description provided for @timetableCourseTasks.
@@ -533,7 +533,7 @@ abstract class AppLocalizations {
   /// No description provided for @timetableNoCourseTasks.
   ///
   /// In zh, this message translates to:
-  /// **'没有课程相关待办'**
+  /// **'添加课程相关待办'**
   String get timetableNoCourseTasks;
 
   /// No description provided for @timetableCourseNotices.
@@ -545,7 +545,7 @@ abstract class AppLocalizations {
   /// No description provided for @timetableNoCourseNotices.
   ///
   /// In zh, this message translates to:
-  /// **'没有课程相关通知'**
+  /// **'课程通知将在这里更新'**
   String get timetableNoCourseNotices;
 
   /// No description provided for @relativeOverdue.
@@ -575,7 +575,7 @@ abstract class AppLocalizations {
   /// No description provided for @relativeNoDeadline.
   ///
   /// In zh, this message translates to:
-  /// **'无截止时间'**
+  /// **'灵活安排'**
   String get relativeNoDeadline;
 
   /// No description provided for @searchHint.
@@ -593,7 +593,7 @@ abstract class AppLocalizations {
   /// No description provided for @searchNoResults.
   ///
   /// In zh, this message translates to:
-  /// **'没有匹配的结果'**
+  /// **'试试其他关键词或筛选条件'**
   String get searchNoResults;
 
   /// No description provided for @searchSectionAll.
@@ -659,7 +659,7 @@ abstract class AppLocalizations {
   /// No description provided for @inboxEmpty.
   ///
   /// In zh, this message translates to:
-  /// **'暂时没有需要处理的事务'**
+  /// **'事务已处理完，稍后再来看看'**
   String get inboxEmpty;
 
   /// 结构化反馈区（§10）/ the structured feedback area
@@ -737,7 +737,7 @@ abstract class AppLocalizations {
   /// No description provided for @appsForgeEmpty.
   ///
   /// In zh, this message translates to:
-  /// **'暂无学生作品'**
+  /// **'校园作品将在这里展示'**
   String get appsForgeEmpty;
 
   /// No description provided for @appsForgeSearch.
@@ -767,13 +767,13 @@ abstract class AppLocalizations {
   /// 某个分组当前没有条目 / this group has no entries right now
   ///
   /// In zh, this message translates to:
-  /// **'该分组暂无入口'**
+  /// **'服务入口将在这里展示'**
   String get appsGroupEmpty;
 
   /// No description provided for @appsEmpty.
   ///
   /// In zh, this message translates to:
-  /// **'暂无校园服务'**
+  /// **'校园服务将在这里展示'**
   String get appsEmpty;
 
   /// 子列表切换器上的标题与条数 / a sub-list chip's title and count
@@ -791,7 +791,7 @@ abstract class AppLocalizations {
   /// 搜索没命中（区别于子列表本身为空）/ nothing matched the search, as opposed to an empty sub-list
   ///
   /// In zh, this message translates to:
-  /// **'没有匹配的入口'**
+  /// **'试试其他关键词或分类'**
   String get appsSearchEmpty;
 
   /// No description provided for @appsSortLabel.
@@ -881,25 +881,25 @@ abstract class AppLocalizations {
   /// No description provided for @launchWebViewFailed.
   ///
   /// In zh, this message translates to:
-  /// **'页面无法在应用内打开'**
+  /// **'页面加载失败，请尝试浏览器打开'**
   String get launchWebViewFailed;
 
   /// 装了微信、但本版本未接入 OpenSDK / WeChat is present but this build has not wired the SDK
   ///
   /// In zh, this message translates to:
-  /// **'微信小程序暂未接入'**
+  /// **'请更新至已配置微信跳转的版本'**
   String get launchMiniProgramNotWired;
 
   /// 设备未安装微信 / WeChat is not installed on this device
   ///
   /// In zh, this message translates to:
-  /// **'未安装微信，无法打开小程序'**
+  /// **'请安装微信后打开小程序'**
   String get launchMiniProgramNoWeChat;
 
   /// No description provided for @launchCampusAppUnsupported.
   ///
   /// In zh, this message translates to:
-  /// **'暂不支持打开 Campulse 应用'**
+  /// **'应用启动功能待接入'**
   String get launchCampusAppUnsupported;
 
   /// No description provided for @storeTitle.
@@ -911,7 +911,7 @@ abstract class AppLocalizations {
   /// No description provided for @storeEmpty.
   ///
   /// In zh, this message translates to:
-  /// **'应用商店暂无内容'**
+  /// **'应用将在这里展示'**
   String get storeEmpty;
 
   /// No description provided for @storeDeveloperLabel.
@@ -959,13 +959,13 @@ abstract class AppLocalizations {
   /// 某个标签下没有应用（不是没有数据，而是该筛选无结果）/ no app carries the selected tag
   ///
   /// In zh, this message translates to:
-  /// **'该标签下暂无应用'**
+  /// **'试试其他标签'**
   String get storeTagEmpty;
 
   /// 后端只发 developerId、不发名字时的诚实说法 / what to say when the backend sends no developer name
   ///
   /// In zh, this message translates to:
-  /// **'未公开'**
+  /// **'开发者待公开'**
   String get storeDeveloperUnknown;
 
   /// 学生应用来自后端 / the student-app list comes from the backend
@@ -1097,7 +1097,7 @@ abstract class AppLocalizations {
   /// No description provided for @profileNotSignedIn.
   ///
   /// In zh, this message translates to:
-  /// **'未登录'**
+  /// **'登录账号'**
   String get profileNotSignedIn;
 
   /// No description provided for @profileSignIn.
@@ -1139,7 +1139,7 @@ abstract class AppLocalizations {
   /// No description provided for @profileLoginDialogBody.
   ///
   /// In zh, this message translates to:
-  /// **'学校统一身份认证未接入。当前仅支持演示身份。'**
+  /// **'使用演示身份体验操作流程。'**
   String get profileLoginDialogBody;
 
   /// No description provided for @categoryOfficialHub.
@@ -1265,7 +1265,7 @@ abstract class AppLocalizations {
   /// No description provided for @taskStatusNotStarted.
   ///
   /// In zh, this message translates to:
-  /// **'未开始'**
+  /// **'待开始'**
   String get taskStatusNotStarted;
 
   /// No description provided for @taskStatusInProgress.
@@ -1283,20 +1283,104 @@ abstract class AppLocalizations {
   /// No description provided for @taskStatusBlocked.
   ///
   /// In zh, this message translates to:
-  /// **'无法完成'**
+  /// **'需调整'**
   String get taskStatusBlocked;
 
   /// No description provided for @errorServiceLaunchFailed.
   ///
   /// In zh, this message translates to:
-  /// **'无法打开该服务'**
+  /// **'服务打开失败，请重试'**
   String get errorServiceLaunchFailed;
 
   /// No description provided for @errorBackendUnreachable.
   ///
   /// In zh, this message translates to:
-  /// **'后端不可达'**
+  /// **'连接失败，请检查网络'**
   String get errorBackendUnreachable;
+
+  /// No description provided for @themeColors.
+  ///
+  /// In zh, this message translates to:
+  /// **'主题色'**
+  String get themeColors;
+
+  /// No description provided for @themeColorsDefault.
+  ///
+  /// In zh, this message translates to:
+  /// **'默认 · 红金'**
+  String get themeColorsDefault;
+
+  /// No description provided for @themeColorsCustom.
+  ///
+  /// In zh, this message translates to:
+  /// **'自定义配色'**
+  String get themeColorsCustom;
+
+  /// No description provided for @themePrimary.
+  ///
+  /// In zh, this message translates to:
+  /// **'主色'**
+  String get themePrimary;
+
+  /// No description provided for @themeAccent.
+  ///
+  /// In zh, this message translates to:
+  /// **'辅助色'**
+  String get themeAccent;
+
+  /// No description provided for @themeHexError.
+  ///
+  /// In zh, this message translates to:
+  /// **'请输入六位色值，例如 #A41F35'**
+  String get themeHexError;
+
+  /// No description provided for @themeSave.
+  ///
+  /// In zh, this message translates to:
+  /// **'应用配色'**
+  String get themeSave;
+
+  /// No description provided for @themeReset.
+  ///
+  /// In zh, this message translates to:
+  /// **'恢复默认'**
+  String get themeReset;
+
+  /// No description provided for @themeSaveError.
+  ///
+  /// In zh, this message translates to:
+  /// **'配色保存失败，请重试'**
+  String get themeSaveError;
+
+  /// No description provided for @themePreview.
+  ///
+  /// In zh, this message translates to:
+  /// **'配色预览'**
+  String get themePreview;
+
+  /// No description provided for @themePresetRedGold.
+  ///
+  /// In zh, this message translates to:
+  /// **'红金'**
+  String get themePresetRedGold;
+
+  /// No description provided for @themePresetBlueViolet.
+  ///
+  /// In zh, this message translates to:
+  /// **'蓝紫'**
+  String get themePresetBlueViolet;
+
+  /// No description provided for @themePresetPurplePink.
+  ///
+  /// In zh, this message translates to:
+  /// **'紫粉'**
+  String get themePresetPurplePink;
+
+  /// No description provided for @themePresetAmber.
+  ///
+  /// In zh, this message translates to:
+  /// **'琥珀'**
+  String get themePresetAmber;
 }
 
 class _AppLocalizationsDelegate

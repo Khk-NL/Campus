@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow"><meta name="referrer" content="same-origin">
+  <title>运营台 · Campulse</title>
+  <link rel="icon" href="/assets/favicon.png"><link rel="stylesheet" href="/assets/admin.css">
+  <script src="/assets/admin.mjs" type="module"></script>
+</head>
+<body>
+  <header><a href="/">Campulse</a><span>运营台</span><a href="/_/" target="_blank" rel="noopener">数据库后台 ↗</a></header>
+  <main>
+    <section id="login" class="card login">
+      <h1>管理员登录</h1>
+      <form id="login-form">
+        <label>邮箱<input name="email" type="email" autocomplete="username" required></label>
+        <label>密码<input name="password" type="password" autocomplete="current-password" required></label>
+        <button>登录运营台</button>
+      </form>
+    </section>
+    <p id="message" role="status" aria-live="polite"></p>
+    <section id="dashboard" hidden>
+      <div class="toolbar"><div><h1>云端内容</h1><p>手机保存后，刷新即可查看最新记录。</p></div><button id="refresh">刷新</button><button id="logout" class="secondary">退出</button></div>
+      <div class="toolbar"><label>数据分区<select id="collection"></select></label><label id="owner-field">用户 ID<input id="owner" placeholder="点击用户列表中的查看内容"></label><button id="filter">查看</button><button id="new-app">发布校园作品</button></div>
+      <p id="summary"></p>
+      <div class="card table-wrap"><table><thead><tr><th>记录</th><th>用户 / 类型</th><th>状态</th><th>操作</th></tr></thead><tbody id="rows"></tbody></table></div>
+      <div class="pager"><button id="previous" class="secondary">上一页</button><span id="page"></span><button id="next" class="secondary">下一页</button></div>
+      <section id="detail" class="card" hidden><h2>内容详情</h2><pre id="detail-text"></pre></section>
+    </section>
+    <dialog id="app-dialog">
+      <form id="app-form">
+        <h2>校园作品</h2>
+        <input name="id" type="hidden">
+        <label>名称<input name="name" required maxlength="120"></label>
+        <label>开发者<input name="developerName" maxlength="120"></label>
+        <label>使用地址<input name="url" type="url" required placeholder="https://"></label>
+        <label>GitHub 仓库<input name="repository" type="url" placeholder="https://github.com/作者/项目"></label>
+        <label>简介<textarea name="description" rows="3" maxlength="4000"></textarea></label>
+        <label>标签<input name="tags" placeholder="用逗号分隔" maxlength="500"></label>
+        <label class="check"><input name="published" type="checkbox">发布到应用目录</label>
+        <p id="app-message" role="status"></p>
+        <div class="toolbar"><button type="button" id="cancel-app" class="secondary">取消</button><button>保存作品</button></div>
+      </form>
+    </dialog>
+  </main>
+</body>
+</html>

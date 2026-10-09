@@ -167,10 +167,10 @@ class _TaskPlannerState extends State<TaskPlanner> {
             padding: const EdgeInsets.all(24),
             child: Text(
               _query.isNotEmpty || tag != null
-                  ? '没有匹配的计划'
+                  ? '试试其他关键词或筛选条件'
                   : _completed
-                  ? '还没有已完成计划'
-                  : '暂无待办计划',
+                  ? '完成计划后在这里查看'
+                  : '添加计划，安排接下来的事',
             ),
           ),
         for (final StudyActivity task in visible) _tile(context, task),

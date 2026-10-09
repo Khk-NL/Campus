@@ -42,8 +42,8 @@ class PocketBaseCampusRepository
     if (detail.contains('Handshake')) {
       return 'HTTPS 握手失败，请检查服务器 TLS 配置或设备网络';
     }
-    if (detail.contains('host lookup')) return '无法解析服务器域名';
-    return '无法连接服务器，请检查设备网络';
+    if (detail.contains('host lookup')) return '服务器域名解析失败，请检查网络';
+    return '服务器连接失败，请检查设备网络';
   }
 
   @override
@@ -106,7 +106,7 @@ class PocketBaseCampusRepository
       await requestVerification(email);
     } on Exception {
       throw const CampusAccountException(
-        '账号已创建，但邮件请求结果尚未确认。如已收到邮件，请打开最新邮件验证后登录；未收到时再重发，不要重复注册。',
+        '账号已创建，邮件发送状态待确认。请查收最新验证邮件，需要时可重新发送。',
       );
     }
   }
@@ -118,7 +118,7 @@ class PocketBaseCampusRepository
     } on ClientException catch (error) {
       throw CampusAccountException(
         error.statusCode == 0
-            ? '邮件请求结果尚未确认；如已收到邮件，请直接完成验证，否则稍后重发。'
+            ? '邮件发送状态待确认。请查收最新邮件，需要时稍后重发。'
             : '验证邮件请求失败（HTTP ${error.statusCode}），请稍后重试。',
       );
     }

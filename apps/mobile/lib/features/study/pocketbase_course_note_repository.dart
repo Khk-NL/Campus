@@ -105,7 +105,7 @@ class PocketBaseCourseNoteRepository implements CourseNoteRepository {
         .collection('course_notes')
         .getOne(note.id);
     final String fileName = record.getStringValue('attachment');
-    if (fileName.isEmpty) throw StateError('PDF 文件不存在');
+    if (fileName.isEmpty) throw StateError('请重新上传 PDF 文件');
     final String token = await client.files.getToken();
     final Uri uri = client.files.getURL(record, fileName, token: token);
     final http.Response response = await http

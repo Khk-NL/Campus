@@ -16,6 +16,7 @@ import 'package:campus_mobile/core/config/app_config.dart';
 import 'package:campus_mobile/core/config/preference_store.dart';
 import 'package:campus_mobile/core/config/university_config.dart';
 import 'package:campus_mobile/core/favorites/favorites_controller.dart';
+import 'package:campus_mobile/core/theme/theme_colors.dart';
 import 'package:campus_mobile/data/models/app_user.dart';
 import 'package:campus_mobile/data/models/university.dart';
 import 'package:campus_mobile/data/repositories/campus_repository.dart';
@@ -82,6 +83,16 @@ class AppState extends ChangeNotifier {
 
   /// 主题模式 / the theme mode.
   ThemeMode get themeMode => _themeMode;
+
+  ThemeColors? get themeColors => _preferences.readThemeColors();
+
+  Future<void> setThemeColors(ThemeColors? colors) async {
+    if (colors != null && (colors.primary.a != 1 || colors.secondary.a != 1)) {
+      throw ArgumentError('Theme colours must be opaque');
+    }
+    await _preferences.writeThemeColors(colors);
+    notifyListeners();
+  }
 
   /// 当前登录用户 / the signed-in user.
   AppUser? get user => _user;
@@ -209,7 +220,7 @@ class AppState extends ChangeNotifier {
   Future<void> signInWithPassword(String email, String password) async {
     final Object current = repository;
     if (current is! CampusAccountRepository) {
-      throw StateError('当前后端不支持账号登录');
+      throw StateError('请先配置账号登录服务');
     }
     await current.signIn(email, password);
     await loadIdentity();
@@ -218,7 +229,7 @@ class AppState extends ChangeNotifier {
   Future<void> registerWithPassword(String email, String password) async {
     final Object current = repository;
     if (current is! CampusAccountRepository) {
-      throw StateError('当前后端不支持账号注册');
+      throw StateError('请先配置账号注册服务');
     }
     await current.register(email, password);
   }
@@ -226,7 +237,7 @@ class AppState extends ChangeNotifier {
   Future<void> requestPasswordReset(String email) async {
     final Object current = repository;
     if (current is! CampusAccountRepository) {
-      throw StateError('当前后端不支持密码重置');
+      throw StateError('请先配置密码重置服务');
     }
     await current.requestPasswordReset(email);
   }
@@ -234,7 +245,7 @@ class AppState extends ChangeNotifier {
   Future<void> requestVerification(String email) async {
     final Object current = repository;
     if (current is! CampusAccountRepository) {
-      throw StateError('当前后端不支持邮箱验证');
+      throw StateError('请先配置邮箱验证服务');
     }
     await current.requestVerification(email);
   }

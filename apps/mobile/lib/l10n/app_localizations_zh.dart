@@ -60,7 +60,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get demoDataExplanation => '该块数据后端尚未提供接口，当前显示内置演示数据，不会同步。';
+  String get demoDataExplanation => '当前展示内置演示数据，供体验操作流程。';
 
   @override
   String get dataSourceServicesOnline => '校园服务 · 已连接后端';
@@ -105,16 +105,16 @@ class AppLocalizationsZh extends AppLocalizations {
   String get actionJoin => '参加';
 
   @override
-  String get actionDecline => '不参加';
+  String get actionDecline => '退出活动';
 
   @override
-  String get actionCannotAttend => '无法参加';
+  String get actionCannotAttend => '请假';
 
   @override
   String get actionMaybe => '待定';
 
   @override
-  String get actionNotStarted => '未开始';
+  String get actionNotStarted => '待开始';
 
   @override
   String get actionInProgress => '进行中';
@@ -123,7 +123,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get actionDone => '已完成';
 
   @override
-  String get actionCannotComplete => '无法完成';
+  String get actionCannotComplete => '需调整';
 
   @override
   String get actionAddToCalendar => '加入日历';
@@ -141,13 +141,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get stateError => '出错了';
 
   @override
-  String get stateEmpty => '暂无内容';
+  String get stateEmpty => '内容将在这里展示';
 
   @override
   String get stateOfflineTitle => '离线演示数据';
 
   @override
-  String get stateOfflineBody => '使用本机演示数据，改动不会同步';
+  String get stateOfflineBody => '本机演示模式';
 
   @override
   String get stateOnline => '已连接后端服务';
@@ -162,19 +162,19 @@ class AppLocalizationsZh extends AppLocalizations {
   String get homeToday => '今日';
 
   @override
-  String get homeNoTodayItems => '今天没有课程或日程';
+  String get homeNoTodayItems => '今天可以自由安排';
 
   @override
   String get homeTasks => '待办';
 
   @override
-  String get homeNoTasks => '没有待办事项';
+  String get homeNoTasks => '添加一项待办，安排接下来的事';
 
   @override
   String get homeCampus => '校园动态';
 
   @override
-  String get homeNoCampusItems => '暂无校园公告与服务动态';
+  String get homeNoCampusItems => '校园公告与动态将在这里更新';
 
   @override
   String get homeQuickAccess => '快捷入口';
@@ -226,7 +226,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get timetableTermUnverified => '学期起止未核实';
+  String get timetableTermUnverified => '学期起止待核实';
 
   @override
   String get timetableCurrentWeek => '本周';
@@ -243,22 +243,22 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get timetableNoCourses => '本周没有课程';
+  String get timetableNoCourses => '本周可以自由安排';
 
   @override
-  String get timetableUnscheduled => '未排课';
+  String get timetableUnscheduled => '时间待安排';
 
   @override
   String get timetableCourseTasks => '课程待办';
 
   @override
-  String get timetableNoCourseTasks => '没有课程相关待办';
+  String get timetableNoCourseTasks => '添加课程相关待办';
 
   @override
   String get timetableCourseNotices => '课程通知';
 
   @override
-  String get timetableNoCourseNotices => '没有课程相关通知';
+  String get timetableNoCourseNotices => '课程通知将在这里更新';
 
   @override
   String relativeOverdue(Object days) {
@@ -277,7 +277,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get relativeNoDeadline => '无截止时间';
+  String get relativeNoDeadline => '灵活安排';
 
   @override
   String get searchHint => '搜索服务、应用、课程、事务';
@@ -286,7 +286,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get searchTitle => '搜索';
 
   @override
-  String get searchNoResults => '没有匹配的结果';
+  String get searchNoResults => '试试其他关键词或筛选条件';
 
   @override
   String get searchSectionAll => '全部';
@@ -319,7 +319,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get inboxFilterAll => '全部';
 
   @override
-  String get inboxEmpty => '暂时没有需要处理的事务';
+  String get inboxEmpty => '事务已处理完，稍后再来看看';
 
   @override
   String get inboxFeedbackLabel => '反馈';
@@ -362,7 +362,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get appsForge => '校园作品';
 
   @override
-  String get appsForgeEmpty => '暂无学生作品';
+  String get appsForgeEmpty => '校园作品将在这里展示';
 
   @override
   String get appsForgeSearch => '搜索学生作品';
@@ -377,10 +377,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get appsGroupMiniProgram => '小程序';
 
   @override
-  String get appsGroupEmpty => '该分组暂无入口';
+  String get appsGroupEmpty => '服务入口将在这里展示';
 
   @override
-  String get appsEmpty => '暂无校园服务';
+  String get appsEmpty => '校园服务将在这里展示';
 
   @override
   String appsSubListLabel(String group, int count) {
@@ -391,7 +391,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get appsSearchHint => '搜索当前子列表';
 
   @override
-  String get appsSearchEmpty => '没有匹配的入口';
+  String get appsSearchEmpty => '试试其他关键词或分类';
 
   @override
   String get appsSortLabel => '排序';
@@ -438,22 +438,22 @@ class AppLocalizationsZh extends AppLocalizations {
   String get launchOpenInBrowser => '用浏览器打开';
 
   @override
-  String get launchWebViewFailed => '页面无法在应用内打开';
+  String get launchWebViewFailed => '页面加载失败，请尝试浏览器打开';
 
   @override
-  String get launchMiniProgramNotWired => '微信小程序暂未接入';
+  String get launchMiniProgramNotWired => '请更新至已配置微信跳转的版本';
 
   @override
-  String get launchMiniProgramNoWeChat => '未安装微信，无法打开小程序';
+  String get launchMiniProgramNoWeChat => '请安装微信后打开小程序';
 
   @override
-  String get launchCampusAppUnsupported => '暂不支持打开 Campulse 应用';
+  String get launchCampusAppUnsupported => '应用启动功能待接入';
 
   @override
   String get storeTitle => '学生应用';
 
   @override
-  String get storeEmpty => '应用商店暂无内容';
+  String get storeEmpty => '应用将在这里展示';
 
   @override
   String get storeDeveloperLabel => '开发者';
@@ -477,10 +477,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get storeTagAll => '全部';
 
   @override
-  String get storeTagEmpty => '该标签下暂无应用';
+  String get storeTagEmpty => '试试其他标签';
 
   @override
-  String get storeDeveloperUnknown => '未公开';
+  String get storeDeveloperUnknown => '开发者待公开';
 
   @override
   String get dataSourceAppsOnline => '学生应用 · 已连接后端';
@@ -547,7 +547,7 @@ class AppLocalizationsZh extends AppLocalizations {
       'Campulse 是面向高校学生的校园数字工作台：把散落在网站、小程序与独立 App 中的校园服务聚合为一个入口，并把校园信息组织成结构化事务。';
 
   @override
-  String get profileNotSignedIn => '未登录';
+  String get profileNotSignedIn => '登录账号';
 
   @override
   String get profileSignIn => '登录';
@@ -568,7 +568,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get profileLoginDialogTitle => '登录';
 
   @override
-  String get profileLoginDialogBody => '学校统一身份认证未接入。当前仅支持演示身份。';
+  String get profileLoginDialogBody => '使用演示身份体验操作流程。';
 
   @override
   String get categoryOfficialHub => '官方入口';
@@ -631,7 +631,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get transactionTask => '任务';
 
   @override
-  String get taskStatusNotStarted => '未开始';
+  String get taskStatusNotStarted => '待开始';
 
   @override
   String get taskStatusInProgress => '进行中';
@@ -640,11 +640,53 @@ class AppLocalizationsZh extends AppLocalizations {
   String get taskStatusCompleted => '已完成';
 
   @override
-  String get taskStatusBlocked => '无法完成';
+  String get taskStatusBlocked => '需调整';
 
   @override
-  String get errorServiceLaunchFailed => '无法打开该服务';
+  String get errorServiceLaunchFailed => '服务打开失败，请重试';
 
   @override
-  String get errorBackendUnreachable => '后端不可达';
+  String get errorBackendUnreachable => '连接失败，请检查网络';
+
+  @override
+  String get themeColors => '主题色';
+
+  @override
+  String get themeColorsDefault => '默认 · 红金';
+
+  @override
+  String get themeColorsCustom => '自定义配色';
+
+  @override
+  String get themePrimary => '主色';
+
+  @override
+  String get themeAccent => '辅助色';
+
+  @override
+  String get themeHexError => '请输入六位色值，例如 #A41F35';
+
+  @override
+  String get themeSave => '应用配色';
+
+  @override
+  String get themeReset => '恢复默认';
+
+  @override
+  String get themeSaveError => '配色保存失败，请重试';
+
+  @override
+  String get themePreview => '配色预览';
+
+  @override
+  String get themePresetRedGold => '红金';
+
+  @override
+  String get themePresetBlueViolet => '蓝紫';
+
+  @override
+  String get themePresetPurplePink => '紫粉';
+
+  @override
+  String get themePresetAmber => '琥珀';
 }

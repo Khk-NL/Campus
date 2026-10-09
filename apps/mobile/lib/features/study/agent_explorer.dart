@@ -64,7 +64,7 @@ class _AgentExplorerState extends State<AgentExplorer> {
             final (StudyRepository repository, StudyWorkspace workspace) =
                 snapshot.data!;
             if (workspace.agents.isEmpty) {
-              return const Center(child: Text('还没有智能体，可在课程空间创建'));
+              return const Center(child: Text('在课程空间创建智能体'));
             }
             return RefreshIndicator(
               onRefresh: () async {
@@ -132,7 +132,7 @@ class _AgentSpace extends StatelessWidget {
           const SizedBox(height: 12),
           Text('关联课程与记录', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 8),
-          if (sessions.isEmpty) const Text('暂无关联学习记录'),
+          if (sessions.isEmpty) const Text('开始学习后在这里查看记录'),
           for (final StudySession session in sessions)
             ListTile(
               title: Text(
@@ -145,7 +145,7 @@ class _AgentSpace extends StatelessWidget {
                     '学习过程记录',
               ),
               subtitle: Text(
-                session.question.isEmpty ? '未填写问题' : session.question,
+                session.question.isEmpty ? '请填写问题' : session.question,
               ),
               onTap: () {
                 final StudyActivity activity = workspace.activities.firstWhere(

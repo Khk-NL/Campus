@@ -91,7 +91,7 @@ class StudyWorkspace {
         id: 'demo-2',
         course: 'Campulse 示例课程',
         title: '资料对照与观点形成',
-        objective: '比较不同资料的观点，标明来源与尚未解决的问题。',
+        objective: '比较不同资料的观点，标明来源与待解决的问题。',
         deadline: '下周内',
       ),
     ],
