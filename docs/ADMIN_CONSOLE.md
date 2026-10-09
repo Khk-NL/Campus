@@ -57,6 +57,8 @@ Git 分支、提交、Issue、PR 和 CI 继续由 GitHub 管理。Campulse 管�
 
 最终静态部署提交：`0c4ea371780da9b895286fc9f31b4f089d6cdd48`。更新前恢复点：`/opt/campus/backups/public-20261009-200204`。数据库和网关保持现状。
 
+2026-10-10 新版部署、分区表单和笔记点击写入结果以 [运营台升级验收](ADMIN_UPGRADE_20261010.md) 为准，上述提交保留为此前部署记录。
+
 ## 部署方式
 
 `deploy/update-public-site.sh` 接受完整源码提交号，通过 GitHub 官方 API 下载本项目 10 个官网及运营台文件，核对 Git blob 哈希并校验 JavaScript 语法，备份当前同名文件后更新 PocketBase 的 `pb_public`。数据库、AI 网关和其他网站保持现状，静态页面生效后即可访问。
