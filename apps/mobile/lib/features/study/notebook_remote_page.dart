@@ -850,19 +850,25 @@ class _NotebookRemotePageState extends State<NotebookRemotePage>
         tabs: <Widget>[
           Tab(
             text: '全文搜索',
-            icon: MediaQuery.sizeOf(context).height < 500
+            icon:
+                MediaQuery.orientationOf(context) == Orientation.landscape ||
+                    MediaQuery.sizeOf(context).height < 500
                 ? null
                 : const Icon(Icons.manage_search_outlined),
           ),
           Tab(
             text: '生成成果',
-            icon: MediaQuery.sizeOf(context).height < 500
+            icon:
+                MediaQuery.orientationOf(context) == Orientation.landscape ||
+                    MediaQuery.sizeOf(context).height < 500
                 ? null
                 : const Icon(Icons.auto_awesome_outlined),
           ),
           Tab(
             text: '智能体对话',
-            icon: MediaQuery.sizeOf(context).height < 500
+            icon:
+                MediaQuery.orientationOf(context) == Orientation.landscape ||
+                    MediaQuery.sizeOf(context).height < 500
                 ? null
                 : const Icon(Icons.forum_outlined),
           ),

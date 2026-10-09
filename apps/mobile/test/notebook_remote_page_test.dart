@@ -227,7 +227,7 @@ void main() {
   testWidgets('landscape header scrolls away and history loads the next page', (
     WidgetTester tester,
   ) async {
-    tester.view.physicalSize = const Size(900, 400);
+    tester.view.physicalSize = const Size(1280, 720);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
@@ -264,6 +264,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
+    expect(find.byIcon(Icons.manage_search_outlined), findsNothing);
     await tester.drag(find.byType(NestedScrollView), const Offset(0, -240));
     await tester.pumpAndSettle();
     expect(

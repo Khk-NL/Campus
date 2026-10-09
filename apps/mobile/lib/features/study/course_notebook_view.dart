@@ -155,7 +155,9 @@ class _CourseNotebookViewState extends State<CourseNotebookView> {
   @override
   Widget build(BuildContext context) {
     final ColorScheme colors = Theme.of(context).colorScheme;
-    final bool compact = MediaQuery.sizeOf(context).height < 500;
+    final Size viewport = MediaQuery.sizeOf(context);
+    final bool compact =
+        viewport.height < 500 || viewport.width > viewport.height;
     return Column(
       children: <Widget>[
         Container(
