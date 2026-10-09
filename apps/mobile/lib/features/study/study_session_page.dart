@@ -43,6 +43,7 @@ class _StudySessionPageState extends State<StudySessionPage> {
   bool strictCitation = false;
   bool autoCanvas = true;
   String? _aiAnswer;
+  List<Map<String, dynamic>> _citations = <Map<String, dynamic>>[];
   bool _asking = false;
 
   @override
@@ -113,8 +114,14 @@ class _StudySessionPageState extends State<StudySessionPage> {
         courseId: courseId,
         question: prompt,
         sourceIds: widget.session.sourceIds,
+        agentId: widget.session.agentId,
       );
-      if (mounted) setState(() => _aiAnswer = result.text);
+      if (mounted) {
+        setState(() {
+          _aiAnswer = result.text;
+          _citations = result.citations;
+        });
+      }
     } on Exception catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context)
@@ -427,6 +434,25 @@ class _StudySessionPageState extends State<StudySessionPage> {
                       if (_aiAnswer != null) ...<Widget>[
                         const SizedBox(height: 12),
                         SelectableText(_aiAnswer!),
+                        for (final Map<String, dynamic> citation in _citations)
+                          ExpansionTile(
+                            title: Text(
+                              '${citation['marker']} ${citation['title']}',
+                            ),
+                            subtitle: Text(
+                              citation['page'] != null
+                                  ? '第 ${citation['page']} 页'
+                                  : '第 ${citation['lineStart']} 行',
+                            ),
+                            children: <Widget>[
+                              Padding(
+                                padding: const EdgeInsets.all(12),
+                                child: SelectableText(
+                                  citation['excerpt'] as String,
+                                ),
+                              ),
+                            ],
+                          ),
                         const SizedBox(height: 6),
                         const Text('AI 生成内容仅供参考；请核对来源。当前回答未保存。'),
                       ],

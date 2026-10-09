@@ -26,11 +26,13 @@ cp /opt/campus/source/deploy/pocketbase/pb_migrations/*.js /opt/campus/pocketbas
 cp -R /opt/campus/source/deploy/pocketbase/pb_public/* /opt/campus/pocketbase/pb_public/
 cp -R /opt/campus/source/apps/ai-gateway/src /opt/campus/source/apps/ai-gateway/test /opt/campus/ai-gateway/
 install -m 644 /opt/campus/source/apps/ai-gateway/package.json /opt/campus/ai-gateway/package.json
+install -m 644 /opt/campus/source/apps/ai-gateway/package-lock.json /opt/campus/ai-gateway/package-lock.json
 if [[ ! -f /etc/campus/ai.env ]]; then
   install -o root -g campus -m 640 /opt/campus/source/apps/ai-gateway/.env.example /etc/campus/ai.env
 fi
 cd /opt/campus/ai-gateway
-/opt/campus/runtime/node-v22.23.3-linux-x64/bin/npm install --omit=dev --no-audit --no-fund --package-lock=false
+export PATH=/opt/campus/runtime/node-v22.23.3-linux-x64/bin:$PATH
+npm ci --omit=dev --no-audit --no-fund
 /opt/campus/runtime/node-v22.23.3-linux-x64/bin/node --test
 cd /opt/campus/pocketbase
 sudo -u campus ./pocketbase migrate up

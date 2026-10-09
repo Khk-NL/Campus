@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
 import { afterEach, test } from 'node:test';
 import { createHandler } from '../src/server.mjs';
+import { eduworkRevision, evidenceFromPages, rankEvidence, validateArtifact } from '../src/notebook.mjs';
 
 const servers = [];
 afterEach(async () => {
@@ -20,10 +21,10 @@ const config = {
   CHATECNU_API_KEY: 'test-only-key',
 };
 
-test('status requires a verified ordinary user and does not claim EduWork ready', async () => {
+test('status requires a verified ordinary user and reports the headless integration', async () => {
   const base = await serve(config, async (url, options) => {
-    assert.match(url, /auth-refresh$/);
     assert.equal(options.headers.Authorization, 'user-token');
+    if (!url.endsWith('/auth-refresh')) return Response.json({ items: [] });
     return Response.json({ record: { id: 'user123', verified: true } });
   });
   const denied = await fetch(`${base}/v1/status`);
@@ -34,10 +35,11 @@ test('status requires a verified ordinary user and does not claim EduWork ready'
   assert.equal(ok.status, 200);
   assert.deepEqual(await ok.json(), {
     contract: 'campus-eduwork-gateway/v1',
-    ready: false,
+    ready: true,
     aiReady: true,
-    eduworkRevision: '',
-    capabilities: ['chat'],
+    eduworkRevision,
+    integration: 'campulse-headless',
+    capabilities: ['search', 'citations', 'chat', 'quiz', 'flashcards', 'mindmap', 'agents'],
   });
 });
 

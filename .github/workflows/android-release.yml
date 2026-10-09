@@ -30,7 +30,7 @@ jobs:
           channel: stable
           cache: true
       - name: Install gateway runtime dependency
-        run: npm install --prefix apps/ai-gateway --omit=dev --no-audit --no-fund --package-lock=false
+        run: npm ci --prefix apps/ai-gateway --omit=dev --no-audit --no-fund
       - name: Check gateway
         run: node --test apps/ai-gateway/test/*.test.mjs
       - name: Check mobile

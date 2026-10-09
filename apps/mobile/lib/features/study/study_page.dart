@@ -6,6 +6,7 @@ import 'package:campus_mobile/features/study/course_notes_page.dart';
 import 'package:campus_mobile/features/study/review_card_repository.dart';
 import 'package:campus_mobile/features/study/review_cards_page.dart';
 import 'package:campus_mobile/features/study/course_notebook_view.dart';
+import 'package:campus_mobile/features/study/notebook_remote_page.dart';
 import 'package:campus_mobile/features/study/eduwork_gateway_probe.dart';
 import 'package:campus_mobile/features/study/study_repository.dart';
 import 'package:campus_mobile/features/study/task_planner.dart';
@@ -367,6 +368,24 @@ class _StudyPageState extends State<StudyPage> {
             onOpenActivity: _openSession,
             onAddAgent: _addAgent,
             onSaveActivity: _saveActivity,
+            onOpenRemote: (List<String> sources, int tab, String? agentId) =>
+                Navigator.of(context).push<void>(
+                  MaterialPageRoute<void>(
+                    builder: (BuildContext context) => NotebookRemotePage(
+                      courseId: widget.course!.id,
+                      courseName: widget.course!.name,
+                      sourceIds: sources,
+                      agents: workspace.agents
+                          .where(
+                            (StudyAgent a) => a.courseId == widget.course!.id,
+                          )
+                          .toList(),
+                      reviewCards: widget.reviewCardRepository,
+                      initialTab: tab,
+                      initialAgentId: agentId,
+                    ),
+                  ),
+                ),
           )
         : DefaultTabController(
             length: 5,

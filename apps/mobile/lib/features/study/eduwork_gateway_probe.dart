@@ -82,6 +82,7 @@ class EduWorkGatewayProbe {
     required String courseId,
     required String question,
     required List<String> sourceIds,
+    String? agentId,
   }) async {
     final http.Client requestClient = client ?? http.Client();
     try {
@@ -102,6 +103,7 @@ class EduWorkGatewayProbe {
               'courseId': courseId,
               'question': question,
               'sourceIds': sourceIds,
+              if (agentId != null && agentId.isNotEmpty) 'agentId': agentId,
             }),
           )
           .timeout(const Duration(seconds: 55));
@@ -120,7 +122,59 @@ class EduWorkGatewayProbe {
       if (answer is! String || answer.trim().isEmpty) {
         throw const FormatException('网关没有返回答案');
       }
-      return CampusAiAnswer(answer);
+      return CampusAiAnswer(
+        answer,
+        citations: (decoded['citations'] as List? ?? <dynamic>[])
+            .map((dynamic value) => Map<String, dynamic>.from(value as Map))
+            .toList(),
+      );
+    } finally {
+      if (client == null) requestClient.close();
+    }
+  }
+
+  Future<Map<String, dynamic>> notebookRequest({
+    required String pocketBaseToken,
+    required String endpoint,
+    required String courseId,
+    Map<String, dynamic> body = const <String, dynamic>{},
+    bool read = false,
+  }) async {
+    final http.Client requestClient = client ?? http.Client();
+    try {
+      final Uri uri = statusUri.replace(
+        pathSegments: <String>[
+          ...statusUri.pathSegments.take(statusUri.pathSegments.length - 1),
+          ...endpoint.split('/'),
+        ],
+        queryParameters: read ? <String, String>{'courseId': courseId} : null,
+      );
+      final Map<String, String> headers = <String, String>{
+        'Authorization': 'Bearer $pocketBaseToken',
+        'Content-Type': 'application/json',
+      };
+      final http.Response response =
+          await (read
+                  ? requestClient.get(uri, headers: headers)
+                  : requestClient.post(
+                      uri,
+                      headers: headers,
+                      body: jsonEncode(<String, dynamic>{
+                        ...body,
+                        'courseId': courseId,
+                      }),
+                    ))
+              .timeout(const Duration(seconds: 90));
+      final Object? decoded = jsonDecode(response.body);
+      if (decoded is! Map<String, dynamic>) {
+        throw const FormatException('学习服务响应格式错误');
+      }
+      if (response.statusCode != 200) {
+        throw StateError(
+          decoded['error'] as String? ?? '学习服务请求失败：${response.statusCode}',
+        );
+      }
+      return decoded;
     } finally {
       if (client == null) requestClient.close();
     }
@@ -128,8 +182,12 @@ class EduWorkGatewayProbe {
 }
 
 class CampusAiAnswer {
-  const CampusAiAnswer(this.text);
+  const CampusAiAnswer(
+    this.text, {
+    this.citations = const <Map<String, dynamic>>[],
+  });
   final String text;
+  final List<Map<String, dynamic>> citations;
 }
 
 class EduWorkGatewayStatus {

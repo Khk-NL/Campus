@@ -23,6 +23,7 @@ class CourseNotebookView extends StatefulWidget {
     required this.onOpenActivity,
     required this.onAddAgent,
     required this.onSaveActivity,
+    this.onOpenRemote,
   });
 
   final Course course;
@@ -40,6 +41,8 @@ class CourseNotebookView extends StatefulWidget {
   final ValueChanged<StudyActivity> onOpenActivity;
   final VoidCallback onAddAgent;
   final Future<bool> Function(StudyActivity) onSaveActivity;
+  final void Function(List<String> sources, int tab, String? agentId)?
+  onOpenRemote;
 
   @override
   State<CourseNotebookView> createState() => _CourseNotebookViewState();
@@ -59,7 +62,8 @@ class _CourseNotebookViewState extends State<CourseNotebookView> {
     for (final StudyWikiEntry source in view.workspace.wikiEntries)
       if (source.courseId == view.course.id) _wikiId(source),
     for (final CourseNote note in view.notes)
-      if (note.content.trim().isNotEmpty) _noteId(note),
+      if (note.content.trim().isNotEmpty || note.attachment.isNotEmpty)
+        _noteId(note),
   };
 
   @override
@@ -237,6 +241,12 @@ class _CourseNotebookViewState extends State<CourseNotebookView> {
     padding: const EdgeInsets.all(16),
     children: <Widget>[
       _sectionTitle(context, '我的资料', '选择资料后，可将其关联到下一条问题。'),
+      if (widget.remote && widget.onOpenRemote != null)
+        TextButton.icon(
+          onPressed: () => widget.onOpenRemote!(_selected.toList(), 0, null),
+          icon: const Icon(Icons.search),
+          label: const Text('全文搜索与证据引用'),
+        ),
       const SizedBox(height: 10),
       Wrap(
         spacing: 8,
@@ -292,7 +302,7 @@ class _CourseNotebookViewState extends State<CourseNotebookView> {
         ),
       for (final CourseNote note in widget.notes)
         Card(
-          child: note.content.trim().isEmpty
+          child: note.content.trim().isEmpty && !note.hasPdf
               ? ListTile(
                   leading: const Icon(Icons.picture_as_pdf_outlined),
                   title: Text(note.title),
@@ -310,19 +320,21 @@ class _CourseNotebookViewState extends State<CourseNotebookView> {
                   }),
                   title: Text(note.title),
                   subtitle: Text(
-                    note.content,
+                    note.hasPdf ? 'PDF · 全文检索与页码引用' : note.content,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
                   secondary: IconButton(
                     tooltip: '阅读笔记',
                     icon: const Icon(Icons.open_in_new),
-                    onPressed: () => _readSource(note.title, note.content),
+                    onPressed: note.hasPdf
+                        ? widget.onOpenNotes
+                        : () => _readSource(note.title, note.content),
                   ),
                 ),
         ),
       const SizedBox(height: 20),
-      _sectionTitle(context, '资料集', '可先建立资料集；文件上传和检索仍需接入服务。'),
+      _sectionTitle(context, '资料集', '按主题整理课程资料。'),
       TextButton.icon(
         onPressed: widget.onAddKnowledgeBase,
         icon: const Icon(Icons.create_new_folder_outlined),
@@ -484,7 +496,7 @@ class _CourseNotebookViewState extends State<CourseNotebookView> {
           onTap: () => widget.onOpenActivity(activity),
         ),
       const SizedBox(height: 18),
-      _sectionTitle(context, '课程智能体', '当前可保存配置，远程对话尚未接通。'),
+      _sectionTitle(context, '课程智能体', '选择角色，围绕课程资料持续讨论。'),
       TextButton.icon(
         onPressed: widget.onAddAgent,
         icon: const Icon(Icons.add_circle_outline),
@@ -498,17 +510,24 @@ class _CourseNotebookViewState extends State<CourseNotebookView> {
             subtitle: Text(
               agent.description.isEmpty ? '配置草稿' : agent.description,
             ),
+            onTap: widget.remote && widget.onOpenRemote != null
+                ? () => widget.onOpenRemote!(_selected.toList(), 2, agent.id)
+                : null,
           ),
         ),
       const SizedBox(height: 18),
-      _sectionTitle(context, '学习产物', '以下生成能力需 EduWork 服务端接入。'),
+      _sectionTitle(context, '学习产物', '从选中的资料生成测验、闪卡和思维导图。'),
       Wrap(
         spacing: 8,
         runSpacing: 8,
-        children: const <Widget>[
-          _PendingProduct(Icons.quiz_outlined, '测验'),
-          _PendingProduct(Icons.account_tree_outlined, '思维导图'),
-          _PendingProduct(Icons.summarize_outlined, '学习指南'),
+        children: <Widget>[
+          FilledButton.icon(
+            onPressed: widget.remote && widget.onOpenRemote != null
+                ? () => widget.onOpenRemote!(_selected.toList(), 1, null)
+                : null,
+            icon: const Icon(Icons.auto_awesome_outlined),
+            label: const Text('测验 · 闪卡 · 思维导图'),
+          ),
         ],
       ),
     ],
@@ -548,14 +567,4 @@ class _NotebookEmpty extends StatelessWidget {
       ),
     ),
   );
-}
-
-class _PendingProduct extends StatelessWidget {
-  const _PendingProduct(this.icon, this.label);
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) =>
-      Chip(avatar: Icon(icon, size: 18), label: Text('$label · 待接入'));
 }
