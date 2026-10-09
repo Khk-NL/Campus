@@ -9,7 +9,8 @@ User=campus
 Group=campus
 WorkingDirectory=/opt/campus/ai-gateway
 EnvironmentFile=/etc/campus/ai.env
-ExecStart=/usr/bin/node /opt/campus/ai-gateway/src/server.mjs
+# This host has IPv4 connectivity to ChatECNU; its IPv6 route times out.
+ExecStart=/usr/bin/node --dns-result-order=ipv4first --no-network-family-autoselection /opt/campus/ai-gateway/src/server.mjs
 Restart=on-failure
 RestartSec=5
 
