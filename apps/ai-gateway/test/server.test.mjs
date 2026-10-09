@@ -21,6 +21,21 @@ const config = {
   CHATECNU_API_KEY: 'test-only-key',
 };
 
+test('model transport failures return actionable errors without leaking credentials', async () => {
+  for (const [name, status, message] of [['TimeoutError',504,'模型响应超时'], ['TypeError',502,'模型连接失败']]) {
+    const base = await serve(config, async (url) => {
+      if (url.endsWith('/auth-refresh')) return Response.json({record:{id:'user1',verified:true}});
+      if (url.includes('/course_notes/records/')) return Response.json({owner:'user1',courseId:'c1',title:'教材',content:'知识点'});
+      throw Object.assign(new Error('private transport message'),{name});
+    });
+    const response = await fetch(`${base}/v1/ask`,{method:'POST',headers:{Authorization:'Bearer token','Content-Type':'application/json'},body:JSON.stringify({courseId:'c1',sourceIds:['note:n1'],question:'问题'})});
+    assert.equal(response.status,status);
+    const body = await response.text();
+    assert.ok(body.includes(message));
+    assert.ok(!body.includes('test-only-key') && !body.includes('private transport message'));
+  }
+});
+
 test('status requires a verified ordinary user and reports the headless integration', async () => {
   const base = await serve(config, async (url, options) => {
     assert.equal(options.headers.Authorization, 'user-token');

@@ -108,10 +108,18 @@ export function createHandler(config, fetcher = fetch) {
 
   async function modelCall(messages) {
     if (!apiKey) throw Object.assign(new Error('模型服务尚未配置'), { status: 503 });
-    const result = await fetcher(`${modelBaseUrl}/chat/completions`, {
-      method: 'POST', headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model, stream: false, messages }), signal: AbortSignal.timeout(45000),
-    });
+    let result;
+    try {
+      result = await fetcher(`${modelBaseUrl}/chat/completions`, {
+        method: 'POST', headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model, stream: false, messages }), signal: AbortSignal.timeout(45000),
+      });
+    } catch (error) {
+      const timeout = ['TimeoutError', 'AbortError'].includes(error.name);
+      // Record transport classification only; prompts, notes and credentials stay private.
+      console.warn('model_transport_failed', { timeout, code: error.cause?.code || error.code || 'UNKNOWN' });
+      throw Object.assign(new Error(timeout ? '模型响应超时，请稍后重试或减少所选资料' : '模型连接失败，请稍后重试'), { status: timeout ? 504 : 502 });
+    }
     if (!result.ok) throw Object.assign(new Error('模型服务暂不可用'), { status: result.status === 429 ? 429 : 502 });
     const data = await result.json();
     const answer = data?.choices?.[0]?.message?.content;
