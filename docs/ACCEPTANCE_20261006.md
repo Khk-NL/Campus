@@ -2,7 +2,7 @@
 
 本文是当前验收基线。旧记录保留历史现场，不把接口通过、旧版 APK 点击成功、邮件提交成功误写成**当前发布包的完整用户闭环**。产品仍处于预览/试点阶段。
 
-课程 PDF/Markdown 导入与复习卡片已进入 `main`，首个对应预览 APK 的 `sourceCommit` 为 `978ce14`；之后的包以 `release/Campulse-latest.json` 为准。生产迁移、网关更新和设备验收仍待执行；验收前按 [课程资料导入与卡片复习](NOTEBOOK_IMPORT_REVIEW.md) 的四步顺序推进。本文后续旧版 APK 结果只作历史基线。
+课程 PDF/Markdown 导入与复习卡片已进入 `main`；当前 MuMu 预览包的 `sourceCommit` 为 `5f299ef`，以 `release/Campulse-latest.json` 为准。生产迁移与网关更新于 2026-10-09 完成，公网 PDF/卡片 API 验收通过；新版后端上的 APK 界面交互仍待复核。部署顺序与功能边界见 [课程资料导入与卡片复习](NOTEBOOK_IMPORT_REVIEW.md)。本文后续旧版 APK 结果只作历史基线。
 
 ## 环境与判定
 
@@ -90,4 +90,18 @@ $env:CAMPULSE_TEST_USERS = 'D:\Code\Projects\Campulse\.tools\remote-test-users.j
 | 复习网关路由 | 公网 `POST /ai/v1/cards/abc123def456ghi/review` 在无令牌请求下返回 HTTP 404；新版路由在认证前应识别路径 | **失败**；生产网关待更新。此检查不代表授权用户评分已验收 |
 | 公网连接 | 临时域名 `/api/health` 返回 HTTP 200；正式域名强制 TLS 1.2 握手失败 | 临时域名可用；正式域名仍未达标 |
 
-这次在测试账号的“操作系统”课程留下 `qa-import-20261009` 笔记，供后续迁移后制作卡片与跨设备验收；只清理该明确测试记录，不影响其他课程数据。生产 PocketBase 迁移与网关发布尚未执行，不能将 Markdown 导入通过写成整套笔记本已上线。
+这次在测试账号的“操作系统”课程留下 `qa-import-20261009` 笔记，供后续迁移后制作卡片与跨设备验收；只清理该明确测试记录，不影响其他课程数据。上表是迁移前的历史现场；生产变更后的结果见下节。
+
+## 2026-10-09 生产迁移与网关验收
+
+生产 PocketBase 停机后复制 `pb_data` 到 `/opt/campus/backups/notebook-pre-20261009-091610`，源与备份 `data.db` 的 SHA-256 一致。应用 `1790210006_course_pdf.js`、`1790210007_course_review_cards.js` 并重启服务后，管理员只读查询确认 `course_notes.attachment` 和 `course_review_cards` 均存在。原 AI 网关备份于 `/opt/campus/backups/ai-gateway-pre-notebook-20261009-091911`，新文件 SHA-256 与仓库一致；生产使用独立 Node `22.23.3`、`ts-fsrs 5.4.2`，5 项网关测试通过后重启 `campus-ai`。两个 systemd 服务保持 `active`，临时域名 `/api/health` 返回 200，匿名请求有效卡片格式的复习路由返回 401。
+
+使用两个已验证的普通测试账号运行 `scripts/notebook-remote-acceptance.mjs`，PDF 测试时将 `CAMPULSE_TEST_PDF` 指向本地测试 PDF。该脚本只使用普通用户权限，创建和清理专用记录：
+
+| 情景 | 公网观察 | 结果 |
+| --- | --- | --- |
+| 受保护 PDF | 上传 HTTP 200；账号 B 读取账号 A 的笔记返回 404；账号 A 获取临时令牌、下载 HTTP 200，字节与上传文件一致；测试笔记清理 HTTP 204 | **通过（API）** |
+| 复习卡片 | 创建 HTTP 200；跨账号读取 404；无效评分 400；有效评分 200，读回 `due`、`scheduler` 与 1 条 `reviewHistory`；测试卡片清理 204 | **通过（API）** |
+| MuMu 当前 APK | 已装 `1.1.2 (1017)` 与 Release 元数据对应；本轮未能重新操作原生窗口验证 PDF/卡片页面 | **未验收（新版后端上的 APK 点击）** |
+
+PDF 测试文件是一页、带文字层的 1.4 KB PDF，上传前已渲染检查。API 结果证明现网数据路径与权限规则工作，尚不能证明 App 文件选择、PDF 阅读器或卡片页面交互。下一步直接用当前 MuMu APK 打开“操作系统”课程，导入 PDF、制作并评分卡片、重启再读回；另用账号 B 验证列表隔离。正式域名 TLS 1.2、真实邮件收件箱、微信真机和完整 EduWork 仍沿用上方未闭环状态。
