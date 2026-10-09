@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:campus_mobile/features/apps/forge_page.dart';
 import 'package:campus_mobile/features/apps/forge_repository.dart';
 import 'package:flutter/material.dart';
@@ -103,10 +105,56 @@ class FakeForge extends ForgeRepository {
   }
 
   @override
-  Future<void> setStatus(String id, String status) async {}
+  Future<RecordModel> discussion(String id) async =>
+      threads.firstWhere((row) => row.id == id);
+  @override
+  Future<void> setStatus(String id, String status) async {
+    (await discussion(id)).data['status'] = status;
+  }
+}
+
+class PendingForge extends FakeForge {
+  final pending = Completer<RecordModel>();
+  @override
+  Future<RecordModel> reply(String discussion, String body) => pending.future;
 }
 
 void main() {
+  testWidgets('leaving discussion during send avoids disposed input access', (
+    tester,
+  ) async {
+    final repo = PendingForge();
+    final thread = await repo.discuss('project1', '参与讨论', '内容', 'question');
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) => TextButton(
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => ForgeDiscussionPage(
+                  repo: repo,
+                  thread: thread,
+                  repositoryOwner: 'member1',
+                ),
+              ),
+            ),
+            child: const Text('进入讨论'),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('进入讨论'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), '回复');
+    await tester.tap(find.byTooltip('发送回复'));
+    await tester.pump();
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    repo.pending.complete(RecordModel.fromJson({'id': 'late'}));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(find.text('进入讨论'), findsOneWidget);
+  });
   testWidgets(
     'project editor persists data and disposes after route transition',
     (tester) async {

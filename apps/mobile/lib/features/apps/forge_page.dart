@@ -103,7 +103,6 @@ class _ForgePageState extends State<ForgePage> {
                       decoration: const InputDecoration(
                         prefixIcon: Icon(Icons.search),
                         hintText: '搜索项目、介绍或技术话题',
-                        suffixIcon: Icon(Icons.keyboard_return),
                       ),
                       onSubmitted: (value) => setState(() {
                         query = value;
@@ -199,6 +198,7 @@ class _ForgeProjectPageState extends State<ForgeProjectPage> {
   late Future<ResultList<RecordModel>> discussions;
   late Future<ResultList<RecordModel>> stars;
   RecordModel? star;
+  bool starReady = false;
   bool starring = false;
   int page = 1;
   @override
@@ -208,13 +208,19 @@ class _ForgeProjectPageState extends State<ForgeProjectPage> {
   }
 
   void load() {
+    starReady = false;
     project = widget.repo.project(widget.id);
     discussions = widget.repo.discussions(widget.id, page: page);
     stars = widget.repo.stars(widget.id);
     widget.repo
         .myStar(widget.id)
         .then((value) {
-          if (mounted) setState(() => star = value);
+          if (mounted) {
+            setState(() {
+              star = value;
+              starReady = true;
+            });
+          }
         })
         .catchError((Object error) {
           if (mounted) _message(context, '关注状态加载失败，请刷新重试');
@@ -255,14 +261,12 @@ class _ForgeProjectPageState extends State<ForgeProjectPage> {
                         FutureBuilder<ResultList<RecordModel>>(
                           future: stars,
                           builder: (context, count) => OutlinedButton.icon(
-                            onPressed: widget.repo.canWrite && !starring
+                            onPressed:
+                                widget.repo.canWrite && !starring && starReady
                                 ? () async {
                                     setState(() => starring = true);
                                     try {
-                                      await widget.repo.toggleStar(
-                                        widget.id,
-                                        star,
-                                      );
+                                      await widget.repo.toggleStar(widget.id);
                                       if (mounted) setState(load);
                                     } catch (error) {
                                       if (context.mounted) {
@@ -281,6 +285,12 @@ class _ForgeProjectPageState extends State<ForgeProjectPage> {
                             label: Text('关注 ${count.data?.totalItems ?? '…'}'),
                           ),
                         ),
+                        if (!starReady && widget.repo.canWrite)
+                          TextButton.icon(
+                            onPressed: () => setState(load),
+                            icon: const Icon(Icons.refresh),
+                            label: const Text('刷新关注状态'),
+                          ),
                         if (owned)
                           OutlinedButton.icon(
                             onPressed: () async {
@@ -391,7 +401,10 @@ class _ForgeProjectPageState extends State<ForgeProjectPage> {
                               total: threads.data!.totalPages,
                               onPage: (value) => setState(() {
                                 page = value;
-                                load();
+                                discussions = widget.repo.discussions(
+                                  widget.id,
+                                  page: page,
+                                );
                               }),
                             ),
                           ],
@@ -427,6 +440,7 @@ class _ForgeDiscussionPageState extends State<ForgeDiscussionPage> {
   final input = TextEditingController();
   late Future<ResultList<RecordModel>> replies;
   late String status;
+  int statusRevision = 0;
   bool busy = false;
   int page = 1;
   @override
@@ -438,6 +452,19 @@ class _ForgeDiscussionPageState extends State<ForgeDiscussionPage> {
 
   void load() {
     replies = widget.repo.replies(widget.thread.id, page: page);
+    final revision = ++statusRevision;
+    widget.repo
+        .discussion(widget.thread.id)
+        .then((row) {
+          if (mounted && revision == statusRevision) {
+            setState(() => status = row.getStringValue('status'));
+          }
+        })
+        .catchError((Object error) {
+          if (mounted && revision == statusRevision) {
+            _message(context, '讨论状态加载失败，请刷新重试');
+          }
+        });
   }
 
   @override
@@ -481,7 +508,13 @@ class _ForgeDiscussionPageState extends State<ForgeDiscussionPage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                '成员 ${reply.getStringValue('owner')}',
+                                reply.getStringValue('owner') ==
+                                        widget.repo.userId
+                                    ? '你'
+                                    : reply.getStringValue('owner') ==
+                                          widget.repositoryOwner
+                                    ? '项目维护者'
+                                    : '社区成员',
                                 style: Theme.of(context).textTheme.labelSmall,
                               ),
                               const SizedBox(height: 8),
@@ -512,7 +545,10 @@ class _ForgeDiscussionPageState extends State<ForgeDiscussionPage> {
                       final next = status == 'open' ? 'closed' : 'open';
                       try {
                         await widget.repo.setStatus(widget.thread.id, next);
-                        if (mounted) setState(() => status = next);
+                        if (mounted) {
+                          statusRevision++;
+                          setState(() => status = next);
+                        }
                       } catch (error) {
                         if (context.mounted) {
                           _message(context, '状态保存失败，请重试');
@@ -555,8 +591,24 @@ class _ForgeDiscussionPageState extends State<ForgeDiscussionPage> {
                                   widget.thread.id,
                                   input.text,
                                 );
+                                if (!mounted) return;
                                 input.clear();
-                                if (mounted) setState(load);
+                                final latest = await widget.repo.replies(
+                                  widget.thread.id,
+                                );
+                                if (!mounted) return;
+                                final lastPage = latest.totalPages < 1
+                                    ? 1
+                                    : latest.totalPages;
+                                setState(() {
+                                  page = lastPage;
+                                  replies = lastPage == 1
+                                      ? Future.value(latest)
+                                      : widget.repo.replies(
+                                          widget.thread.id,
+                                          page: lastPage,
+                                        );
+                                });
                               } catch (error) {
                                 if (context.mounted) {
                                   _message(context, '回复发送失败，请重试');

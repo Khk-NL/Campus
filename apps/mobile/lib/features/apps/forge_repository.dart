@@ -80,6 +80,8 @@ class ForgeRepository {
           'status': 'open',
         },
       );
+  Future<RecordModel> discussion(String id) =>
+      client.collection('forge_discussions').getOne(id);
   Future<void> setStatus(String id, String status) async => client
       .collection('forge_discussions')
       .update(id, body: {'status': status});
@@ -119,7 +121,9 @@ class ForgeRepository {
     return rows.items.isEmpty ? null : rows.items.first;
   }
 
-  Future<void> toggleStar(String repository, RecordModel? current) async {
+  Future<void> toggleStar(String repository) async {
+    if (!canWrite) throw StateError('请使用已验证账号参与社区');
+    final current = await myStar(repository);
     if (current != null) {
       await client.collection('forge_stars').delete(current.id);
     } else {
