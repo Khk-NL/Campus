@@ -2,6 +2,8 @@ export const collections = Object.freeze({
   users: '用户', course_notes: '笔记', user_courses: '课程',
   study_workspaces: '计划与工作台', course_review_cards: '复习卡片',
   course_artifacts: '学习成果', campus_content: '校园 GitHub 与服务',
+  forge_repositories: '社区项目仓库', forge_discussions: '项目讨论与问题',
+  forge_replies: '讨论回复', forge_stars: '项目关注',
 });
 
 export const sections = Object.freeze({
@@ -12,6 +14,10 @@ export const sections = Object.freeze({
   course_review_cards: { action: '新增复习卡片', description: '维护正反面、到期时间及排程数据', tone: 'purple' },
   course_artifacts: { action: '新增学习成果', description: '管理测验、闪卡、导图和对话归档', tone: 'blue' },
   campus_content: { action: '新增目录记录', description: '管理校园作品、服务入口与发布状态', tone: 'red' },
+  forge_repositories: { action: '新增项目仓库', description: '维护项目介绍、README、话题与可见范围', tone: 'purple' },
+  forge_discussions: { action: '新增项目讨论', description: '管理问答、建议、问题反馈与项目进展', tone: 'blue' },
+  forge_replies: { action: '新增讨论回复', description: '查看和维护社区成员的交流内容', tone: 'gold' },
+  forge_stars: { action: '新增项目关注', description: '管理成员与项目的关注关系', tone: 'red' },
 });
 
 export function editableFields(schema) {

@@ -6,8 +6,8 @@
 ///   * **Web** —— 优先内置 WebView（`preferredMode: webview`）；内置不可用（平台没有
 ///     WebView 实现）或站点在内置里打不开时，回退系统浏览器；`preferredMode: external`
 ///     直接走系统浏览器。外链始终用 `fallbackUrl ?? url`。
-///   * **微信小程序** —— 阶段内不支持拉起，且**绝不**用普通 WebView 去渲染
-///     `originalId`（那不是链接）；只有配置了 `fallbackUrl` 才回退到网页。
+///   * **微信小程序** —— 配置 AppID 并注册 OpenSDK 后发送小程序请求；
+///     `originalId` 交给微信处理，启动失败时使用配置的网页回退。
 ///   * **Native App** —— Deep Link 交给系统；未安装时回退 `fallbackUrl` / `storeUrl`。
 ///   * **Campulse App** —— 需要 Phase 4 的插件运行时，返回"不支持"。
 ///
@@ -64,12 +64,14 @@ abstract class CampusLauncher {
   /// 不必为了"能用"而重复装配。
   /// The injected implementation when there is one, otherwise the default — which is the
   /// production one, so a test or a standalone widget need not assemble it just to work.
-  static CampusLauncher of(BuildContext context) => CampusLauncherScope.of(context);
+  static CampusLauncher of(BuildContext context) =>
+      CampusLauncherScope.of(context);
 
   /// 只读一次、不订阅变化；用于按钮回调（与 `CampusRepositoryScope.read` 同理）。
   /// Read once without subscribing; for button callbacks, exactly like
   /// `CampusRepositoryScope.read`.
-  static CampusLauncher read(BuildContext context) => CampusLauncherScope.read(context);
+  static CampusLauncher read(BuildContext context) =>
+      CampusLauncherScope.read(context);
 
   /// 打开一个启动目标 / open one launch target.
   ///
@@ -100,7 +102,10 @@ abstract class CampusLauncher {
   }
 
   /// 这条目标在当前阶段是否可用。/ whether this target is launchable in this phase.
-  static bool isLaunchable(LaunchTarget target) {
+  static bool isLaunchable(
+    LaunchTarget target, {
+    bool miniProgramWired = false,
+  }) {
     switch (target) {
       case WebLaunchTarget():
       case NativeAppLaunchTarget():
@@ -108,7 +113,7 @@ abstract class CampusLauncher {
       case WeChatMiniProgramLaunchTarget():
         // 有网页兜底的小程序入口仍然可以打开（打开的是网页，不是小程序）。
         // A mini program entry with a web fallback is still openable — as a web page.
-        return target.fallbackUrl != null;
+        return miniProgramWired || target.fallbackUrl != null;
       case CampusAppLaunchTarget():
         return false;
     }
@@ -177,14 +182,11 @@ Future<bool> probeWeChatInstalled() async {
 
 /// 小程序拉起的**接入缝** / the seam where WeChat mini-program launching plugs in.
 ///
-/// 产品决定走「路线 A：微信 OpenSDK 的 `WXLaunchMiniProgram`」，但**开放平台的移动应用 AppID
-/// 尚未申请**，因此原生依赖、AppID 注册与 `WXEntryActivity` 都还不存在。所以这里如实报告
-/// "未接入"，而不是假装能拉起一个小程序——一个点了没反应的入口比一句"还没接"更糟。
+/// Android 通过 OpenSdkMiniProgramTransport、MainActivity 和 WXEntryActivity
+/// 完成 AppID 注册、请求发送和回调。此接口保留可注入能力，供测试及其他平台装配。
 ///
-/// The product chose **route A: WeChat's OpenSDK `WXLaunchMiniProgram`**, but the Open Platform
-/// mobile-app AppID has not been applied for, so the native dependency, the AppID registration
-/// and the callback activity do not exist yet. This seam therefore reports "not wired" rather
-/// than pretending: an entry that silently does nothing is worse than an honest "not yet".
+/// Android supplies an OpenSDK transport and callback activity. This injectable interface
+/// separates platform wiring from target selection and supports standalone tests.
 ///
 /// AppID 到位后的接入步骤（判定逻辑无需再改，实现这个类并在装配处传进来即可）：
 ///   1. `android/app/build.gradle.kts` 加 `com.tencent.mm.opensdk:wechat-sdk-android`；
@@ -207,7 +209,7 @@ abstract class MiniProgramTransport {
   Future<bool> launch(WeChatMiniProgramLaunchTarget target);
 }
 
-/// 未接入的实现（当前默认）/ the unwired implementation, which is today's default.
+/// 独立构造与其他平台的回退实现；Android 启动时按配置注入 OpenSDK transport。
 class UnwiredMiniProgramTransport implements MiniProgramTransport {
   const UnwiredMiniProgramTransport();
 
@@ -277,7 +279,10 @@ class DefaultCampusLauncher implements CampusLauncher {
   }
 
   /// §7 的 web 路径 / §7's web path.
-  Future<LaunchOutcome> _launchWeb(BuildContext context, WebLaunchTarget target) async {
+  Future<LaunchOutcome> _launchWeb(
+    BuildContext context,
+    WebLaunchTarget target,
+  ) async {
     if (target.preferredMode == WebLaunchMode.external) {
       return _handOff(target.effectiveUrl);
     }
@@ -326,7 +331,9 @@ class DefaultCampusLauncher implements CampusLauncher {
   /// §7's mini-program path: call the SDK when wired, say so honestly when not, and never render
   /// `originalId` in a WebView. A web fallback opens a *page*, not the mini program, so the copy
   /// has to say which one happened.
-  Future<LaunchOutcome> _launchMiniProgram(WeChatMiniProgramLaunchTarget target) async {
+  Future<LaunchOutcome> _launchMiniProgram(
+    WeChatMiniProgramLaunchTarget target,
+  ) async {
     if (miniPrograms.isWired && weChatAppId.isNotEmpty) {
       if (await miniPrograms.launch(target)) return LaunchOutcome.handedOff;
     }
@@ -358,8 +365,8 @@ class CampusLauncherScope extends InheritedWidget {
   /// 取启动器；没有注入时返回默认实现。
   /// The launcher, or the default implementation when none was injected.
   static CampusLauncher of(BuildContext context) {
-    final CampusLauncherScope? scope =
-        context.dependOnInheritedWidgetOfExactType<CampusLauncherScope>();
+    final CampusLauncherScope? scope = context
+        .dependOnInheritedWidgetOfExactType<CampusLauncherScope>();
     return scope?.launcher ?? const DefaultCampusLauncher();
   }
 
@@ -367,8 +374,8 @@ class CampusLauncherScope extends InheritedWidget {
   /// Read once without subscribing; for button callbacks, exactly like
   /// `CampusRepositoryScope.read`.
   static CampusLauncher read(BuildContext context) {
-    final CampusLauncherScope? scope =
-        context.getInheritedWidgetOfExactType<CampusLauncherScope>();
+    final CampusLauncherScope? scope = context
+        .getInheritedWidgetOfExactType<CampusLauncherScope>();
     return scope?.launcher ?? const DefaultCampusLauncher();
   }
 
@@ -388,12 +395,14 @@ Future<LaunchOutcome> launchServiceFrom(
   final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
   final CampusLauncher launcher = CampusLauncher.read(context);
   final LaunchOutcome outcome = await launcher.launch(context, target);
-  if (outcome == LaunchOutcome.handedOff || outcome == LaunchOutcome.openedInApp) {
+  if (outcome == LaunchOutcome.handedOff ||
+      outcome == LaunchOutcome.openedInApp) {
     return outcome;
   }
   // 小程序这条提示要探测运行时状况，因此在 await 之前先把文案取好。
   // The mini-program copy needs a runtime probe, so the message is resolved before the await.
-  final bool miniProgramWired = launcher is DefaultCampusLauncher &&
+  final bool miniProgramWired =
+      launcher is DefaultCampusLauncher &&
       launcher.miniPrograms.isWired &&
       launcher.weChatAppId.isNotEmpty;
   final String message = outcome == LaunchOutcome.unsupported
@@ -408,7 +417,10 @@ Future<LaunchOutcome> launchServiceFrom(
               : probeWeChatInstalled,
         )
       : l10n.errorServiceLaunchFailed;
-  messenger.showSnackBar(SnackBar(content: Text(message)));
+  // The user can leave this route while a platform launch or installation probe runs.
+  if (messenger.mounted) {
+    messenger.showSnackBar(SnackBar(content: Text(message)));
+  }
   return outcome;
 }
 

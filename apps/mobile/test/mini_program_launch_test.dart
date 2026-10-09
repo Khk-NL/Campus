@@ -14,6 +14,8 @@
 /// AppID and a wired transport exist, `launch()` hands over `originalId` / `path`.
 library;
 
+import 'dart:async';
+
 import 'package:campus_mobile/core/config/app_config.dart';
 import 'package:campus_mobile/core/launcher/campus_launcher.dart';
 import 'package:campus_mobile/data/models/launch_target.dart';
@@ -28,7 +30,8 @@ class RecordingMiniProgramTransport extends MiniProgramTransport {
   /// 这次拉起是否成功 / whether this launch succeeds.
   final bool result;
 
-  final List<WeChatMiniProgramLaunchTarget> targets = <WeChatMiniProgramLaunchTarget>[];
+  final List<WeChatMiniProgramLaunchTarget> targets =
+      <WeChatMiniProgramLaunchTarget>[];
 
   @override
   bool get isWired => true;
@@ -38,6 +41,14 @@ class RecordingMiniProgramTransport extends MiniProgramTransport {
     targets.add(target);
     return result;
   }
+}
+
+class PendingLauncher implements CampusLauncher {
+  final result = Completer<LaunchOutcome>();
+
+  @override
+  Future<LaunchOutcome> launch(BuildContext context, LaunchTarget target) =>
+      result.future;
 }
 
 void main() {
@@ -56,8 +67,44 @@ void main() {
   /// 假探测：装了微信 / a fake probe: WeChat is present.
   Future<bool> hasWeChat() async => true;
 
-  testWidgets('未接入时不假装：没有网页兜底的小程序返回 unsupported / unwired means unsupported',
-      (WidgetTester tester) async {
+  test('registered mini programs are launchable without a web fallback', () {
+    expect(CampusLauncher.isLaunchable(target, miniProgramWired: true), isTrue);
+    expect(CampusLauncher.isLaunchable(target), isFalse);
+  });
+
+  testWidgets(
+    'leaving a route during launch preserves the result without a disposed snackbar',
+    (WidgetTester tester) async {
+      final launcher = PendingLauncher();
+      late BuildContext context;
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: CampusLauncherScope(
+            launcher: launcher,
+            child: Scaffold(
+              body: Builder(
+                builder: (inner) {
+                  context = inner;
+                  return const SizedBox.shrink();
+                },
+              ),
+            ),
+          ),
+        ),
+      );
+      final pending = launchServiceFrom(context, target: target);
+      await tester.pumpWidget(const SizedBox.shrink());
+      launcher.result.complete(LaunchOutcome.noTarget);
+      expect(await pending, LaunchOutcome.noTarget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('未接入时不假装：没有网页兜底的小程序返回 unsupported / unwired means unsupported', (
+    WidgetTester tester,
+  ) async {
     late BuildContext context;
     await tester.pumpWidget(
       MaterialApp(
@@ -82,36 +129,40 @@ void main() {
     expect(CampusLauncher.isLaunchable(target), isFalse);
   });
 
-  testWidgets('接入缝是真的：有 AppID 且 transport 已接入时才交给它 / the seam really carries the call',
-      (WidgetTester tester) async {
-    late BuildContext context;
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Builder(
-          builder: (BuildContext inner) {
-            context = inner;
-            return const SizedBox.shrink();
-          },
+  testWidgets(
+    '接入缝是真的：有 AppID 且 transport 已接入时才交给它 / the seam really carries the call',
+    (WidgetTester tester) async {
+      late BuildContext context;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (BuildContext inner) {
+              context = inner;
+              return const SizedBox.shrink();
+            },
+          ),
         ),
-      ),
-    );
+      );
 
-    final RecordingMiniProgramTransport transport = RecordingMiniProgramTransport();
-    const String appId = 'wx_test_appid';
-    final DefaultCampusLauncher launcher = DefaultCampusLauncher(
-      miniPrograms: transport,
-      weChatAppId: appId,
-    );
+      final RecordingMiniProgramTransport transport =
+          RecordingMiniProgramTransport();
+      const String appId = 'wx_test_appid';
+      final DefaultCampusLauncher launcher = DefaultCampusLauncher(
+        miniPrograms: transport,
+        weChatAppId: appId,
+      );
 
-    expect(await launcher.launch(context, target), LaunchOutcome.handedOff);
-    expect(transport.targets, hasLength(1));
-    // 交给 SDK 的必须是条目自己的标识与路径——写错这两样，接上 SDK 也打不开正确的小程序。
-    expect(transport.targets.single.originalId, 'gh_real_id');
-    expect(transport.targets.single.path, 'pages/index/index');
-  });
+      expect(await launcher.launch(context, target), LaunchOutcome.handedOff);
+      expect(transport.targets, hasLength(1));
+      // 交给 SDK 的必须是条目自己的标识与路径——写错这两样，接上 SDK 也打不开正确的小程序。
+      expect(transport.targets.single.originalId, 'gh_real_id');
+      expect(transport.targets.single.path, 'pages/index/index');
+    },
+  );
 
   test('AppID 是接入的凭据：没有它，注入的 transport 也不算接入 / the AppID is the evidence', () {
-    final RecordingMiniProgramTransport transport = RecordingMiniProgramTransport();
+    final RecordingMiniProgramTransport transport =
+        RecordingMiniProgramTransport();
 
     // 有 AppID：两个条件都成立。
     final DefaultCampusLauncher wired = DefaultCampusLauncher.fromConfig(
@@ -139,8 +190,9 @@ void main() {
     expect(unwired.weChatAppId, isEmpty);
   });
 
-  testWidgets('失败原因分成两种：未装微信 / 本版本未接入 / two distinct reasons',
-      (WidgetTester tester) async {
+  testWidgets('失败原因分成两种：未装微信 / 本版本未接入 / two distinct reasons', (
+    WidgetTester tester,
+  ) async {
     late AppLocalizations l10n;
     await tester.pumpWidget(
       MaterialApp(
@@ -158,9 +210,16 @@ void main() {
 
     // 未接入（无论装没装微信）→ 说的都是"等我们"，因为装了微信也确实打不开，
     // 让用户去装微信只会白折腾一遍。
-    for (final WeChatInstalledProbe probe in <WeChatInstalledProbe>[hasWeChat, noWeChat]) {
+    for (final WeChatInstalledProbe probe in <WeChatInstalledProbe>[
+      hasWeChat,
+      noWeChat,
+    ]) {
       expect(
-        await CampusLauncher.unsupportedHint(l10n, target, isWeChatInstalled: probe),
+        await CampusLauncher.unsupportedHint(
+          l10n,
+          target,
+          isWeChatInstalled: probe,
+        ),
         l10n.launchMiniProgramNotWired,
       );
     }

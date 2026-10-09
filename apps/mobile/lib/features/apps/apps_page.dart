@@ -20,6 +20,7 @@ import 'package:campus_mobile/data/models/service_enums.dart';
 import 'package:campus_mobile/data/repositories/campus_repository.dart';
 import 'package:campus_mobile/data/repositories/data_source_mode.dart';
 import 'package:campus_mobile/features/apps/campus_entry.dart';
+import 'package:campus_mobile/features/apps/forge_page.dart';
 import 'package:campus_mobile/features/apps/service_grouping.dart';
 import 'package:campus_mobile/features/shared/widgets/offline_banner.dart';
 import 'package:campus_mobile/features/shared/widgets/service_details_sheet.dart';
@@ -60,7 +61,6 @@ class _Catalogue {
 
 class _AppsPageState extends State<AppsPage> {
   _AppsSurface _surface = _AppsSurface.quick;
-  String _forgeQuery = '';
   // 空 future 而不是 `late`：首帧永远不会读到未初始化字段。
   // An empty future rather than a `late` field: the first build never reads something
   // uninitialised.
@@ -233,70 +233,20 @@ class _AppsPageState extends State<AppsPage> {
 
         final FavoritesController favorites = AppScope.of(context).favorites;
         if (_surface == _AppsSurface.forge) {
-          final List<CampusEntry> projects = CampusEntries.sorted(
-            CampusEntries.search(
-              catalogue.entries
-                  .where((CampusEntry entry) => entry.isStudentProject)
-                  .toList(),
-              _forgeQuery,
-            ),
-            CampusEntrySort.name,
-          );
-          return RefreshIndicator(
-            onRefresh: () async => _load(),
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-              children: <Widget>[
-                _header(context, l10n),
-                const SizedBox(height: 12),
-                _surfaceSwitcher(l10n),
-                if (_topics.isNotEmpty) _topicFilter(context, l10n),
-                const SizedBox(height: 12),
-                TextField(
-                  decoration: InputDecoration(
-                    prefixIcon: const Icon(Icons.search),
-                    hintText: l10n.appsForgeSearch,
-                  ),
-                  onChanged: (String value) =>
-                      setState(() => _forgeQuery = value),
+          return Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                child: Column(
+                  children: [
+                    _header(context, l10n),
+                    const SizedBox(height: 12),
+                    _surfaceSwitcher(l10n),
+                  ],
                 ),
-                const SizedBox(height: 12),
-                if (projects.isEmpty)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 32),
-                    child: EmptyStateView(
-                      message: _forgeQuery.isEmpty
-                          ? l10n.appsForgeEmpty
-                          : l10n.appsSearchEmpty,
-                      icon: Icons.code_outlined,
-                    ),
-                  )
-                else
-                  for (final CampusEntry entry in projects)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: _EntryTile(
-                        entry: entry,
-                        name: _nameOf(catalogue, entry),
-                        description: _descriptionOf(catalogue, entry),
-                        isFavorite: favorites.contains(
-                          ServiceGrouping.favoriteBoardOf(
-                            ServiceGrouping.groupOfEntry(entry),
-                          ),
-                          entry.key,
-                        ),
-                        onToggleFavorite: () => favorites.toggle(
-                          ServiceGrouping.favoriteBoardOf(
-                            ServiceGrouping.groupOfEntry(entry),
-                          ),
-                          entry.key,
-                        ),
-                        onOpen: () => _open(context, entry),
-                        onDetails: () => _showDetails(context, entry),
-                      ),
-                    ),
-              ],
-            ),
+              ),
+              const Expanded(child: ForgePage(embedded: true)),
+            ],
           );
         }
 

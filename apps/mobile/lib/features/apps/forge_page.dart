@@ -1,0 +1,863 @@
+import 'package:flutter/material.dart';
+import 'package:pocketbase/pocketbase.dart';
+import 'package:campus_mobile/core/pocketbase_session.dart';
+
+import 'forge_repository.dart';
+
+class ForgePage extends StatefulWidget {
+  const ForgePage({super.key, this.repository, this.embedded = false});
+  final ForgeRepository? repository;
+  final bool embedded;
+  @override
+  State<ForgePage> createState() => _ForgePageState();
+}
+
+class _ForgePageState extends State<ForgePage> {
+  ForgeRepository? get repo {
+    if (widget.repository != null) return widget.repository;
+    final session = PocketBaseSession.instance;
+    return session == null ? null : ForgeRepository(session.client);
+  }
+
+  bool mine = false;
+  String query = '';
+  int page = 1;
+  Future<ResultList<RecordModel>>? result;
+  @override
+  void initState() {
+    super.initState();
+    load();
+  }
+
+  void load() {
+    result = repo?.projects(page: page, query: query, mine: mine);
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: widget.embedded ? null : AppBar(title: const Text('校园社区')),
+    body: repo == null
+        ? const Center(child: Text('连接校园服务后参与项目交流'))
+        : Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '一起构建校园',
+                      style: Theme.of(context).textTheme.headlineSmall,
+                    ),
+                    const SizedBox(height: 6),
+                    const Text('发现项目 · 提出问题 · 分享进展 · 参与讨论'),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: SegmentedButton<bool>(
+                            showSelectedIcon: false,
+                            segments: const [
+                              ButtonSegment(
+                                value: false,
+                                label: Text('发现项目'),
+                                icon: Icon(Icons.explore_outlined),
+                              ),
+                              ButtonSegment(
+                                value: true,
+                                label: Text('我的仓库'),
+                                icon: Icon(Icons.folder_open),
+                              ),
+                            ],
+                            selected: {mine},
+                            onSelectionChanged: (value) => setState(() {
+                              mine = value.first;
+                              page = 1;
+                              load();
+                            }),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        IconButton.filledTonal(
+                          tooltip: '创建项目',
+                          onPressed: repo!.canWrite
+                              ? () async {
+                                  final saved = await showProjectEditor(
+                                    context,
+                                    repo!,
+                                  );
+                                  if (saved && mounted) {
+                                    setState(() {
+                                      page = 1;
+                                      load();
+                                    });
+                                  }
+                                }
+                              : null,
+                          icon: const Icon(Icons.add),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      decoration: const InputDecoration(
+                        prefixIcon: Icon(Icons.search),
+                        hintText: '搜索项目、介绍或技术话题',
+                        suffixIcon: Icon(Icons.keyboard_return),
+                      ),
+                      onSubmitted: (value) => setState(() {
+                        query = value;
+                        page = 1;
+                        load();
+                      }),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: FutureBuilder<ResultList<RecordModel>>(
+                  future: result,
+                  builder: (context, snapshot) {
+                    if (snapshot.hasError) {
+                      return _Retry(onRetry: () => setState(load));
+                    }
+                    if (!snapshot.hasData) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    final rows = snapshot.data!;
+                    return RefreshIndicator(
+                      onRefresh: () async {
+                        setState(load);
+                        await result;
+                      },
+                      child: ListView(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        children: [
+                          if (rows.items.isEmpty)
+                            const Padding(
+                              padding: EdgeInsets.all(32),
+                              child: Text('从一个校园需求开始，发布项目或调整搜索词。'),
+                            ),
+                          for (final item in rows.items)
+                            Card(
+                              child: ListTile(
+                                contentPadding: const EdgeInsets.all(16),
+                                leading: const Icon(Icons.source_outlined),
+                                title: Text(item.getStringValue('name')),
+                                subtitle: Text(
+                                  '${item.getStringValue('summary')}\n${item.getStringValue('topics')}',
+                                ),
+                                isThreeLine: true,
+                                trailing: Icon(
+                                  item.getStringValue('visibility') == 'private'
+                                      ? Icons.lock_outline
+                                      : Icons.chevron_right,
+                                ),
+                                onTap: () => Navigator.of(context)
+                                    .push(
+                                      MaterialPageRoute<void>(
+                                        builder: (_) => ForgeProjectPage(
+                                          repo: repo!,
+                                          id: item.id,
+                                        ),
+                                      ),
+                                    )
+                                    .then((_) {
+                                      if (mounted) setState(load);
+                                    }),
+                              ),
+                            ),
+                          _Pager(
+                            page: page,
+                            total: rows.totalPages,
+                            onPage: (value) => setState(() {
+                              page = value;
+                              load();
+                            }),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+  );
+}
+
+class ForgeProjectPage extends StatefulWidget {
+  const ForgeProjectPage({super.key, required this.repo, required this.id});
+  final ForgeRepository repo;
+  final String id;
+  @override
+  State<ForgeProjectPage> createState() => _ForgeProjectPageState();
+}
+
+class _ForgeProjectPageState extends State<ForgeProjectPage> {
+  late Future<RecordModel> project;
+  late Future<ResultList<RecordModel>> discussions;
+  late Future<ResultList<RecordModel>> stars;
+  RecordModel? star;
+  bool starring = false;
+  int page = 1;
+  @override
+  void initState() {
+    super.initState();
+    load();
+  }
+
+  void load() {
+    project = widget.repo.project(widget.id);
+    discussions = widget.repo.discussions(widget.id, page: page);
+    stars = widget.repo.stars(widget.id);
+    widget.repo
+        .myStar(widget.id)
+        .then((value) {
+          if (mounted) setState(() => star = value);
+        })
+        .catchError((Object error) {
+          if (mounted) _message(context, '关注状态加载失败，请刷新重试');
+        });
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('项目仓库')),
+    body: FutureBuilder<RecordModel>(
+      future: project,
+      builder: (context, snapshot) {
+        if (snapshot.hasError) return _Retry(onRetry: () => setState(load));
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final item = snapshot.data!;
+        final owned = item.getStringValue('owner') == widget.repo.userId;
+        return DefaultTabController(
+          length: 2,
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item.getStringValue('name'),
+                      style: Theme.of(context).textTheme.headlineSmall,
+                    ),
+                    Text(item.getStringValue('summary')),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        FutureBuilder<ResultList<RecordModel>>(
+                          future: stars,
+                          builder: (context, count) => OutlinedButton.icon(
+                            onPressed: widget.repo.canWrite && !starring
+                                ? () async {
+                                    setState(() => starring = true);
+                                    try {
+                                      await widget.repo.toggleStar(
+                                        widget.id,
+                                        star,
+                                      );
+                                      if (mounted) setState(load);
+                                    } catch (error) {
+                                      if (context.mounted) {
+                                        _message(context, '关注操作失败，请重试');
+                                      }
+                                    } finally {
+                                      if (mounted) {
+                                        setState(() => starring = false);
+                                      }
+                                    }
+                                  }
+                                : null,
+                            icon: Icon(
+                              star == null ? Icons.star_outline : Icons.star,
+                            ),
+                            label: Text('关注 ${count.data?.totalItems ?? '…'}'),
+                          ),
+                        ),
+                        if (owned)
+                          OutlinedButton.icon(
+                            onPressed: () async {
+                              final saved = await showProjectEditor(
+                                context,
+                                widget.repo,
+                                initial: item,
+                              );
+                              if (saved && mounted) setState(load);
+                            },
+                            icon: const Icon(Icons.edit_outlined),
+                            label: const Text('编辑项目'),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const TabBar(
+                tabs: [
+                  Tab(text: 'README'),
+                  Tab(text: '讨论与问题'),
+                ],
+              ),
+              Expanded(
+                child: TabBarView(
+                  children: [
+                    SingleChildScrollView(
+                      padding: const EdgeInsets.all(20),
+                      child: SelectionArea(
+                        child: Text(
+                          item.getStringValue('readme').isEmpty
+                              ? '写下项目目标、使用方法和参与方式。'
+                              : item.getStringValue('readme'),
+                        ),
+                      ),
+                    ),
+                    FutureBuilder<ResultList<RecordModel>>(
+                      future: discussions,
+                      builder: (context, threads) {
+                        if (threads.hasError) {
+                          return _Retry(onRetry: () => setState(load));
+                        }
+                        if (!threads.hasData) {
+                          return const Center(
+                            child: CircularProgressIndicator(),
+                          );
+                        }
+                        return ListView(
+                          padding: const EdgeInsets.all(16),
+                          children: [
+                            FilledButton.icon(
+                              onPressed: widget.repo.canWrite
+                                  ? () async {
+                                      final created = await _newDiscussion(
+                                        context,
+                                        widget.repo,
+                                        widget.id,
+                                      );
+                                      if (created && mounted) {
+                                        setState(() {
+                                          page = 1;
+                                          load();
+                                        });
+                                      }
+                                    }
+                                  : null,
+                              icon: const Icon(Icons.add_comment_outlined),
+                              label: const Text('发起讨论'),
+                            ),
+                            const SizedBox(height: 12),
+                            if (threads.data!.items.isEmpty)
+                              const Padding(
+                                padding: EdgeInsets.all(24),
+                                child: Text('分享建议，提出问题，让项目继续前进。'),
+                              ),
+                            for (final thread in threads.data!.items)
+                              Card(
+                                child: ListTile(
+                                  leading: Icon(
+                                    thread.getStringValue('status') == 'closed'
+                                        ? Icons.task_alt
+                                        : Icons.chat_bubble_outline,
+                                  ),
+                                  title: Text(thread.getStringValue('title')),
+                                  subtitle: Text(
+                                    '${_kind(thread.getStringValue('kind'))} · ${thread.getStringValue('status') == 'closed' ? '已解决' : '讨论中'}',
+                                  ),
+                                  trailing: const Icon(Icons.chevron_right),
+                                  onTap: () => Navigator.of(context)
+                                      .push(
+                                        MaterialPageRoute<void>(
+                                          builder: (_) => ForgeDiscussionPage(
+                                            repo: widget.repo,
+                                            thread: thread,
+                                            repositoryOwner: item
+                                                .getStringValue('owner'),
+                                          ),
+                                        ),
+                                      )
+                                      .then((_) {
+                                        if (mounted) setState(load);
+                                      }),
+                                ),
+                              ),
+                            _Pager(
+                              page: page,
+                              total: threads.data!.totalPages,
+                              onPage: (value) => setState(() {
+                                page = value;
+                                load();
+                              }),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    ),
+  );
+}
+
+class ForgeDiscussionPage extends StatefulWidget {
+  const ForgeDiscussionPage({
+    super.key,
+    required this.repo,
+    required this.thread,
+    required this.repositoryOwner,
+  });
+  final ForgeRepository repo;
+  final RecordModel thread;
+  final String repositoryOwner;
+  @override
+  State<ForgeDiscussionPage> createState() => _ForgeDiscussionPageState();
+}
+
+class _ForgeDiscussionPageState extends State<ForgeDiscussionPage> {
+  final input = TextEditingController();
+  late Future<ResultList<RecordModel>> replies;
+  late String status;
+  bool busy = false;
+  int page = 1;
+  @override
+  void initState() {
+    super.initState();
+    status = widget.thread.getStringValue('status');
+    load();
+  }
+
+  void load() {
+    replies = widget.repo.replies(widget.thread.id, page: page);
+  }
+
+  @override
+  void dispose() {
+    input.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final manage =
+        widget.repo.userId == widget.thread.getStringValue('owner') ||
+        widget.repo.userId == widget.repositoryOwner;
+    return Scaffold(
+      appBar: AppBar(title: const Text('项目讨论')),
+      body: Column(
+        children: [
+          Expanded(
+            child: FutureBuilder<ResultList<RecordModel>>(
+              future: replies,
+              builder: (context, snapshot) => ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  Text(
+                    widget.thread.getStringValue('title'),
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
+                  const SizedBox(height: 12),
+                  SelectableText(widget.thread.getStringValue('body')),
+                  const Divider(height: 32),
+                  if (snapshot.hasError)
+                    _Retry(onRetry: () => setState(load))
+                  else if (!snapshot.hasData)
+                    const Center(child: CircularProgressIndicator())
+                  else ...[
+                    for (final reply in snapshot.data!.items)
+                      Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '成员 ${reply.getStringValue('owner')}',
+                                style: Theme.of(context).textTheme.labelSmall,
+                              ),
+                              const SizedBox(height: 8),
+                              SelectableText(reply.getStringValue('body')),
+                            ],
+                          ),
+                        ),
+                      ),
+                    _Pager(
+                      page: page,
+                      total: snapshot.data!.totalPages,
+                      onPage: (value) => setState(() {
+                        page = value;
+                        load();
+                      }),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          if (manage)
+            TextButton(
+              onPressed: busy
+                  ? null
+                  : () async {
+                      setState(() => busy = true);
+                      final next = status == 'open' ? 'closed' : 'open';
+                      try {
+                        await widget.repo.setStatus(widget.thread.id, next);
+                        if (mounted) setState(() => status = next);
+                      } catch (error) {
+                        if (context.mounted) {
+                          _message(context, '状态保存失败，请重试');
+                        }
+                      } finally {
+                        if (mounted) setState(() => busy = false);
+                      }
+                    },
+              child: Text(status == 'open' ? '标记为已解决' : '重新开启讨论'),
+            ),
+          if (widget.repo.canWrite && status == 'open')
+            SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: input,
+                        minLines: 1,
+                        maxLines: 4,
+                        maxLength: 20000,
+                        decoration: const InputDecoration(
+                          hintText: '参与讨论，写下你的想法',
+                          counterText: '',
+                        ),
+                      ),
+                    ),
+                    IconButton.filled(
+                      tooltip: '发送回复',
+                      onPressed: busy
+                          ? null
+                          : () async {
+                              if (input.text.trim().isEmpty) return;
+                              setState(() => busy = true);
+                              try {
+                                await widget.repo.reply(
+                                  widget.thread.id,
+                                  input.text,
+                                );
+                                input.clear();
+                                if (mounted) setState(load);
+                              } catch (error) {
+                                if (context.mounted) {
+                                  _message(context, '回复发送失败，请重试');
+                                }
+                              } finally {
+                                if (mounted) setState(() => busy = false);
+                              }
+                            },
+                      icon: const Icon(Icons.send_outlined),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+Future<bool> showProjectEditor(
+  BuildContext context,
+  ForgeRepository repo, {
+  RecordModel? initial,
+}) async {
+  final controllers = [
+    for (final field in ['name', 'summary', 'readme', 'topics'])
+      TextEditingController(text: initial?.getStringValue(field) ?? ''),
+  ];
+  bool public = initial?.getStringValue('visibility') != 'private';
+  bool saving = false;
+  String? error;
+  final saved = await showDialog<bool>(
+    context: context,
+    barrierDismissible: false,
+    builder: (dialogContext) => _ControllerOwner(
+      controllers: controllers,
+      child: StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: Text(initial == null ? '创建项目仓库' : '编辑项目仓库'),
+          content: SizedBox(
+            width: 560,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (int i = 0; i < controllers.length; i++)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: TextField(
+                        controller: controllers[i],
+                        enabled: !saving,
+                        maxLength: [100, 500, 100000, 300][i],
+                        minLines: i == 2 ? 4 : 1,
+                        maxLines: i == 2 ? 8 : 2,
+                        decoration: InputDecoration(
+                          labelText: [
+                            '项目名称',
+                            '简介',
+                            'README：目标、用法与参与方式',
+                            '话题：用空格分隔',
+                          ][i],
+                        ),
+                      ),
+                    ),
+                  SwitchListTile(
+                    title: const Text('公开项目'),
+                    value: public,
+                    onChanged: saving
+                        ? null
+                        : (value) => setState(() => public = value),
+                  ),
+                  if (error != null)
+                    Text(
+                      error!,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: saving
+                  ? null
+                  : () => Navigator.pop(dialogContext, false),
+              child: const Text('取消'),
+            ),
+            FilledButton(
+              onPressed: saving
+                  ? null
+                  : () async {
+                      if (controllers[0].text.trim().isEmpty) {
+                        setState(() => error = '请填写项目名称');
+                        return;
+                      }
+                      setState(() {
+                        saving = true;
+                        error = null;
+                      });
+                      try {
+                        await repo.saveProject(
+                          id: initial?.id,
+                          name: controllers[0].text,
+                          summary: controllers[1].text,
+                          readme: controllers[2].text,
+                          topics: controllers[3].text,
+                          isPublic: public,
+                        );
+                        if (dialogContext.mounted) {
+                          Navigator.pop(dialogContext, true);
+                        }
+                      } catch (exception) {
+                        if (dialogContext.mounted) {
+                          setState(() {
+                            saving = false;
+                            error = '保存失败，请检查连接后重试';
+                          });
+                        }
+                      }
+                    },
+              child: Text(saving ? '保存中' : '保存'),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+  return saved ?? false;
+}
+
+Future<bool> _newDiscussion(
+  BuildContext context,
+  ForgeRepository repo,
+  String repository,
+) async {
+  final title = TextEditingController();
+  final body = TextEditingController();
+  String kind = 'question';
+  bool busy = false;
+  String? error;
+  final result = await showDialog<bool>(
+    context: context,
+    barrierDismissible: false,
+    builder: (dialogContext) => _ControllerOwner(
+      controllers: [title, body],
+      child: StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('发起讨论'),
+          content: SizedBox(
+            width: 560,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  DropdownButtonFormField<String>(
+                    initialValue: kind,
+                    items: [
+                      for (final value in ['question', 'idea', 'bug', 'update'])
+                        DropdownMenuItem(
+                          value: value,
+                          child: Text(_kind(value)),
+                        ),
+                    ],
+                    onChanged: busy
+                        ? null
+                        : (value) => setState(() => kind = value!),
+                    decoration: const InputDecoration(labelText: '分类'),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: title,
+                    maxLength: 200,
+                    enabled: !busy,
+                    decoration: const InputDecoration(labelText: '标题'),
+                  ),
+                  TextField(
+                    controller: body,
+                    maxLength: 20000,
+                    minLines: 4,
+                    maxLines: 8,
+                    enabled: !busy,
+                    decoration: const InputDecoration(labelText: '内容'),
+                  ),
+                  if (error != null) Text(error!),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: busy
+                  ? null
+                  : () => Navigator.pop(dialogContext, false),
+              child: const Text('取消'),
+            ),
+            FilledButton(
+              onPressed: busy
+                  ? null
+                  : () async {
+                      if (title.text.trim().isEmpty ||
+                          body.text.trim().isEmpty) {
+                        setState(() => error = '请填写标题和内容');
+                        return;
+                      }
+                      setState(() => busy = true);
+                      try {
+                        await repo.discuss(
+                          repository,
+                          title.text,
+                          body.text,
+                          kind,
+                        );
+                        if (dialogContext.mounted) {
+                          Navigator.pop(dialogContext, true);
+                        }
+                      } catch (exception) {
+                        if (dialogContext.mounted) {
+                          setState(() {
+                            busy = false;
+                            error = '发布失败，请检查连接后重试';
+                          });
+                        }
+                      }
+                    },
+              child: Text(busy ? '发布中' : '发布'),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+  return result ?? false;
+}
+
+String _kind(String value) => switch (value) {
+  'idea' => '想法与建议',
+  'bug' => '问题反馈',
+  'update' => '项目进展',
+  _ => '问答交流',
+};
+void _message(BuildContext context, String value) =>
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(value)));
+
+class _ControllerOwner extends StatefulWidget {
+  const _ControllerOwner({required this.controllers, required this.child});
+  final List<TextEditingController> controllers;
+  final Widget child;
+  @override
+  State<_ControllerOwner> createState() => _ControllerOwnerState();
+}
+
+class _ControllerOwnerState extends State<_ControllerOwner> {
+  @override
+  void dispose() {
+    for (final controller in widget.controllers) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
+}
+
+class _Retry extends StatelessWidget {
+  const _Retry({required this.onRetry});
+  final VoidCallback onRetry;
+  @override
+  Widget build(BuildContext context) => Center(
+    child: TextButton.icon(
+      onPressed: onRetry,
+      icon: const Icon(Icons.refresh),
+      label: const Text('加载失败，点击重试'),
+    ),
+  );
+}
+
+class _Pager extends StatelessWidget {
+  const _Pager({required this.page, required this.total, required this.onPage});
+  final int page, total;
+  final ValueChanged<int> onPage;
+  @override
+  Widget build(BuildContext context) => total <= 1
+      ? const SizedBox.shrink()
+      : Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            IconButton(
+              tooltip: '上一页',
+              onPressed: page > 1 ? () => onPage(page - 1) : null,
+              icon: const Icon(Icons.chevron_left),
+            ),
+            Text('$page / $total'),
+            IconButton(
+              tooltip: '下一页',
+              onPressed: page < total ? () => onPage(page + 1) : null,
+              icon: const Icon(Icons.chevron_right),
+            ),
+          ],
+        );
+}

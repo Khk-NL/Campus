@@ -220,7 +220,7 @@ void main() {
     state.dispose();
   });
 
-  testWidgets('快速入口与校园作品是两层视角，作品仍可在快速入口使用', (WidgetTester tester) async {
+  testWidgets('校园作品进入社区，工具继续在快速入口使用', (WidgetTester tester) async {
     useTallViewport(tester);
     final RecordingCampusRepository repository = RecordingCampusRepository();
     final AppState state = await buildState(repository);
@@ -229,7 +229,7 @@ void main() {
     final AppLocalizations l10n = l10nOf(tester);
     await tester.tap(find.text(l10n.appsForge));
     await tester.pumpAndSettle();
-    expect(row('空教室查询'), findsOneWidget);
+    expect(find.text('连接校园服务后参与项目交流'), findsOneWidget);
     expect(row('教务处'), findsNothing);
     await tester.tap(find.text(l10n.appsQuickAccess));
     await tester.pumpAndSettle();

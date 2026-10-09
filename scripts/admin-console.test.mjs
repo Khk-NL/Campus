@@ -81,7 +81,9 @@ test('each common partition has its own action and editable fields omit server-c
   assert.equal(sections.course_notes.action, '新增笔记');
   assert.equal(sections.users.action, '新增用户');
   assert.equal(sections.campus_content.action, '新增目录记录');
-  assert.equal(new Set(Object.values(sections).map(x => x.action)).size, 7);
+  assert.equal(new Set(Object.values(sections).map(x => x.action)).size, Object.keys(sections).length);
+  assert.equal(sections.forge_discussions.action, '新增项目讨论');
+  assert.equal(sections.forge_replies.action, '新增讨论回复');
   assert.deepEqual(editableFields({fields:[{name:'id',type:'text'},{name:'updated',type:'autodate'},{name:'password',type:'password'},{name:'content',type:'text'},{name:'verified',type:'bool'}]}).map(x=>x.name), ['content','verified']);
 });
 
@@ -100,14 +102,28 @@ test('collection catalog paginates and enables CRUD for discovered collections',
   const calls=[];
   const client=new AdminClient('',async(url,options)=>{
     calls.push({url,options});
-    if(url.startsWith('/api/collections?'))return Response.json({items:[{name:'extra_records',type:'base',fields:[]}],totalPages:1});
+    if(url.startsWith('/api/collections?')) {
+      const page=new URL(url,'http://example.com').searchParams.get('page');
+      return Response.json({items:[{name:page==='1'?'first_records':'extra_records',type:'base',fields:[]}],totalPages:2});
+    }
     return options.method==='DELETE'?new Response(null,{status:204}):Response.json({id:recordId});
   });
-  await client.loadCollections();await client.saveRecord('extra_records',{title:'x'});await client.saveRecord('extra_records',{title:'y'},recordId);await client.deleteRecord('extra_records',recordId);
-  assert.deepEqual(calls.slice(1).map(x=>x.options.method),['POST','PATCH','DELETE']);
+  const catalog=await client.loadCollections();
+  assert.deepEqual(catalog.map(row=>row.name),['first_records','extra_records']);
+  assert.deepEqual(calls.map(row=>new URL(row.url,'http://example.com').searchParams.get('page')),['1','2']);
+  await client.getRecord('extra_records',recordId);await client.saveRecord('extra_records',{title:'x'});await client.saveRecord('extra_records',{title:'y'},recordId);await client.deleteRecord('extra_records',recordId);
+  assert.equal(calls[2].url,`/api/collections/extra_records/records/${recordId}`);
+  assert.deepEqual(calls.slice(2).map(x=>x.options.method),['GET','POST','PATCH','DELETE']);
   assert.throws(()=>client.collectionPath('unlisted_collection'));
   client.schemas.set('read_only',{type:'view'});
   assert.throws(()=>client.saveRecord('read_only',{}));assert.throws(()=>client.deleteRecord('read_only',recordId));
+});
+
+test('campus directory kind filters preserve quoted values', async () => {
+  let requested;
+  const client=new AdminClient('',async url=>{requested=url;return Response.json({items:[]});});
+  await client.list('campus_content',{kind:'app'});
+  assert.equal(new URL(requested,'http://example.com').searchParams.get('filter'),'kind = "app"');
 });
 
 test('file writes preserve multipart boundaries and include authentication', async () => {

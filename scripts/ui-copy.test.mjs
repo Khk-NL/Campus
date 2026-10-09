@@ -38,8 +38,8 @@ test('public website copy retains identity and privacy information with direct w
 
 test('public pages keep administrative navigation separate', () => {
   const directory = new URL('deploy/pocketbase/pb_public/', root);
-  for (const name of ['index', 'features', 'community', 'about', 'download', 'privacy']) {
-    const html = fs.readFileSync(new URL(`${name}.html`, directory), 'utf8');
+  for (const name of fs.readdirSync(directory).filter(name => name.endsWith('.html') && name !== 'admin.html')) {
+    const html = fs.readFileSync(new URL(name, directory), 'utf8');
     assert.ok(!/href=["'][^"']*(?:admin\.html|\/_\/)/.test(html), name);
   }
 });

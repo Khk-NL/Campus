@@ -28,3 +28,16 @@ test('local HTTP transport preserves request bodies, headers and response status
 test('Fetch restricted-port failures happen before any connection attempt', async () => {
   await assert.rejects(globalThis.fetch('http://127.0.0.1:6667'), error => error.cause?.message === 'bad port');
 });
+
+test('invalid Response status rejects the request promise', async () => {
+  const server = createServer((request, response) => {
+    response.writeHead(700);
+    response.end('invalid response status');
+  });
+  await new Promise((resolve, reject) => {
+    server.once('error', reject); server.listen(0, '127.0.0.1', resolve);
+  });
+  try {
+    await assert.rejects(requestLocal(`http://127.0.0.1:${server.address().port}`), RangeError);
+  } finally { await new Promise(resolve => server.close(resolve)); }
+});
