@@ -673,7 +673,7 @@ class _NotebookRemotePageState extends State<NotebookRemotePage>
       seedColor:
           <String, Color>{
             'quiz': const Color(0xff9e3451),
-            'flashcards': const Color(0xff317a75),
+            'flashcards': const Color(0xff536ea7),
             'mindmap': const Color(0xff7561aa),
             'conversation': const Color(0xff3b7399),
           }[kind] ??

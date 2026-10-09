@@ -1,13 +1,13 @@
 /// Campulse 设计规范 / the Campulse design tokens (§0.3, §0.9 手机优先).
 ///
 /// 色值不是猜的：主色取自学校官方的《标准色使用规范》（PANTONE 201C =
-/// `#A41F35`，规范写明"不得任意更改"）；青绿与蓝紫作为界面辅助色。所有颜色都从这里
+/// `#A41F35`，规范写明"不得任意更改"）；雾蓝与蓝紫作为界面辅助色。所有颜色都从这里
 /// 取，widget 里不允许出现字面量色值——换主题时改动点只有一个。主题文件**只放色值与
 /// 排版规则**，不出现任何高校专有字样（§3.1）。
 ///
 /// The colours are not guesses: the primary is the university's official standard colour
 /// (PANTONE 201C = `#A41F35`, which the specification says must not be altered) and the
-/// supporting hues are teal and blue-violet. Every colour comes from here; widgets never
+/// supporting hues are muted blue and blue-violet. Every colour comes from here; widgets never
 /// hold a literal colour, so re-theming touches one file. This file holds colour values
 /// and typography rules only, never a university-specific string (§3.1).
 ///
@@ -133,7 +133,7 @@ class CampusStatusColors extends ThemeExtension<CampusStatusColors> {
 
   /// 浅色模式取值 / the light-mode values.
   static const CampusStatusColors light = CampusStatusColors(
-    success: Color(0xFF1B7F4B),
+    success: Color(0xFF485FA3),
     warning: Color(0xFF8A5A00),
     info: Color(0xFF1B4F9C),
     neutral: Color(0xFF5F5A63),
@@ -142,7 +142,7 @@ class CampusStatusColors extends ThemeExtension<CampusStatusColors> {
 
   /// 深色模式取值 / the dark-mode values.
   static const CampusStatusColors dark = CampusStatusColors(
-    success: Color(0xFF7BD9A6),
+    success: Color(0xFFB4C4FF),
     warning: Color(0xFFFFC46B),
     info: Color(0xFF9CC2FF),
     neutral: Color(0xFFC9C2CE),
@@ -212,14 +212,14 @@ class CampusTheme {
           onPrimaryContainer: isDark
               ? CampusColors.primary10
               : CampusColors.primaryDeep,
-          secondary: isDark ? const Color(0xFF84D4CB) : const Color(0xFF246D68),
-          onSecondary: isDark ? const Color(0xFF003732) : Colors.white,
+          secondary: isDark ? const Color(0xFFAFC6FF) : const Color(0xFF40609B),
+          onSecondary: isDark ? const Color(0xFF112E60) : Colors.white,
           secondaryContainer: isDark
-              ? const Color(0xFF163D3B)
-              : const Color(0xFFDDEFEA),
+              ? const Color(0xFF263951)
+              : const Color(0xFFDDE6FF),
           onSecondaryContainer: isDark
-              ? const Color(0xFFB4F0E6)
-              : const Color(0xFF143C37),
+              ? const Color(0xFFDDE6FF)
+              : const Color(0xFF19345F),
           tertiary: isDark ? const Color(0xFFBFC2FF) : const Color(0xFF555D99),
           onTertiary: isDark ? const Color(0xFF252B5F) : Colors.white,
           tertiaryContainer: isDark
