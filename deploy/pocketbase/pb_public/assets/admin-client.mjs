@@ -43,7 +43,7 @@ export function appPayload(form, existing = {}) {
 export class AdminClient {
   constructor(base = '', request = fetch) {
     this.base = base.replace(/\/$/, '');
-    this.request = request;
+    this.request = (...args) => request(...args);
     this.token = '';
   }
 

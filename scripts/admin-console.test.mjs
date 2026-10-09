@@ -3,6 +3,13 @@ import assert from 'node:assert/strict';
 import { AdminClient, appPayload, ownerFilter, workspaceSummary } from '../deploy/pocketbase/pb_public/assets/admin-client.mjs';
 
 const recordId = '0123456789abcde';
+test('browser fetch is called without a client receiver', async () => {
+  const client = new AdminClient('', async function () {
+    assert.equal(this, undefined);
+    return new Response('{"items":[]}', { status: 200 });
+  });
+  await client.list('users');
+});
 test('workspace summary matches mobile completion semantics', () => {
   assert.equal(workspaceSummary({ payload: { activities: [{ completedAt: null }, { completedAt: '2026-10-09' }] } }), '待办 1 · 已完成 1');
   assert.equal(workspaceSummary({}), '待办 0 · 已完成 0');
