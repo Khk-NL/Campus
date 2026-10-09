@@ -5,6 +5,32 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
 void main() {
+  test('成果历史 GET 请求携带课程和分页参数', () async {
+    final EduWorkGatewayProbe probe = EduWorkGatewayProbe(
+      baseUrl: 'https://school.example/ai',
+      client: MockClient((http.Request request) async {
+        expect(request.method, 'GET');
+        expect(request.url.queryParameters, <String, String>{
+          'courseId': 'course-a',
+          'page': '2',
+          'perPage': '20',
+        });
+        expect(request.headers['authorization'], 'Bearer pilot-token');
+        return http.Response(
+          '{"items":[],"totalPages":2,"totalItems":21}',
+          200,
+        );
+      }),
+    );
+    final Map<String, dynamic> result = await probe.notebookRequest(
+      pocketBaseToken: 'pilot-token',
+      endpoint: 'artifacts',
+      courseId: 'course-a',
+      read: true,
+      body: <String, dynamic>{'page': 2, 'perPage': 20},
+    );
+    expect(result['totalItems'], 21);
+  });
   test('默认未配置，不会暗示 EduWork 已接入', () {
     expect(AppConfig.defaults().hasEduWorkGateway, isFalse);
   });
@@ -47,7 +73,10 @@ void main() {
 
   test('课程提问只发送普通用户令牌、课程和选中资料', () async {
     final MockClient client = MockClient((http.Request request) async {
-      expect(request.url.toString(), 'https://campus.allezafrique.cn/ai/v1/ask');
+      expect(
+        request.url.toString(),
+        'https://campus.allezafrique.cn/ai/v1/ask',
+      );
       expect(request.headers['authorization'], 'Bearer user-token');
       expect(request.method, 'POST');
       expect(request.body, contains('note:one'));

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:campus_mobile/core/config/app_config.dart';
 import 'package:campus_mobile/core/pocketbase_session.dart';
@@ -5,6 +7,13 @@ import 'package:campus_mobile/core/pocketbase_session.dart';
 import 'eduwork_gateway_probe.dart';
 import 'study_repository.dart';
 import 'review_card_repository.dart';
+
+class _NotebookHistory {
+  List<Map<String, dynamic>> items = <Map<String, dynamic>>[];
+  int page = 0;
+  int pages = 1;
+  int total = 0;
+}
 
 class NotebookRemotePage extends StatefulWidget {
   const NotebookRemotePage({
@@ -40,9 +49,23 @@ class _NotebookRemotePageState extends State<NotebookRemotePage>
   late final TabController _tabs;
   final TransformationController _mapView = TransformationController();
   String? _mapArtifact;
-  final TextEditingController _input = TextEditingController();
+  final List<TextEditingController> _inputs =
+      List<TextEditingController>.generate(3, (_) => TextEditingController());
+  TextEditingController get _input => _inputs[_tabs.index];
+  int _lastTab = 0;
   final List<Map<String, dynamic>> _evidence = <Map<String, dynamic>>[];
-  List<Map<String, dynamic>> _artifacts = <Map<String, dynamic>>[];
+  final Map<String, _NotebookHistory> _histories = <String, _NotebookHistory>{
+    'artifacts': _NotebookHistory(),
+    'conversations': _NotebookHistory(),
+  };
+  String get _section => _tabs.index == 2 ? 'conversations' : 'artifacts';
+  _NotebookHistory get _historyState => _histories[_section]!;
+  List<Map<String, dynamic>> get _artifacts => _historyState.items;
+  int get _historyPage => _historyState.page;
+  int get _historyPages => _historyState.pages;
+  int get _historyTotal => _historyState.total;
+  final Map<String, Color> _kindColors = <String, Color>{};
+  String? _historyKind;
   Map<String, dynamic>? _current;
   String? _agentId;
   bool _busy = false;
@@ -57,7 +80,13 @@ class _NotebookRemotePageState extends State<NotebookRemotePage>
       vsync: this,
       initialIndex: widget.initialTab,
     );
+    _lastTab = widget.initialTab;
     _tabs.addListener(() {
+      if (_lastTab != _tabs.index) {
+        _lastTab = _tabs.index;
+        _error = null;
+        if (!_busy && _historyState.page == 0) _run(_loadHistory);
+      }
       if (mounted) setState(() {});
     });
     if (widget.agents.isNotEmpty) {
@@ -67,13 +96,55 @@ class _NotebookRemotePageState extends State<NotebookRemotePage>
           : widget.agents.first.id;
     }
     _run(() async {
-      _artifacts = _maps((await _request('artifacts', read: true))['items']);
+      await _loadHistory();
     });
+  }
+
+  Future<void> _loadHistory({bool more = false}) async {
+    final String section = _section;
+    final _NotebookHistory history = _histories[section]!;
+    final int lastPage = more
+        ? history.page + 1
+        : (history.page < 1 ? 1 : history.page);
+    final List<Map<String, dynamic>> accumulated = more
+        ? List<Map<String, dynamic>>.from(history.items)
+        : <Map<String, dynamic>>[];
+    int pages = 1, total = 0, loadedPage = 0;
+    for (int page = more ? lastPage : 1; page <= lastPage; page++) {
+      final Map<String, dynamic> result = await _request(
+        'artifacts',
+        read: true,
+        body: <String, dynamic>{
+          'page': page,
+          'perPage': 20,
+          'section': section,
+        },
+      );
+      accumulated.addAll(_maps(result['items']));
+      pages = (result['totalPages'] as num?)?.toInt() ?? 1;
+      total = (result['totalItems'] as num?)?.toInt() ?? accumulated.length;
+      loadedPage = page;
+      if (page >= pages) break;
+    }
+    history.items = <String, Map<String, dynamic>>{
+      for (final Map<String, dynamic> item in accumulated)
+        item['id'] as String: item,
+    }.values.toList();
+    history.page = loadedPage;
+    history.pages = pages;
+    history.total = total;
+    if (!_artifacts.any(
+      (Map<String, dynamic> x) => x['kind'] == _historyKind,
+    )) {
+      _historyKind = null;
+    }
   }
 
   @override
   void dispose() {
-    _input.dispose();
+    for (final TextEditingController controller in _inputs) {
+      controller.dispose();
+    }
     _tabs.dispose();
     _mapView.dispose();
     super.dispose();
@@ -116,9 +187,16 @@ class _NotebookRemotePageState extends State<NotebookRemotePage>
     try {
       await action();
     } catch (error) {
-      if (mounted) setState(() => _error = error.toString());
+      if (mounted) {
+        setState(() => _error = error.toString());
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(error.toString())));
+      }
     } finally {
-      if (mounted) setState(() => _busy = false);
+      if (mounted) {
+        setState(() => _busy = false);
+        if (_historyState.page == 0 && _error == null) _run(_loadHistory);
+      }
     }
   }
 
@@ -128,23 +206,158 @@ class _NotebookRemotePageState extends State<NotebookRemotePage>
       body: <String, dynamic>{'kind': kind, 'focus': _input.text.trim()},
     );
     _answers.clear();
-    _artifacts = _maps((await _request('artifacts', read: true))['items']);
+    await _loadHistory();
   });
   Future<void> _askAgent() => _run(() async {
+    final TextEditingController input = _input;
     final Map<String, dynamic>? previous = _current;
     _current = await _request(
       'agents/ask',
       body: <String, dynamic>{
         'agentId': _agentId,
-        'question': _input.text.trim(),
+        'question': input.text.trim(),
         if (previous?['kind'] == 'conversation' &&
             previous?['payload']['agentId'] == _agentId)
           'conversationId': previous!['id'],
       },
     );
-    _input.clear();
-    _artifacts = _maps((await _request('artifacts', read: true))['items']);
+    if (mounted) input.clear();
+    await _loadHistory();
   });
+
+  Future<void> _editArtifact() async {
+    final Map<String, dynamic>? current = _current;
+    if (current == null || current['kind'] == 'conversation') return;
+    final String kind = current['kind'] as String;
+    final String? key = <String, String>{
+      'quiz': 'questions',
+      'flashcards': 'cards',
+      'mindmap': 'nodes',
+    }[kind];
+    if (key == null) return;
+    final dynamic raw = current['payload'] is Map
+        ? current['payload']['content']
+        : null;
+    if (raw is! Map ||
+        raw[key] is! List ||
+        raw['title'] is! String ||
+        (raw[key] as List).any((dynamic item) => item is! Map)) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('成果格式需要更新，请重新生成。')));
+      return;
+    }
+    final Map<String, dynamic> content = Map<String, dynamic>.from(
+      jsonDecode(jsonEncode(raw)) as Map,
+    );
+    for (final Map<String, dynamic> item
+        in (content[key] as List).cast<Map<String, dynamic>>()) {
+      for (final String field
+          in kind == 'quiz'
+              ? <String>['question', 'explanation']
+              : kind == 'flashcards'
+              ? <String>['front', 'back']
+              : <String>['label', 'body']) {
+        if (item[field] is! String) item[field] = '';
+      }
+      if (kind == 'quiz' &&
+          (item['options'] is! List ||
+              (item['options'] as List).isEmpty ||
+              (item['options'] as List).any((dynamic x) => x is! String) ||
+              item['correctIndex'] is! int ||
+              (item['correctIndex'] as int) < 0 ||
+              (item['correctIndex'] as int) >=
+                  (item['options'] as List).length)) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('测验格式需要更新，请重新生成。')));
+        return;
+      }
+    }
+    final bool? save = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) => AlertDialog(
+        title: const Text('编辑学习成果'),
+        content: SizedBox(
+          width: 520,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                if (kind == 'quiz') const Text('保存后需重新作答。'),
+                TextFormField(
+                  initialValue: content['title'] as String,
+                  decoration: const InputDecoration(labelText: '标题'),
+                  onChanged: (String value) => content['title'] = value,
+                ),
+                for (final Map<String, dynamic> item
+                    in (content[key] as List)
+                        .cast<Map<String, dynamic>>()) ...<Widget>[
+                  const Divider(height: 28),
+                  for (final (String field, String label)
+                      in kind == 'quiz'
+                          ? <(String, String)>[
+                              ('question', '题目'),
+                              ('explanation', '解析'),
+                            ]
+                          : kind == 'flashcards'
+                          ? <(String, String)>[('front', '问题'), ('back', '答案')]
+                          : <(String, String)>[('label', '概念'), ('body', '说明')])
+                    TextFormField(
+                      initialValue: item[field] as String,
+                      minLines: 1,
+                      maxLines: 5,
+                      decoration: InputDecoration(labelText: label),
+                      onChanged: (String value) => item[field] = value,
+                    ),
+                  if (kind == 'quiz') ...<Widget>[
+                    for (final (int i, dynamic option)
+                        in (item['options'] as List).indexed)
+                      TextFormField(
+                        initialValue: option as String,
+                        decoration: InputDecoration(labelText: '选项 ${i + 1}'),
+                        onChanged: (String value) => item['options'][i] = value,
+                      ),
+                    DropdownButtonFormField<int>(
+                      initialValue: item['correctIndex'] as int,
+                      decoration: const InputDecoration(labelText: '正确选项'),
+                      items: List<DropdownMenuItem<int>>.generate(
+                        (item['options'] as List).length,
+                        (int i) => DropdownMenuItem<int>(
+                          value: i,
+                          child: Text('选项 ${i + 1}'),
+                        ),
+                      ),
+                      onChanged: (int? value) {
+                        if (value != null) item['correctIndex'] = value;
+                      },
+                    ),
+                  ],
+                ],
+              ],
+            ),
+          ),
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('保存'),
+          ),
+        ],
+      ),
+    );
+    if (save != true || !mounted) return;
+    await _run(() async {
+      _current = await _request(
+        'artifacts/${current['id']}/edit',
+        body: <String, dynamic>{'content': content},
+      );
+      _answers.clear();
+      await _loadHistory();
+    });
+  }
 
   Widget _citation(Map<String, dynamic> item) => ListTile(
     leading: CircleAvatar(
@@ -226,9 +439,21 @@ class _NotebookRemotePageState extends State<NotebookRemotePage>
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         const Divider(height: 28),
-        Text(
-          current['title'] as String,
-          style: Theme.of(context).textTheme.titleLarge,
+        Row(
+          children: <Widget>[
+            Expanded(
+              child: Text(
+                current['title'] as String,
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+            ),
+            if (kind != 'conversation')
+              IconButton(
+                onPressed: _busy ? null : _editArtifact,
+                tooltip: '编辑学习成果',
+                icon: const Icon(Icons.edit_outlined),
+              ),
+          ],
         ),
         if (kind == 'quiz') ...<Widget>[
           if (payload['interaction'] != null)
@@ -322,7 +547,11 @@ class _NotebookRemotePageState extends State<NotebookRemotePage>
                         ? null
                         : () => _addCard(card),
                     icon: const Icon(Icons.style_outlined),
-                    label: const Text('加入复习'),
+                    label: Text(
+                      _addedCards.contains('${current['id']}:${card['id']}')
+                          ? '已加入复习'
+                          : '加入复习',
+                    ),
                   ),
                 ],
               ),
@@ -438,6 +667,139 @@ class _NotebookRemotePageState extends State<NotebookRemotePage>
         'conversation': Icons.forum_outlined,
       }[kind] ??
       Icons.article_outlined;
+  Color _kindColor(String kind) => _kindColors.putIfAbsent(
+    '${Theme.of(context).brightness}:$kind:${Theme.of(context).colorScheme.primary.toARGB32()}',
+    () => ColorScheme.fromSeed(
+      seedColor:
+          <String, Color>{
+            'quiz': const Color(0xff9e3451),
+            'flashcards': const Color(0xff317a75),
+            'mindmap': const Color(0xff7561aa),
+            'conversation': const Color(0xff3b7399),
+          }[kind] ??
+          Theme.of(context).colorScheme.primary,
+      brightness: Theme.of(context).brightness,
+    ).primaryContainer,
+  );
+
+  Widget _animatedArtifact() => AnimatedSwitcher(
+    duration: MediaQuery.disableAnimationsOf(context)
+        ? Duration.zero
+        : const Duration(milliseconds: 220),
+    child: KeyedSubtree(
+      key: ValueKey<String?>(_current?['id'] as String?),
+      child: _artifactView(),
+    ),
+  );
+
+  Widget _history(bool conversations) {
+    final List<Map<String, dynamic>> items = _artifacts
+        .where(
+          (Map<String, dynamic> item) =>
+              (item['kind'] == 'conversation') == conversations,
+        )
+        .toList();
+    final Set<String> kinds = items
+        .map((Map<String, dynamic> x) => x['kind'] as String)
+        .toSet();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        const Divider(height: 28),
+        Row(
+          children: <Widget>[
+            Expanded(
+              child: Text(
+                conversations ? '历史对话' : '已保存成果',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+            ),
+            IconButton(
+              onPressed: _busy ? null : () => _run(_loadHistory),
+              tooltip: '刷新历史',
+              icon: const Icon(Icons.refresh),
+            ),
+          ],
+        ),
+        if (!conversations && kinds.length > 1)
+          Wrap(
+            spacing: 8,
+            children: <Widget>[
+              ChoiceChip(
+                label: const Text('全部'),
+                selected: _historyKind == null,
+                showCheckmark: false,
+                onSelected: (_) => setState(() => _historyKind = null),
+              ),
+              for (final String kind in kinds)
+                ChoiceChip(
+                  label: Text(_kindLabel(kind)),
+                  selected: _historyKind == kind,
+                  showCheckmark: false,
+                  onSelected: (_) => setState(() => _historyKind = kind),
+                ),
+            ],
+          ),
+        for (final Map<String, dynamic> item in items.where(
+          (Map<String, dynamic> x) =>
+              conversations ||
+              _historyKind == null ||
+              x['kind'] == _historyKind,
+        ))
+          Card(
+            child: ListTile(
+              leading: CircleAvatar(
+                backgroundColor: _kindColor(item['kind'] as String),
+                child: Icon(_kindIcon(item['kind'] as String)),
+              ),
+              title: Text(
+                item['title'] as String,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              subtitle: Text(
+                '${_kindLabel(item['kind'] as String)} · ${DateTime.tryParse(item['created'] as String? ?? '')?.toLocal().toString().substring(0, 16) ?? '刚刚保存'}',
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: _busy
+                  ? null
+                  : () => setState(() {
+                      _current = item;
+                      _answers.clear();
+                      if (conversations) {
+                        final String previousAgent =
+                            item['payload']['agentId'] as String;
+                        _agentId =
+                            widget.agents.any(
+                              (StudyAgent a) => a.id == previousAgent,
+                            )
+                            ? previousAgent
+                            : (widget.agents.isEmpty
+                                  ? null
+                                  : widget.agents.first.id);
+                      }
+                    }),
+            ),
+          ),
+        if (items.isEmpty && !_busy && _historyPage >= _historyPages)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 20),
+            child: Text(
+              conversations ? '对话保存在这里，可随时继续。' : '生成的测验、闪卡和思维导图保存在这里。',
+            ),
+          ),
+        if (_historyPage < _historyPages)
+          OutlinedButton.icon(
+            onPressed: _busy
+                ? null
+                : () => _run(() => _loadHistory(more: true)),
+            icon: const Icon(Icons.expand_more),
+            label: const Text('加载更多记录'),
+          ),
+      ],
+    );
+  }
+
   Widget _overview() => Container(
     margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
     padding: const EdgeInsets.all(16),
@@ -465,7 +827,7 @@ class _NotebookRemotePageState extends State<NotebookRemotePage>
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               Text(
-                '${widget.sourceIds.length} 份所选资料 · ${_artifacts.length} 份云端成果',
+                '${widget.sourceIds.length} 份所选资料 · $_historyTotal 份已保存记录',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ],
@@ -485,196 +847,177 @@ class _NotebookRemotePageState extends State<NotebookRemotePage>
       title: const Text('资料与学习成果'),
       bottom: TabBar(
         controller: _tabs,
-        tabs: const <Widget>[
-          Tab(text: '全文搜索', icon: Icon(Icons.manage_search_outlined)),
-          Tab(text: '生成成果', icon: Icon(Icons.auto_awesome_outlined)),
-          Tab(text: '智能体对话', icon: Icon(Icons.forum_outlined)),
+        tabs: <Widget>[
+          Tab(
+            text: '全文搜索',
+            icon: MediaQuery.sizeOf(context).height < 500
+                ? null
+                : const Icon(Icons.manage_search_outlined),
+          ),
+          Tab(
+            text: '生成成果',
+            icon: MediaQuery.sizeOf(context).height < 500
+                ? null
+                : const Icon(Icons.auto_awesome_outlined),
+          ),
+          Tab(
+            text: '智能体对话',
+            icon: MediaQuery.sizeOf(context).height < 500
+                ? null
+                : const Icon(Icons.forum_outlined),
+          ),
         ],
       ),
     ),
-    body: Column(
-      children: <Widget>[
-        _overview(),
-        Padding(
-          padding: const EdgeInsets.all(16),
-          child: TextField(
-            controller: _input,
-            maxLines: 2,
-            decoration: InputDecoration(
-              labelText: <String>[
-                '全文搜索词',
-                '生成主题（留空按核心概念生成）',
-                '向课程智能体提问',
-              ][_tabs.index],
-              prefixIcon: Icon(
-                <IconData>[
-                  Icons.search,
-                  Icons.auto_awesome,
-                  Icons.edit_note,
-                ][_tabs.index],
-              ),
-              filled: true,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
+    bottomNavigationBar: _busy ? const LinearProgressIndicator() : null,
+    body: NestedScrollView(
+      headerSliverBuilder: (BuildContext context, bool innerBoxIsScrolled) =>
+          <Widget>[
+            SliverToBoxAdapter(
+              child: Column(
+                children: <Widget>[
+                  _overview(),
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: TextField(
+                      controller: _input,
+                      maxLines: 2,
+                      decoration: InputDecoration(
+                        labelText: <String>[
+                          '全文搜索词',
+                          '生成主题（留空按核心概念生成）',
+                          '向课程智能体提问',
+                        ][_tabs.index],
+                        prefixIcon: Icon(
+                          <IconData>[
+                            Icons.search,
+                            Icons.auto_awesome,
+                            Icons.edit_note,
+                          ][_tabs.index],
+                        ),
+                        filled: true,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                    ),
+                  ),
+                  if (_busy) const LinearProgressIndicator(),
+                  if (_error != null)
+                    Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Text(
+                        _error!,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
-          ),
-        ),
-        if (_busy) const LinearProgressIndicator(),
-        if (_error != null)
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Text(
-              _error!,
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
-            ),
-          ),
-        Expanded(
-          child: TabBarView(
-            controller: _tabs,
+          ],
+      body: TabBarView(
+        controller: _tabs,
+        children: <Widget>[
+          ListView(
+            padding: const EdgeInsets.all(16),
             children: <Widget>[
-              ListView(
-                padding: const EdgeInsets.all(16),
-                children: <Widget>[
-                  FilledButton.icon(
-                    onPressed: _busy
-                        ? null
-                        : () => _run(() async {
-                            final Map<String, dynamic> result = await _request(
-                              'search',
-                              body: <String, dynamic>{
-                                'question': _input.text.trim(),
-                              },
-                            );
-                            _evidence
-                              ..clear()
-                              ..addAll(_maps(result['evidence']));
-                            if (_evidence.isEmpty) _error = '所选资料中未找到相关内容';
-                          }),
-                    icon: const Icon(Icons.search),
-                    label: const Text('搜索所选资料全文'),
-                  ),
-                  for (final Map<String, dynamic> item in _evidence)
-                    Card(child: _citation(item)),
-                ],
+              FilledButton.icon(
+                onPressed: _busy
+                    ? null
+                    : () => _run(() async {
+                        final Map<String, dynamic> result = await _request(
+                          'search',
+                          body: <String, dynamic>{
+                            'question': _input.text.trim(),
+                          },
+                        );
+                        _evidence
+                          ..clear()
+                          ..addAll(_maps(result['evidence']));
+                        if (_evidence.isEmpty) _error = '所选资料中未找到相关内容';
+                      }),
+                icon: const Icon(Icons.search),
+                label: const Text('搜索所选资料全文'),
               ),
-              ListView(
-                padding: const EdgeInsets.all(16),
-                children: <Widget>[
-                  Wrap(
-                    spacing: 8,
-                    children: <Widget>[
-                      for (final (String kind, String label)
-                          in <(String, String)>[
-                            ('quiz', '自动测验'),
-                            ('flashcards', '生成闪卡'),
-                            ('mindmap', '思维导图'),
-                          ])
-                        FilledButton.tonalIcon(
-                          onPressed: _busy ? null : () => _generate(kind),
-                          icon: Icon(_kindIcon(kind)),
-                          label: Text(label),
-                        ),
-                    ],
-                  ),
-                  if (_current?['kind'] != 'conversation') _artifactView(),
-                  const Divider(),
-                  const Text('已保存成果'),
-                  for (final Map<String, dynamic> artifact in _artifacts.where(
-                    (Map<String, dynamic> x) => x['kind'] != 'conversation',
-                  ))
-                    ListTile(
-                      leading: CircleAvatar(
-                        child: Icon(_kindIcon(artifact['kind'] as String)),
-                      ),
-                      trailing: const Icon(Icons.chevron_right),
-                      title: Text(artifact['title'] as String),
-                      subtitle: Text(
-                        '${_kindLabel(artifact['kind'] as String)} · ${(artifact['created'] as String? ?? '').split(' ').first}',
-                      ),
-                      onTap: _busy
-                          ? null
-                          : () => setState(() {
-                              _current = artifact;
-                              _answers.clear();
-                            }),
-                    ),
-                ],
-              ),
-              ListView(
-                padding: const EdgeInsets.all(16),
-                children: <Widget>[
-                  if (widget.agents.isEmpty) const Text('在课程工作台创建一个智能体后开始对话。'),
-                  if (widget.agents.isNotEmpty)
-                    DropdownButton<String>(
-                      isExpanded: true,
-                      value: _agentId,
-                      items: widget.agents
-                          .map(
-                            (StudyAgent a) => DropdownMenuItem<String>(
-                              value: a.id,
-                              child: Text(a.name),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: _busy
-                          ? null
-                          : (String? value) => setState(() {
-                              _agentId = value;
-                              _current = null;
-                            }),
-                    ),
-                  Row(
-                    children: <Widget>[
-                      Expanded(
-                        child: FilledButton(
-                          onPressed: _busy || _agentId == null
-                              ? null
-                              : _askAgent,
-                          child: const Text('发送'),
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: _busy
-                            ? null
-                            : () => setState(() => _current = null),
-                        child: const Text('新对话'),
-                      ),
-                    ],
-                  ),
-                  if (_current?['kind'] == 'conversation') _artifactView(),
-                  const Divider(),
-                  const Text('历史对话'),
-                  for (final Map<String, dynamic> item in _artifacts.where(
-                    (Map<String, dynamic> x) => x['kind'] == 'conversation',
-                  ))
-                    ListTile(
-                      leading: const CircleAvatar(
-                        child: Icon(Icons.forum_outlined),
-                      ),
-                      title: Text(item['title'] as String),
-                      onTap: _busy
-                          ? null
-                          : () => setState(() {
-                              _current = item;
-                              final String previousAgent =
-                                  item['payload']['agentId'] as String;
-                              _agentId =
-                                  widget.agents.any(
-                                    (StudyAgent a) => a.id == previousAgent,
-                                  )
-                                  ? previousAgent
-                                  : (widget.agents.isEmpty
-                                        ? null
-                                        : widget.agents.first.id);
-                            }),
-                    ),
-                ],
-              ),
+              for (final Map<String, dynamic> item in _evidence)
+                Card(child: _citation(item)),
             ],
           ),
-        ),
-      ],
+          ListView(
+            padding: const EdgeInsets.all(16),
+            children: <Widget>[
+              Wrap(
+                spacing: 8,
+                children: <Widget>[
+                  for (final (String kind, String label) in <(String, String)>[
+                    ('quiz', '自动测验'),
+                    ('flashcards', '生成闪卡'),
+                    ('mindmap', '思维导图'),
+                  ])
+                    FilledButton.tonalIcon(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: _kindColor(kind),
+                        foregroundColor: Theme.of(context)
+                            .colorScheme
+                            .onSurface,
+                      ),
+                      onPressed: _busy ? null : () => _generate(kind),
+                      icon: Icon(_kindIcon(kind)),
+                      label: Text(label),
+                    ),
+                ],
+              ),
+              if (_current?['kind'] != 'conversation') _animatedArtifact(),
+              _history(false),
+            ],
+          ),
+          ListView(
+            padding: const EdgeInsets.all(16),
+            children: <Widget>[
+              if (widget.agents.isEmpty) const Text('在课程工作台创建一个智能体后开始对话。'),
+              if (widget.agents.isNotEmpty)
+                DropdownButton<String>(
+                  isExpanded: true,
+                  value: _agentId,
+                  items: widget.agents
+                      .map(
+                        (StudyAgent a) => DropdownMenuItem<String>(
+                          value: a.id,
+                          child: Text(a.name),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: _busy
+                      ? null
+                      : (String? value) => setState(() {
+                          _agentId = value;
+                          _current = null;
+                        }),
+                ),
+              Row(
+                children: <Widget>[
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: _busy || _agentId == null ? null : _askAgent,
+                      child: const Text('发送'),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: _busy
+                        ? null
+                        : () => setState(() => _current = null),
+                    child: const Text('新对话'),
+                  ),
+                ],
+              ),
+              if (_current?['kind'] == 'conversation') _animatedArtifact(),
+              _history(true),
+            ],
+          ),
+        ],
+      ),
     ),
   );
 }

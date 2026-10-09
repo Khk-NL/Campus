@@ -122,10 +122,29 @@ class _ReviewCardsPageState extends State<ReviewCardsPage> {
                         card.front,
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
-                      if (revealed) ...<Widget>[
-                        const Divider(height: 28),
-                        SelectableText(card.back),
-                      ],
+                      AnimatedSize(
+                        duration: MediaQuery.disableAnimationsOf(context)
+                            ? Duration.zero
+                            : const Duration(milliseconds: 240),
+                        alignment: Alignment.topCenter,
+                        child: AnimatedSwitcher(
+                          duration: MediaQuery.disableAnimationsOf(context)
+                              ? Duration.zero
+                              : const Duration(milliseconds: 180),
+                          child: revealed
+                              ? Column(
+                                  key: const ValueKey<String>('answer'),
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: <Widget>[
+                                    const Divider(height: 28),
+                                    SelectableText(card.back),
+                                  ],
+                                )
+                              : const SizedBox.shrink(
+                                  key: ValueKey<String>('hidden'),
+                                ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -158,9 +177,18 @@ class _ReviewCardsPageState extends State<ReviewCardsPage> {
     );
     if (rating == null) return;
     try {
-      await widget.repository.review(card, rating);
-      if (mounted) _reload();
-    } on Exception catch (error) {
+      final ReviewCard reviewed = await widget.repository.review(card, rating);
+      if (mounted) {
+        _reload();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '复习已保存 · 下次 ${reviewed.due.toLocal().toString().substring(0, 16)}',
+            ),
+          ),
+        );
+      }
+    } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text('复习未保存：$error')));
@@ -215,6 +243,12 @@ class _ReviewCardsPageState extends State<ReviewCardsPage> {
             for (final ReviewCard card in cards)
               Card(
                 child: ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: card.isDue(now)
+                        ? Theme.of(context).colorScheme.tertiaryContainer
+                        : Theme.of(context).colorScheme.secondaryContainer,
+                    child: Icon(card.isDue(now) ? Icons.bolt : Icons.schedule),
+                  ),
                   title: Text(
                     card.front,
                     maxLines: 2,

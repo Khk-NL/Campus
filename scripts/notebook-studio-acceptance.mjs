@@ -57,6 +57,14 @@ try {
     if (kind === 'quiz') {
       const graded = await good('测验提交与评分', `/ai/v1/artifacts/${artifact.id}/interaction`, a.token, { ...scope, answers: artifact.payload.content.questions.map((q) => q.correctIndex) });
       assert.equal(graded.payload.interaction.score, graded.payload.interaction.total);
+      const revised = { ...artifact.payload.content, title: '修订后的光合作用测验' };
+      const edited = await good('测验编辑与旧成绩清除', `/ai/v1/artifacts/${artifact.id}/edit`, a.token, { courseId, content: revised });
+      assert.equal(edited.payload.interaction, undefined);
+      assert.equal(edited.title, revised.title);
+      assert.deepEqual(edited.payload.citations, artifact.payload.citations);
+      assert.ok([403, 404].includes((await request(`/ai/v1/artifacts/${artifact.id}/edit`, b.token, { courseId, content: revised })).status));
+      const reread = await good('编辑结果重新读取', `/ai/v1/artifacts/${artifact.id}?courseId=${courseId}`, a.token);
+      assert.deepEqual(reread.payload, edited.payload);
     }
     if (kind === 'flashcards') {
       const generated = artifact.payload.content.cards[0];
@@ -71,6 +79,10 @@ try {
   const agentId = `qa-agent-${Date.now()}`;
   payload.agents = [...(payload.agents || []), { id: agentId, courseId, name: '验收导师', prompt: '先给一句简要解释，再提出一个引导问题。', tools: ['search'], description: '验收', knowledgeBaseIds: [] }];
   ws = await good('保存测试智能体', ws ? `/api/collections/study_workspaces/records/${ws.id}` : '/api/collections/study_workspaces/records', a.token, { owner: a.id, schemaVersion: savedSchemaVersion || 1, payload }, ws ? 'PATCH' : 'POST');
+  const history = await good('成果分页与对话分区', `/ai/v1/artifacts?courseId=${courseId}&section=artifacts&page=2&perPage=1`, a.token);
+  assert.equal(history.totalItems, 3);
+  assert.equal(history.items.length, 1);
+  assert.notEqual(history.items[0].kind, 'conversation');
   const first = await good('智能体首轮远程对话', '/ai/v1/agents/ask', a.token, { ...scope, agentId, question: '解释光合作用' }); artifacts.push(first.id);
   const second = await good('智能体第二轮与历史持久化', '/ai/v1/agents/ask', a.token, { ...scope, agentId, conversationId: first.id, question: '叶绿体有什么作用？' });
   assert.equal(second.payload.messages.length, 4); assert.ok(second.payload.messages[3].citations.length > 0);

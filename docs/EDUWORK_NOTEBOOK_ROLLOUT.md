@@ -1,5 +1,7 @@
 # 课程知识工作台：接入与验收（2026-10-09）
 
+2026-10-09 后续成果编辑、分区分页、完整对话存档和界面改进见 [体验改进与后续验收](NOTEBOOK_UX_ACCEPTANCE_20261009.md)。本文件下方保留先前部署和设备记录；新网关和 APK 的状态以该文末部署补记为准。
+
 ## 实现范围
 
 EduWork Knowledge Studio 的 Markdown/PDF 分块解析、中文分词和思维导图布局已接入 Campulse 网关，固定上游提交 `d1943988c44ef3dfcfe0eed54808d86b9d5a3ff3`。源码及 MIT 许可位于 `apps/ai-gateway/src/vendor/eduwork/`。多用户鉴权、课程隔离、模型请求及成果存储沿用 Campulse/PocketBase。

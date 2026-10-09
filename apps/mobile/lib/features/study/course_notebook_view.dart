@@ -155,37 +155,47 @@ class _CourseNotebookViewState extends State<CourseNotebookView> {
   @override
   Widget build(BuildContext context) {
     final ColorScheme colors = Theme.of(context).colorScheme;
+    final bool compact = MediaQuery.sizeOf(context).height < 500;
     return Column(
       children: <Widget>[
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.fromLTRB(20, 18, 20, 14),
+          padding: compact
+              ? const EdgeInsets.fromLTRB(16, 6, 16, 6)
+              : const EdgeInsets.fromLTRB(20, 18, 20, 14),
           decoration: BoxDecoration(color: colors.surfaceContainerLow),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Text(
-                '课程学习空间',
-                style: Theme.of(context).textTheme.labelLarge
-                    ?.copyWith(color: colors.primary),
-              ),
-              const SizedBox(height: 4),
+              if (!compact)
+                Text(
+                  '课程学习空间',
+                  style: Theme.of(context).textTheme.labelLarge
+                      ?.copyWith(color: colors.primary),
+                ),
+              if (!compact) const SizedBox(height: 4),
               Text(
                 widget.course.name,
-                style: Theme.of(context).textTheme.headlineSmall,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: compact
+                    ? Theme.of(context).textTheme.titleMedium
+                    : Theme.of(context).textTheme.headlineSmall,
               ),
-              const SizedBox(height: 8),
-              Text(
-                '${_sources.length + widget.notes.length} 份资料 · ${_sessions.length} 个问题 · ${_agents.length} 个智能体',
-                style: Theme.of(context).textTheme.bodyMedium
-                    ?.copyWith(color: colors.onSurfaceVariant),
-              ),
-              Text(
-                widget.remote ? '账号已同步' : '本机保存',
-                style: Theme.of(context).textTheme.labelSmall
-                    ?.copyWith(color: colors.onSurfaceVariant),
-              ),
-              const SizedBox(height: 14),
+              if (!compact) const SizedBox(height: 8),
+              if (!compact)
+                Text(
+                  '${_sources.length + widget.notes.length} 份资料 · ${_sessions.length} 个问题 · ${_agents.length} 个智能体',
+                  style: Theme.of(context).textTheme.bodyMedium
+                      ?.copyWith(color: colors.onSurfaceVariant),
+                ),
+              if (!compact)
+                Text(
+                  widget.remote ? '账号已同步' : '本机保存',
+                  style: Theme.of(context).textTheme.labelSmall
+                      ?.copyWith(color: colors.onSurfaceVariant),
+                ),
+              SizedBox(height: compact ? 4 : 14),
               SizedBox(
                 width: double.infinity,
                 child: SegmentedButton<int>(

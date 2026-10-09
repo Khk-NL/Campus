@@ -147,7 +147,14 @@ class EduWorkGatewayProbe {
           ...statusUri.pathSegments.take(statusUri.pathSegments.length - 1),
           ...endpoint.split('/'),
         ],
-        queryParameters: read ? <String, String>{'courseId': courseId} : null,
+        queryParameters: read
+            ? <String, String>{
+                'courseId': courseId,
+                if (body['page'] != null) 'page': '${body['page']}',
+                if (body['perPage'] != null) 'perPage': '${body['perPage']}',
+                if (body['section'] != null) 'section': '${body['section']}',
+              }
+            : null,
       );
       final Map<String, String> headers = <String, String>{
         'Authorization': 'Bearer $pocketBaseToken',

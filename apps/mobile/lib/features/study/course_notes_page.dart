@@ -206,41 +206,61 @@ class _CourseNotesPageState extends State<CourseNotesPage> {
     ),
     body: FutureBuilder<List<CourseNote>>(
       future: _notes,
-      builder:
-          (BuildContext context, AsyncSnapshot<List<CourseNote>> snapshot) {
-            if (!snapshot.hasData && !snapshot.hasError) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            if (snapshot.hasError) {
-              return Center(
-                child: TextButton(
-                  onPressed: _reload,
-                  child: const Text('笔记加载失败，点击重试'),
-                ),
-              );
-            }
-            final List<CourseNote> notes = snapshot.data!;
-            if (notes.isEmpty) return const Center(child: Text('还没有课程笔记'));
-            return RefreshIndicator(
-              onRefresh: () async {
-                _reload();
-                await _notes;
-              },
-              child: ListView.builder(
-                itemCount: notes.length,
-                itemBuilder: (BuildContext context, int index) {
-                  final CourseNote note = notes[index];
-                  return ListTile(
+      builder: (BuildContext context, AsyncSnapshot<List<CourseNote>> snapshot) {
+        if (!snapshot.hasData && !snapshot.hasError) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return Center(
+            child: TextButton(
+              onPressed: _reload,
+              child: const Text('笔记加载失败，点击重试'),
+            ),
+          );
+        }
+        final List<CourseNote> notes = snapshot.data!;
+        if (notes.isEmpty) return const Center(child: Text('还没有课程笔记'));
+        return RefreshIndicator(
+          onRefresh: () async {
+            _reload();
+            await _notes;
+          },
+          child: ListView.builder(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 88),
+            itemCount: notes.length,
+            itemBuilder: (BuildContext context, int index) {
+              final CourseNote note = notes[index];
+              return TweenAnimationBuilder<double>(
+                key: ValueKey<String>(note.id),
+                tween: Tween<double>(begin: 0, end: 1),
+                duration: MediaQuery.disableAnimationsOf(context)
+                    ? Duration.zero
+                    : const Duration(milliseconds: 220),
+                builder: (BuildContext context, double value, Widget? child) =>
+                    Opacity(
+                      opacity: value,
+                      child: Transform.translate(
+                        offset: Offset(0, 8 * (1 - value)),
+                        child: child,
+                      ),
+                    ),
+                child: Card(
+                  child: ListTile(
                     title: Text(note.title),
                     subtitle: Text(
-                      note.content,
+                      '${note.updatedAt.toLocal().toString().substring(0, 16)}\n${note.content}',
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    leading: Icon(
-                      note.hasPdf
-                          ? Icons.picture_as_pdf_outlined
-                          : Icons.description_outlined,
+                    leading: CircleAvatar(
+                      backgroundColor: note.hasPdf
+                          ? Theme.of(context).colorScheme.tertiaryContainer
+                          : Theme.of(context).colorScheme.secondaryContainer,
+                      child: Icon(
+                        note.hasPdf
+                            ? Icons.picture_as_pdf_outlined
+                            : Icons.description_outlined,
+                      ),
                     ),
                     onTap: () => note.hasPdf ? _openPdf(note) : _edit(note),
                     trailing: PopupMenuButton<String>(
@@ -264,11 +284,13 @@ class _CourseNotesPageState extends State<CourseNotesPage> {
                             ),
                           ],
                     ),
-                  );
-                },
-              ),
-            );
-          },
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+      },
     ),
   );
 }

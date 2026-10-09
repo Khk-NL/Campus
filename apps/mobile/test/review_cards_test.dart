@@ -38,12 +38,19 @@ void main() {
     final LocalReviewCardRepository repo = LocalReviewCardRepository(
       await SharedPreferences.getInstance(),
     );
-    final ReviewCard card = await repo.save(ReviewCard(
-      id: '', courseId: 'course-a', front: '问题', back: '答案',
-      due: DateTime.now(),
-      reviewHistory: List<Map<String, dynamic>>.generate(500,
-        (int index) => <String, dynamic>{'rating': index}),
-    ));
+    final ReviewCard card = await repo.save(
+      ReviewCard(
+        id: '',
+        courseId: 'course-a',
+        front: '问题',
+        back: '答案',
+        due: DateTime.now(),
+        reviewHistory: List<Map<String, dynamic>>.generate(
+          500,
+          (int index) => <String, dynamic>{'rating': index},
+        ),
+      ),
+    );
     final ReviewCard reviewed = await repo.review(card, 3);
     expect(reviewed.reviewHistory, hasLength(500));
     expect(reviewed.reviewHistory.first['rating'], 1);
@@ -80,5 +87,45 @@ void main() {
     await tester.tap(find.text('记得'));
     await tester.pumpAndSettle();
     expect(find.textContaining('今天待复习 0 张'), findsOneWidget);
+    expect(find.textContaining('复习已保存 · 下次'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 5));
   });
+  testWidgets('复习保存失败保留卡片并给出反馈', (WidgetTester tester) async {
+    final ReviewCardRepository repo = _FailingReviewRepository();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ReviewCardsPage(courseId: 'course-a', repository: repo),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('失败测试卡片'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('显示答案'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('记得'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('复习未保存'), findsOneWidget);
+    expect(find.textContaining('今天待复习 1 张'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await tester.pump(const Duration(seconds: 5));
+  });
+}
+
+class _FailingReviewRepository implements ReviewCardRepository {
+  final ReviewCard card = ReviewCard(
+    id: 'card-a',
+    courseId: 'course-a',
+    front: '失败测试卡片',
+    back: '答案',
+    due: DateTime(2020),
+  );
+  @override
+  Future<List<ReviewCard>> list(String courseId) async => <ReviewCard>[card];
+  @override
+  Future<ReviewCard> review(ReviewCard card, int rating) async =>
+      throw StateError('服务暂不可用');
+  @override
+  Future<ReviewCard> save(ReviewCard card) async => card;
+  @override
+  Future<void> delete(String id) async {}
 }
