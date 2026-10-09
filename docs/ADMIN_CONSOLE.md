@@ -6,7 +6,7 @@
 - PocketBase 数据库后台：`https://campus.allezafrique.cn/_/`
 - 正式域名备案恢复后，同样的页面路径使用 `https://campus.scsldr.cn`。
 
-运营台使用当前站点的 `/api` 连接 PocketBase，复用已有数据库和管理员身份。代码已完成，首次公网部署和页面点击结果将在本页末尾记录。
+运营台使用当前站点的 `/api` 连接 PocketBase，复用已有数据库和管理员身份。2026-10-09 已部署并完成浏览器登录、用户内容筛选和作品表单点击验收。
 
 登录使用 **PocketBase 超级管理员** 邮箱和密码，与阿里云账号、Linux SSH 账号分别管理。现有测试配置保存在 Git 忽略的 `.tools/remote-acceptance.env`；凭据由账号持有人保管。普通用户在手机 App 注册或登录自己的账号。
 
@@ -45,12 +45,16 @@ Git 分支、提交、Issue、PR 和 CI 继续由 GitHub 管理。Campulse 管�
 
 ## 验证证据
 
-- `node --test scripts/admin-console.test.mjs`：8 项通过，覆盖登录、分页、用户筛选、完成状态汇总、作品校验、编辑保留字段和会话失效。
+- `node --test scripts/admin-console.test.mjs`：9 项通过，覆盖浏览器 fetch 调用、登录、分页、用户筛选、完成状态汇总、作品校验、编辑保留字段和会话失效。
 - `node scripts/admin-console-acceptance.mjs`：公网管理员认证及 7 个分区读取通过；普通用户保存笔记后管理员按用户读取通过；作品发布与转为草稿通过。测试创建的笔记、作品已清理。
-- 页面登录、筛选和作品表单点击仍须在部署后验收。上述公网检查是 API 结果。
+- Edge 实际点击：错误凭据显示核对提示；管理员登录后显示已连接 PocketBase；用户列表的「查看内容」进入该用户笔记；切换计划分区读到工作台记录；发布作品表单打开及取消通过。发布、下架的数据写入由上述公网 API 测试覆盖。
+- 公网 HTML、两份 JS 及 CSS 与仓库逐字节一致，模块响应类型正确；健康接口 HTTP 200。
+- 本轮移动端新增界面仍待新 APK 的设备点击验收，手机保存到管理员读取的证据来自普通用户 API 与浏览器分区读取。
+
+最终静态部署提交：`0c4ea371780da9b895286fc9f31b4f089d6cdd48`。更新前恢复点：`/opt/campus/backups/public-20261009-200204`。数据库和网关保持现状。
 
 ## 部署方式
 
-`deploy/update-public-site.sh` 接受完整源码提交号，下载本项目 10 个官网及运营台文件，校验 JavaScript 语法，备份当前同名文件后更新 PocketBase 的 `pb_public`。数据库、AI 网关和其他网站保持现状，静态页面生效后即可访问。
+`deploy/update-public-site.sh` 接受完整源码提交号，通过 GitHub 官方 API 下载本项目 10 个官网及运营台文件，核对 Git blob 哈希并校验 JavaScript 语法，备份当前同名文件后更新 PocketBase 的 `pb_public`。数据库、AI 网关和其他网站保持现状，静态页面生效后即可访问。
 
 本轮界面与主题变更见 [主题与文案记录](THEME_COPY_20261009.md)，后续发布流程见 [执行清单](NEXT_STEPS_20261009.md)。

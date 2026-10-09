@@ -27,7 +27,9 @@
 - Flutter 完整 152 项通过。
 - 闪卡辅助色跟随主题后，主题设置、调色与知识工作台相关 15 项再测通过。
 - `flutter analyze --no-pub`：零问题。
-- 根目录 `pnpm test`：8 个构建任务、89 项冒烟、19 项网关测试、8 项运营台测试和 3 项文案检查通过。
+- 根目录 `pnpm test`：8 个构建任务、89 项冒烟、19 项网关测试、9 项运营台测试和 3 项文案检查通过。
 - `git diff --check`：通过。
 
 本轮 APK 依赖 main 推送后的 GitHub 云构建。MuMu 当前旧包的点击结果和本轮新增代码的测试结果分别记录；完整设备点击继续按 [执行清单](NEXT_STEPS_20261009.md)进行。
+
+本轮源码 `f24a2a2` 的 [GitHub Android 云构建](https://github.com/Khk-NL/Campus/actions/runs/37927096003)已触发；主题设置位于该包中，运营台后续修复为静态网站更新。
