@@ -1,11 +1,6 @@
 /// 我的 / Profile.
 ///
-/// 四块内容：身份、语言、外观、关于。语言切换是 §0.8 的硬要求，因此它直接放在这里
-/// 而不是藏进二级设置页；数据源说明则让用户知道当前看到的是不是真实后端数据。
-///
-/// Four blocks: identity, language, appearance, about. Language switching is a §0.8
-/// requirement, so it lives here rather than behind a second-level settings screen, and
-/// the data-source row tells users whether they are looking at real backend data.
+/// 身份与个性化放在页首；语言、外观、数据源归入设置，与关于分别折叠。
 library;
 
 import 'package:campus_mobile/core/app_state.dart';
@@ -18,7 +13,6 @@ import 'package:campus_mobile/data/repositories/campus_repository.dart';
 import 'package:campus_mobile/data/repositories/data_source_mode.dart';
 import 'package:campus_mobile/data/repositories/pocketbase_campus_repository.dart';
 import 'package:campus_mobile/core/pocketbase_session.dart';
-import 'package:campus_mobile/features/shared/widgets/state_views.dart';
 import 'package:campus_mobile/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 
@@ -31,6 +25,96 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
+  static const List<IconData> _avatarIcons = [
+    Icons.person_outline,
+    Icons.school_outlined,
+    Icons.auto_awesome_outlined,
+    Icons.eco_outlined,
+  ];
+
+  Future<void> _personalize(AppState state) async {
+    final TextEditingController name = TextEditingController(
+      text: state.displayName,
+    );
+    int avatar = state.avatarStyle;
+    String? error;
+    bool saving = false;
+    final route = DialogRoute<void>(
+      context: context,
+      builder: (BuildContext dialogContext) => StatefulBuilder(
+        builder: (BuildContext context, StateSetter update) => AlertDialog(
+          title: const Text('个性化'),
+          scrollable: true,
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              TextField(
+                controller: name,
+                maxLength: 24,
+                decoration: const InputDecoration(
+                  labelText: '昵称',
+                  helperText: '保存在本机，按账号分别使用',
+                ),
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                children: <Widget>[
+                  for (int i = 0; i < _avatarIcons.length; i++)
+                    ChoiceChip(
+                      label: Icon(_avatarIcons[i]),
+                      selected: avatar == i,
+                      onSelected: saving
+                          ? null
+                          : (_) => update(() => avatar = i),
+                      tooltip: '头像样式 ${i + 1}',
+                      showCheckmark: false,
+                    ),
+                ],
+              ),
+              if (error != null)
+                Text(
+                  error!,
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+            ],
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: saving ? null : () => Navigator.pop(dialogContext),
+              child: const Text('取消'),
+            ),
+            FilledButton(
+              onPressed: saving
+                  ? null
+                  : () async {
+                      update(() {
+                        saving = true;
+                        error = null;
+                      });
+                      try {
+                        await state.setPersonalization(name.text, avatar);
+                        if (dialogContext.mounted) Navigator.pop(dialogContext);
+                      } catch (e) {
+                        if (dialogContext.mounted) {
+                          update(() {
+                            saving = false;
+                            error = '请填写 1–24 个字的昵称，并重试保存';
+                          });
+                        }
+                      }
+                    },
+              child: Text(saving ? '保存中…' : '保存'),
+            ),
+          ],
+        ),
+      ),
+    );
+    await Navigator.of(context).push(route);
+    await route.completed;
+    name.dispose();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -77,7 +161,9 @@ class _ProfilePageState extends State<ProfilePage> {
   ) {
     final ThemeData theme = Theme.of(context);
     final AppUser? user = state.user;
-    final String name = user?.name ?? l10n.profileNotSignedIn;
+    final String name = state.displayName.isNotEmpty
+        ? state.displayName
+        : l10n.profileNotSignedIn;
     final String university = _universityName(context, l10n, state);
     final String roles = user == null || user.roles.isEmpty
         ? '—'
@@ -96,12 +182,9 @@ class _ProfilePageState extends State<ProfilePage> {
                 CircleAvatar(
                   radius: 22,
                   backgroundColor: theme.colorScheme.primaryContainer,
-                  child: Text(
-                    name.characters.first,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      color: theme.colorScheme.onPrimaryContainer,
-                      fontWeight: FontWeight.w700,
-                    ),
+                  child: Icon(
+                    _avatarIcons[state.avatarStyle],
+                    color: theme.colorScheme.onPrimaryContainer,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -123,6 +206,11 @@ class _ProfilePageState extends State<ProfilePage> {
                       ),
                     ],
                   ),
+                ),
+                IconButton(
+                  onPressed: () => _personalize(state),
+                  icon: const Icon(Icons.edit_outlined),
+                  tooltip: '个性化',
                 ),
               ],
             ),
@@ -448,20 +536,24 @@ class _ProfilePageState extends State<ProfilePage> {
     AppState state,
   ) {
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            SectionHeader(title: l10n.profileSettings),
-            const SizedBox(height: 12),
-            _languageBlock(l10n, state),
-            const SizedBox(height: 12),
-            _appearanceBlock(l10n, state),
-            const SizedBox(height: 12),
-            _dataSourceBlock(context, l10n, state),
-          ],
+      child: ExpansionTile(
+        key: const PageStorageKey<String>('profile-settings'),
+        expansionAnimationStyle: MediaQuery.disableAnimationsOf(context)
+            ? AnimationStyle.noAnimation
+            : null,
+        leading: Icon(
+          Icons.settings_outlined,
+          color: Theme.of(context).colorScheme.secondary,
         ),
+        title: Text(l10n.profileSettings),
+        childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        children: <Widget>[
+          _languageBlock(l10n, state),
+          const SizedBox(height: 12),
+          _appearanceBlock(l10n, state),
+          const SizedBox(height: 12),
+          _dataSourceBlock(context, l10n, state),
+        ],
       ),
     );
   }
@@ -640,20 +732,19 @@ class _ProfilePageState extends State<ProfilePage> {
   ) {
     final ThemeData theme = Theme.of(context);
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            SectionHeader(title: l10n.profileAbout),
-            Text(l10n.profileAboutBody, style: theme.textTheme.bodyMedium),
-            const SizedBox(height: 10),
-            _InfoRow(
-              label: l10n.profileVersion,
-              value: state.config.appVersion,
-            ),
-          ],
-        ),
+      child: ExpansionTile(
+        key: const PageStorageKey<String>('profile-about'),
+        expansionAnimationStyle: MediaQuery.disableAnimationsOf(context)
+            ? AnimationStyle.noAnimation
+            : null,
+        leading: Icon(Icons.info_outline, color: theme.colorScheme.tertiary),
+        title: Text(l10n.profileAbout),
+        childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        children: <Widget>[
+          Text(l10n.profileAboutBody, style: theme.textTheme.bodyMedium),
+          const SizedBox(height: 10),
+          _InfoRow(label: l10n.profileVersion, value: state.config.appVersion),
+        ],
       ),
     );
   }

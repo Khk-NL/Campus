@@ -104,6 +104,7 @@ class _AppsPageState extends State<AppsPage> {
   /// Built once from the **unfiltered** list: rebuilding per filter would drop every other topic
   /// and trap the user inside the one they picked.
   List<String> _topics = const <String>[];
+  bool _filtersExpanded = false;
   List<CampusEntry> _unfilteredEntries = const <CampusEntry>[];
 
   /// 首次加载已经排过队了吗。/ whether the first load has already been queued.
@@ -444,43 +445,102 @@ class _AppsPageState extends State<AppsPage> {
         : _topics;
     if (topics.isEmpty) return const SizedBox.shrink();
     final ThemeData theme = Theme.of(context);
+    final bool english = Localizations.localeOf(context).languageCode == 'en';
+    final Map<int, List<String>> categories = <int, List<String>>{};
+    for (final String topic in topics) {
+      final List<CampusEntry> entries = _unfilteredEntries
+          .where(
+            (entry) =>
+                entry.tags.contains(topic) &&
+                (_surface != _AppsSurface.forge || entry.isStudentProject),
+          )
+          .toList();
+      final ServiceCategory? category = entries
+          .map((entry) => entry.category)
+          .whereType<ServiceCategory>()
+          .firstOrNull;
+      final int group = entries.every((entry) => entry.isStudentProject)
+          ? 2
+          : switch (category) {
+              ServiceCategory.academic || ServiceCategory.library => 0,
+              ServiceCategory.campusCard ||
+              ServiceCategory.venue ||
+              ServiceCategory.network ||
+              ServiceCategory.map => 1,
+              ServiceCategory.officialHub ||
+              ServiceCategory.administration => 3,
+              _ => 4,
+            };
+      categories.putIfAbsent(group, () => <String>[]).add(topic);
+    }
+    final List<String> labels = english
+        ? [
+            'Learning',
+            'Campus life',
+            'Projects & tools',
+            'Administration',
+            'Other',
+          ]
+        : ['学习与课程', '校园生活', '作品与工具', '校务服务', '其他标签'];
     return Padding(
       padding: const EdgeInsets.only(top: 10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          Row(
-            children: <Widget>[
-              Text(
-                l10n.storeTagFilter,
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
+      child: Card(
+        color: theme.colorScheme.secondaryContainer.withValues(alpha: .25),
+        child: ExpansionTile(
+          key: ValueKey<String>(
+            'tag-filter-${_surface.name}-${_filtersExpanded ? "open" : "closed"}',
           ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 4,
-            children: <Widget>[
-              ChoiceChip(
+          initiallyExpanded: _filtersExpanded,
+          onExpansionChanged: (bool value) => _filtersExpanded = value,
+          expansionAnimationStyle: MediaQuery.disableAnimationsOf(context)
+              ? AnimationStyle.noAnimation
+              : null,
+          leading: Icon(Icons.tune, color: theme.colorScheme.secondary),
+          title: Text(l10n.storeTagFilter),
+          subtitle: Text(_topic ?? '${l10n.storeTagAll} · ${topics.length}'),
+          childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          children: <Widget>[
+            Align(
+              alignment: Alignment.centerLeft,
+              child: ChoiceChip(
+                showCheckmark: false,
                 label: Text(l10n.storeTagAll),
                 selected: _topic == null,
-                onSelected: (bool _) => _selectTopic(null),
+                onSelected: (_) => _selectTopic(null),
               ),
-              for (final String topic in topics)
-                ChoiceChip(
-                  label: Text(topic),
-                  selected: _topic == topic,
-                  // 原样发回后端：归一化只有服务端一份。
-                  // Sent back verbatim: normalisation exists server-side only.
-                  onSelected: (bool selected) =>
-                      _selectTopic(selected ? topic : null),
+            ),
+            for (final int group in categories.keys.toList()..sort())
+              Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      labels[group],
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        color: theme.colorScheme.secondary,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 4,
+                      children: <Widget>[
+                        for (final String topic in categories[group]!)
+                          ChoiceChip(
+                            showCheckmark: false,
+                            label: Text(topic),
+                            selected: _topic == topic,
+                            onSelected: (bool selected) =>
+                                _selectTopic(selected ? topic : null),
+                          ),
+                      ],
+                    ),
+                  ],
                 ),
-            ],
-          ),
-        ],
+              ),
+          ],
+        ),
       ),
     );
   }

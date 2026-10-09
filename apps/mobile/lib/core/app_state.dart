@@ -85,6 +85,23 @@ class AppState extends ChangeNotifier {
 
   /// 当前登录用户 / the signed-in user.
   AppUser? get user => _user;
+  String get displayName =>
+      _preferences.readNickname(_user?.id ?? 'guest') ?? _user?.name ?? '';
+  int get avatarStyle =>
+      _preferences.readAvatarStyle(_user?.id ?? 'guest').clamp(0, 3);
+
+  Future<void> setPersonalization(String name, int avatar) async {
+    final String value = name.trim();
+    if (value.isEmpty ||
+        value.characters.length > 24 ||
+        avatar < 0 ||
+        avatar > 3) {
+      throw ArgumentError('昵称需为 1–24 个字');
+    }
+    final String identity = _user?.id ?? 'guest';
+    await _preferences.writePersonalization(identity, value, avatar);
+    notifyListeners();
+  }
 
   /// 当前高校 / the current university.
   University? get university => _university;

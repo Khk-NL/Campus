@@ -42,7 +42,10 @@ class RecordingLauncher implements CampusLauncher {
   final List<LaunchTarget> targets = <LaunchTarget>[];
 
   @override
-  Future<LaunchOutcome> launch(BuildContext context, LaunchTarget target) async {
+  Future<LaunchOutcome> launch(
+    BuildContext context,
+    LaunchTarget target,
+  ) async {
     targets.add(target);
     return LaunchOutcome.handedOff;
   }
@@ -128,8 +131,9 @@ void main() {
 
   Future<AppState> buildState(RecordingCampusRepository repository) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
-    final PreferenceStore preferences =
-        PreferenceStore(await SharedPreferences.getInstance());
+    final PreferenceStore preferences = PreferenceStore(
+      await SharedPreferences.getInstance(),
+    );
     return AppState(
       repository: repository,
       config: AppConfig.defaults(),
@@ -160,7 +164,11 @@ void main() {
   }
 
   /// 子列表芯片的文案（带条数）/ a sub-list chip's label, which carries its count.
-  String subListLabel(AppLocalizations l10n, WidgetTester tester, String title) {
+  String subListLabel(
+    AppLocalizations l10n,
+    WidgetTester tester,
+    String title,
+  ) {
     for (final Element element in find.byType(ChoiceChip).evaluate()) {
       final ChoiceChip chip = element.widget as ChoiceChip;
       final Widget label = chip.label;
@@ -192,6 +200,10 @@ void main() {
     final state = await buildState(repository);
     await tester.pumpWidget(wrap(state));
     await tester.pumpAndSettle();
+    expect(find.widgetWithText(ChoiceChip, '羽毛球'), findsNothing);
+    await tester.tap(find.byType(ExpansionTile));
+    await tester.pumpAndSettle();
+    expect(find.text('校园生活'), findsOneWidget);
     expect(find.widgetWithText(ChoiceChip, '羽毛球'), findsOneWidget);
     final context = tester.element(find.byType(AppsPage));
     expect(Theme.of(context).chipTheme.showCheckmark, isFalse);
@@ -200,14 +212,15 @@ void main() {
     );
     expect(segmented.showSelectedIcon, isFalse);
     repository.empty = true;
-    await tester.widget<RefreshIndicator>(find.byType(RefreshIndicator)).onRefresh();
+    await tester
+        .widget<RefreshIndicator>(find.byType(RefreshIndicator))
+        .onRefresh();
     await tester.pumpAndSettle();
     expect(find.widgetWithText(ChoiceChip, '羽毛球'), findsNothing);
     state.dispose();
   });
 
-  testWidgets('快速入口与校园作品是两层视角，作品仍可在快速入口使用',
-      (WidgetTester tester) async {
+  testWidgets('快速入口与校园作品是两层视角，作品仍可在快速入口使用', (WidgetTester tester) async {
     useTallViewport(tester);
     final RecordingCampusRepository repository = RecordingCampusRepository();
     final AppState state = await buildState(repository);
@@ -226,8 +239,9 @@ void main() {
     state.dispose();
   });
 
-  testWidgets('三个子列表平级，学生应用不再藏在推入页 / three peer sub-lists',
-      (WidgetTester tester) async {
+  testWidgets('三个子列表平级，学生应用不再藏在推入页 / three peer sub-lists', (
+    WidgetTester tester,
+  ) async {
     useTallViewport(tester);
     final RecordingCampusRepository repository = RecordingCampusRepository();
     final AppState state = await buildState(repository);
@@ -258,61 +272,70 @@ void main() {
     state.dispose();
   });
 
-  testWidgets('官方入口与学生项目并排，只有官方那行有校徽 / peers in one list, mark only on official',
-      (WidgetTester tester) async {
-    useTallViewport(tester);
-    final RecordingCampusRepository repository = RecordingCampusRepository();
-    final AppState state = await buildState(repository);
-    await tester.pumpWidget(wrap(state));
-    await tester.pumpAndSettle();
+  testWidgets(
+    '官方入口与学生项目并排，只有官方那行有校徽 / peers in one list, mark only on official',
+    (WidgetTester tester) async {
+      useTallViewport(tester);
+      final RecordingCampusRepository repository = RecordingCampusRepository();
+      final AppState state = await buildState(repository);
+      await tester.pumpWidget(wrap(state));
+      await tester.pumpAndSettle();
 
-    final AppLocalizations l10n = l10nOf(tester);
-    await switchTo(tester, subListLabel(l10n, tester, l10n.appsGroupWeb));
+      final AppLocalizations l10n = l10nOf(tester);
+      await switchTo(tester, subListLabel(l10n, tester, l10n.appsGroupWeb));
 
-    // 同一个 Web 子列表里：官方入口（教务处）与学生应用（空教室查询）并排。
-    expect(row('教务处'), findsOneWidget);
-    expect(row('空教室查询'), findsOneWidget);
+      // 同一个 Web 子列表里：官方入口（教务处）与学生应用（空教室查询）并排。
+      expect(row('教务处'), findsOneWidget);
+      expect(row('空教室查询'), findsOneWidget);
 
-    // 官方的"特殊标识"：校徽只出现在官方那一行。
-    expect(
-      find.descendant(of: row('教务处'), matching: find.byType(UniversityBrandMark)),
-      findsOneWidget,
-      reason: '官方条目必须带归属标识',
-    );
-    expect(
-      find.descendant(of: row('空教室查询'), matching: find.byType(UniversityBrandMark)),
-      findsNothing,
-      reason: '学生项目不该被加上官方标识',
-    );
-    // 来源徽章两者都有：地位相同，只差归属标识。
-    expect(
-      find.descendant(
-        of: row('空教室查询'),
-        matching: find.text(l10n.originStudentDeveloped),
-      ),
-      findsOneWidget,
-    );
+      // 官方的"特殊标识"：校徽只出现在官方那一行。
+      expect(
+        find.descendant(
+          of: row('教务处'),
+          matching: find.byType(UniversityBrandMark),
+        ),
+        findsOneWidget,
+        reason: '官方条目必须带归属标识',
+      );
+      expect(
+        find.descendant(
+          of: row('空教室查询'),
+          matching: find.byType(UniversityBrandMark),
+        ),
+        findsNothing,
+        reason: '学生项目不该被加上官方标识',
+      );
+      // 来源徽章两者都有：地位相同，只差归属标识。
+      expect(
+        find.descendant(
+          of: row('空教室查询'),
+          matching: find.text(l10n.originStudentDeveloped),
+        ),
+        findsOneWidget,
+      );
 
-    // 开源仓库入口：学生应用有（它是取信凭据），学校服务没有——服务根本没有仓库字段，
-    // 因此不能出现一个指向空地址的按钮。
-    // The repository affordance: student apps have one (it is the trust signal), school services
-    // do not — a service has no repository field, so no button may point at nothing.
-    expect(
-      find.descendant(of: row('空教室查询'), matching: find.byIcon(Icons.code)),
-      findsOneWidget,
-      reason: '挂了仓库的学生应用要给出可见入口',
-    );
-    expect(
-      find.descendant(of: row('教务处'), matching: find.byIcon(Icons.code)),
-      findsNothing,
-      reason: '学校服务没有仓库，不该出现空链接按钮',
-    );
+      // 开源仓库入口：学生应用有（它是取信凭据），学校服务没有——服务根本没有仓库字段，
+      // 因此不能出现一个指向空地址的按钮。
+      // The repository affordance: student apps have one (it is the trust signal), school services
+      // do not — a service has no repository field, so no button may point at nothing.
+      expect(
+        find.descendant(of: row('空教室查询'), matching: find.byIcon(Icons.code)),
+        findsOneWidget,
+        reason: '挂了仓库的学生应用要给出可见入口',
+      );
+      expect(
+        find.descendant(of: row('教务处'), matching: find.byIcon(Icons.code)),
+        findsNothing,
+        reason: '学校服务没有仓库，不该出现空链接按钮',
+      );
 
-    state.dispose();
-  });
+      state.dispose();
+    },
+  );
 
-  testWidgets('每个子列表各有自己的搜索，互不串 / search is isolated per sub-list',
-      (WidgetTester tester) async {
+  testWidgets('每个子列表各有自己的搜索，互不串 / search is isolated per sub-list', (
+    WidgetTester tester,
+  ) async {
     useTallViewport(tester);
     final RecordingCampusRepository repository = RecordingCampusRepository();
     final AppState state = await buildState(repository);
@@ -328,7 +351,10 @@ void main() {
     expect(row('教务处'), findsNothing, reason: '搜索应当把不匹配的行筛掉');
 
     // 切到官方工作台：它的搜索框是空的，因此随师办照常显示。
-    await switchTo(tester, subListLabel(l10n, tester, l10n.appsGroupOfficialWorkbench));
+    await switchTo(
+      tester,
+      subListLabel(l10n, tester, l10n.appsGroupOfficialWorkbench),
+    );
     expect(row('随师办'), findsOneWidget);
     expect(
       tester.widget<TextField>(find.byType(TextField)).controller?.text,
@@ -338,7 +364,10 @@ void main() {
 
     // 切回 Web：刚才输入的关键词还在（每个子列表记住自己的筛选）。
     await switchTo(tester, subListLabel(l10n, tester, l10n.appsGroupWeb));
-    expect(tester.widget<TextField>(find.byType(TextField)).controller?.text, '图书馆');
+    expect(
+      tester.widget<TextField>(find.byType(TextField)).controller?.text,
+      '图书馆',
+    );
     expect(row('教务处'), findsNothing);
 
     // 搜索无结果与"子列表为空"是两句不同的话。
@@ -350,8 +379,9 @@ void main() {
     state.dispose();
   });
 
-  testWidgets('没有热度数据时不给热度排序 / heat ordering only when counts are real',
-      (WidgetTester tester) async {
+  testWidgets('没有热度数据时不给热度排序 / heat ordering only when counts are real', (
+    WidgetTester tester,
+  ) async {
     useTallViewport(tester);
     final RecordingCampusRepository repository = RecordingCampusRepository();
     final AppState state = await buildState(repository);
@@ -371,8 +401,9 @@ void main() {
     state.dispose();
   });
 
-  testWidgets('有真实计数时出现热度徽标，热度排序把它排到最前 / heat appears once counts exist',
-      (WidgetTester tester) async {
+  testWidgets('有真实计数时出现热度徽标，热度排序把它排到最前 / heat appears once counts exist', (
+    WidgetTester tester,
+  ) async {
     useTallViewport(tester);
     final RecordingCampusRepository repository = RecordingCampusRepository();
     // 只给「校园卡」注入热度。挑它是因为**按名称排序时它排在最后**（「校」的码位最大），
@@ -415,8 +446,9 @@ void main() {
     state.dispose();
   });
 
-  testWidgets('点一下列表项就直接打开且参数正确；成功后才记热度 / a tap opens, heat after success',
-      (WidgetTester tester) async {
+  testWidgets('点一下列表项就直接打开且参数正确；成功后才记热度 / a tap opens, heat after success', (
+    WidgetTester tester,
+  ) async {
     useTallViewport(tester);
     final RecordingCampusRepository repository = RecordingCampusRepository();
     final AppState state = await buildState(repository);
@@ -443,8 +475,9 @@ void main() {
     state.dispose();
   });
 
-  testWidgets('话题筛选把标签原样交给后端 / the topic filter hands the tag to the backend',
-      (WidgetTester tester) async {
+  testWidgets('话题筛选把标签原样交给后端 / the topic filter hands the tag to the backend', (
+    WidgetTester tester,
+  ) async {
     useTallViewport(tester);
     final RecordingCampusRepository repository = RecordingCampusRepository();
     final AppState state = await buildState(repository);
@@ -453,6 +486,8 @@ void main() {
 
     // 话题芯片的取值来自服务端返回的规范名；点它只是把标签**原样**发出去，
     // 客户端不做归一化（归一化只有服务端一份）。
+    await tester.tap(find.byType(ExpansionTile));
+    await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(ChoiceChip, '羽毛球'));
     await tester.pumpAndSettle();
 
@@ -469,8 +504,9 @@ void main() {
     state.dispose();
   });
 
-  testWidgets('群号只在详情里，且带演示数据标记 / the group number lives in details',
-      (WidgetTester tester) async {
+  testWidgets('群号只在详情里，且带演示数据标记 / the group number lives in details', (
+    WidgetTester tester,
+  ) async {
     useTallViewport(tester);
     final RecordingCampusRepository repository = RecordingCampusRepository();
     final AppState state = await buildState(repository);

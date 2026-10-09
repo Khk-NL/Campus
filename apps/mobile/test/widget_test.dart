@@ -74,6 +74,43 @@ void main() {
     );
   }
 
+  testWidgets('课程列表与课程表平级切换，智能体留在课程内', (tester) async {
+    final state = await buildState();
+    await tester.pumpWidget(wrap(state));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('课程').last);
+    await tester.pumpAndSettle();
+    expect(find.text('课程列表'), findsOneWidget);
+    expect(find.text('按智能体'), findsNothing);
+    await tester.tap(find.text('课程表'));
+    await tester.pumpAndSettle();
+    expect(find.byType(TimetablePage), findsOneWidget);
+    await tester.tap(find.text('课程列表'));
+    await tester.pumpAndSettle();
+    expect(find.byType(TimetablePage), findsNothing);
+    state.dispose();
+  });
+
+  testWidgets('我的默认折叠设置与关于，昵称编辑后立即显示', (tester) async {
+    final state = await buildState();
+    await tester.pumpWidget(wrap(state));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('我的').last);
+    await tester.pumpAndSettle();
+    final tiles = tester.widgetList<ExpansionTile>(find.byType(ExpansionTile));
+    expect(tiles.length, 2);
+    expect(tiles.every((tile) => !tile.initiallyExpanded), isTrue);
+    await tester.tap(find.byTooltip('个性化'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, '小夏');
+    await tester.tap(find.text('保存'));
+    await tester.pumpAndSettle();
+    expect(state.displayName, '小夏');
+    expect(find.text('小夏'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    state.dispose();
+  });
+
   testWidgets('根应用响应语言与主题切换', (WidgetTester tester) async {
     final AppState state = await buildState();
     await tester.pumpWidget(
@@ -153,6 +190,9 @@ void main() {
     // Switch to Profile and expect the language switcher (§0.8).
     await tester.tap(find.text(l10n.navProfile).last);
     await tester.pumpAndSettle();
+    expect(find.text(l10n.profileLanguage), findsNothing);
+    await tester.tap(find.text(l10n.profileSettings));
+    await tester.pumpAndSettle();
     expect(find.text(l10n.profileLanguage), findsWidgets);
 
     state.dispose();
@@ -207,7 +247,7 @@ void main() {
 
     await tester.tap(find.text(l10n.navTimetable).last);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('查看课程表'));
+    await tester.tap(find.text('打开课程表'));
     await tester.pumpAndSettle();
 
     expect(find.byType(TimetablePage), findsOneWidget);
@@ -278,9 +318,9 @@ void main() {
     expect(find.text('引用范围 · 已选 0 份资料'), findsOneWidget);
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('查看课程表', skipOffstage: false));
+    await tester.ensureVisible(find.text('打开课程表', skipOffstage: false));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('查看课程表'));
+    await tester.tap(find.text('打开课程表'));
     await tester.pumpAndSettle();
     expect(find.byType(TimetablePage), findsOneWidget);
     final Finder courseInTimetable = find.descendant(

@@ -1,13 +1,13 @@
 /// Campulse 设计规范 / the Campulse design tokens (§0.3, §0.9 手机优先).
 ///
 /// 色值不是猜的：主色取自学校官方的《标准色使用规范》（PANTONE 201C =
-/// `#A41F35`，规范写明"不得任意更改"），其余为同色族的官方减网色阶。所有颜色都从这里
+/// `#A41F35`，规范写明"不得任意更改"）；青绿与蓝紫作为界面辅助色。所有颜色都从这里
 /// 取，widget 里不允许出现字面量色值——换主题时改动点只有一个。主题文件**只放色值与
 /// 排版规则**，不出现任何高校专有字样（§3.1）。
 ///
 /// The colours are not guesses: the primary is the university's official standard colour
 /// (PANTONE 201C = `#A41F35`, which the specification says must not be altered) and the
-/// rest are that colour's official tint ramp. Every colour comes from here; widgets never
+/// supporting hues are teal and blue-violet. Every colour comes from here; widgets never
 /// hold a literal colour, so re-theming touches one file. This file holds colour values
 /// and typography rules only, never a university-specific string (§3.1).
 ///
@@ -167,10 +167,7 @@ class CampusStatusColors extends ThemeExtension<CampusStatusColors> {
   }
 
   @override
-  CampusStatusColors lerp(
-    ThemeExtension<CampusStatusColors>? other,
-    double t,
-  ) {
+  CampusStatusColors lerp(ThemeExtension<CampusStatusColors>? other, double t) {
     if (other is! CampusStatusColors) return this;
     return CampusStatusColors(
       success: Color.lerp(success, other.success, t) ?? success,
@@ -194,41 +191,67 @@ class CampusTheme {
   const CampusTheme._();
 
   /// 浅色主题 / the light theme.
-  static ThemeData light() => _build(Brightness.light, CampusStatusColors.light);
+  static ThemeData light() =>
+      _build(Brightness.light, CampusStatusColors.light);
 
   /// 深色主题 / the dark theme.
   static ThemeData dark() => _build(Brightness.dark, CampusStatusColors.dark);
 
   static ThemeData _build(Brightness brightness, CampusStatusColors status) {
     final bool isDark = brightness == Brightness.dark;
-    final ColorScheme scheme = ColorScheme.fromSeed(
-      seedColor: CampusColors.primary,
-      brightness: brightness,
-    ).copyWith(
-      primary: isDark ? CampusColors.primaryDark : CampusColors.primary,
-      onPrimary: isDark ? CampusColors.primaryDeep : Colors.white,
-      primaryContainer:
-          isDark ? CampusColors.primaryContainerDark : CampusColors.primaryContainerLight,
-      onPrimaryContainer: isDark ? CampusColors.primary10 : CampusColors.primaryDeep,
-      surface: isDark ? CampusColors.surfaceDark : CampusColors.surfaceLight,
-      error: status.danger,
-    );
+    final ColorScheme scheme =
+        ColorScheme.fromSeed(
+          seedColor: CampusColors.primary,
+          brightness: brightness,
+        ).copyWith(
+          primary: isDark ? CampusColors.primaryDark : CampusColors.primary,
+          onPrimary: isDark ? CampusColors.primaryDeep : Colors.white,
+          primaryContainer: isDark
+              ? CampusColors.primaryContainerDark
+              : CampusColors.primaryContainerLight,
+          onPrimaryContainer: isDark
+              ? CampusColors.primary10
+              : CampusColors.primaryDeep,
+          secondary: isDark ? const Color(0xFF84D4CB) : const Color(0xFF246D68),
+          onSecondary: isDark ? const Color(0xFF003732) : Colors.white,
+          secondaryContainer: isDark
+              ? const Color(0xFF163D3B)
+              : const Color(0xFFDDEFEA),
+          onSecondaryContainer: isDark
+              ? const Color(0xFFB4F0E6)
+              : const Color(0xFF143C37),
+          tertiary: isDark ? const Color(0xFFBFC2FF) : const Color(0xFF555D99),
+          onTertiary: isDark ? const Color(0xFF252B5F) : Colors.white,
+          tertiaryContainer: isDark
+              ? const Color(0xFF343A69)
+              : const Color(0xFFE6E8FF),
+          onTertiaryContainer: isDark
+              ? const Color(0xFFE6E8FF)
+              : const Color(0xFF252B5F),
+          surface: isDark
+              ? CampusColors.surfaceDark
+              : CampusColors.surfaceLight,
+          error: status.danger,
+        );
 
     // 顶部栏：标准色实色块 + 白色内容（官方"反白应用"），深色模式下用更暗的同族色。
     // The top bar: a solid standard-colour block with white content (the official reversed
     // application); dark mode uses a darker shade of the same family.
-    final Color appBarBackground =
-        isDark ? CampusColors.appBarDark : CampusColors.primary;
+    final Color appBarBackground = isDark
+        ? CampusColors.appBarDark
+        : CampusColors.primary;
     final Color onAppBar = Colors.white;
-    final Color hairline =
-        isDark ? CampusColors.hairlineDark : CampusColors.hairlineLight;
+    final Color hairline = isDark
+        ? CampusColors.hairlineDark
+        : CampusColors.hairlineLight;
 
     final ThemeData base = ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
       brightness: brightness,
-      scaffoldBackgroundColor:
-          isDark ? CampusColors.scaffoldDark : CampusColors.scaffoldLight,
+      scaffoldBackgroundColor: isDark
+          ? CampusColors.scaffoldDark
+          : CampusColors.scaffoldLight,
       visualDensity: VisualDensity.standard,
     );
 
@@ -329,11 +352,7 @@ class CampusTheme {
       ),
       // 发丝分隔线而不是重投影（官方布局语言）。
       // Hairline dividers rather than heavy shadows (the official layout language).
-      dividerTheme: DividerThemeData(
-        color: hairline,
-        space: 1,
-        thickness: 1,
-      ),
+      dividerTheme: DividerThemeData(color: hairline, space: 1, thickness: 1),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: scheme.surface,
@@ -345,7 +364,10 @@ class CampusTheme {
           borderRadius: BorderRadius.circular(CampusColors.cardRadius),
           borderSide: BorderSide(color: hairline),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 12,
+          vertical: 12,
+        ),
       ),
     );
   }

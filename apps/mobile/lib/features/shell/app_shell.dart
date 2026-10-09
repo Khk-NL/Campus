@@ -48,8 +48,26 @@ class AppShell extends StatefulWidget {
   State<AppShell> createState() => _AppShellState();
 }
 
-class _AppShellState extends State<AppShell> {
+class _AppShellState extends State<AppShell>
+    with SingleTickerProviderStateMixin {
   int _index = 0;
+  late final AnimationController _transition;
+
+  @override
+  void initState() {
+    super.initState();
+    _transition = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 220),
+      value: 1,
+    );
+  }
+
+  @override
+  void dispose() {
+    _transition.dispose();
+    super.dispose();
+  }
 
   /// 是否有需要处理的待办——顶部通知入口据此显示小圆点。
   /// Whether anything needs attention; it drives the dot on the notifications entry.
@@ -123,22 +141,33 @@ class _AppShellState extends State<AppShell> {
           // badge instead (see home_page.dart).
           const OfflineBanner(),
           Expanded(
-            child: IndexedStack(
-              key: ValueKey<String>(AppScope.of(context).user?.id ?? 'guest'),
-              index: _index,
-              children: const <Widget>[
-                HomePage(),
-                AppsPage(),
-                CourseHubPage(),
-                ProfilePage(),
-              ],
+            child: FadeTransition(
+              opacity: Tween<double>(begin: .82, end: 1).animate(_transition),
+              child: IndexedStack(
+                key: ValueKey<String>(AppScope.of(context).user?.id ?? 'guest'),
+                index: _index,
+                children: <Widget>[
+                  HomePage(active: _index == 0),
+                  const AppsPage(),
+                  const CourseHubPage(),
+                  const ProfilePage(),
+                ],
+              ),
             ),
           ),
         ],
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
-        onDestinationSelected: (int index) => setState(() => _index = index),
+        onDestinationSelected: (int index) {
+          if (_index == index) return;
+          setState(() => _index = index);
+          if (MediaQuery.disableAnimationsOf(context)) {
+            _transition.value = 1;
+          } else {
+            _transition.forward(from: 0);
+          }
+        },
         destinations: <NavigationDestination>[
           NavigationDestination(
             icon: const Icon(Icons.home_outlined),

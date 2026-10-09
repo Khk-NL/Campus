@@ -56,7 +56,12 @@ class HomeSection<T> extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
                   ?trailing,
-                  Icon(icon, size: 18, color: theme.colorScheme.outline),
+                  CircleAvatar(
+                    radius: 16,
+                    backgroundColor: theme.colorScheme.tertiaryContainer,
+                    foregroundColor: theme.colorScheme.onTertiaryContainer,
+                    child: Icon(icon, size: 18),
+                  ),
                 ],
               ),
             ),
@@ -89,7 +94,9 @@ class HomeSection<T> extends StatelessWidget {
   }
 
   static Widget _maybeEmpty(Widget content, String message) {
-    if (content is SizedBox && content.width == null && content.height == null) {
+    if (content is SizedBox &&
+        content.width == null &&
+        content.height == null) {
       return _InlineEmpty(message: message);
     }
     return content;
@@ -109,8 +116,9 @@ class _InlineEmpty extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: Text(
         message,
-        style: theme.textTheme.bodyMedium
-            ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+        style: theme.textTheme.bodyMedium?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
       ),
     );
   }
@@ -139,8 +147,9 @@ class _InlineError extends StatelessWidget {
           Expanded(
             child: Text(
               message,
-              style: theme.textTheme.bodySmall
-                  ?.copyWith(color: theme.colorScheme.error),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.error,
+              ),
             ),
           ),
         ],

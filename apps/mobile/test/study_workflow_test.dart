@@ -252,6 +252,10 @@ void main() {
   });
 
   testWidgets('课程笔记可作为问题的引用资料', (WidgetTester tester) async {
+    // 竖屏显示完整概览；横屏在紧凑头部单独验收。
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(600, 1200);
+    addTearDown(tester.view.reset);
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final SharedPreferences preferences = await SharedPreferences.getInstance();
     final LocalCourseNoteRepository notes = LocalCourseNoteRepository(

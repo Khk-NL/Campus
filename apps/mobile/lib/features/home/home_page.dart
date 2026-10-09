@@ -24,7 +24,7 @@ import 'package:campus_mobile/data/models/transaction.dart';
 import 'package:campus_mobile/data/repositories/campus_repository.dart';
 import 'package:campus_mobile/data/repositories/data_source_mode.dart';
 import 'package:campus_mobile/features/home/home_view_model.dart';
-import 'package:campus_mobile/features/study/course_space_entry.dart';
+import 'package:campus_mobile/features/home/widgets/personal_plan_card.dart';
 import 'package:campus_mobile/features/home/widgets/quick_access_grid.dart';
 import 'package:campus_mobile/features/home/widgets/task_tile.dart';
 import 'package:campus_mobile/features/inbox/widgets/transaction_details_sheet.dart';
@@ -36,7 +36,8 @@ import 'package:flutter/material.dart';
 
 /// 首页 / the home screen.
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  const HomePage({super.key, this.active = true});
+  final bool active;
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -65,6 +66,13 @@ class _HomePageState extends State<HomePage> {
 
   /// 首次加载已经排过队了吗。/ whether the first load has already been queued.
   bool _loadQueued = false;
+  int _planRefresh = 0;
+
+  @override
+  void didUpdateWidget(covariant HomePage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.active && !oldWidget.active) _load();
+  }
 
   @override
   void didChangeDependencies() {
@@ -115,6 +123,7 @@ class _HomePageState extends State<HomePage> {
       return;
     }
     setState(() {
+      _planRefresh++;
       _tasks = tasks;
       _announcements = announcements;
       _quickAccess = quickAccess;
@@ -134,18 +143,11 @@ class _HomePageState extends State<HomePage> {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
         children: <Widget>[
-          Align(
-            alignment: Alignment.centerLeft,
-            child: TextButton.icon(
-              icon: const Icon(Icons.checklist_outlined),
-              label: const Text('我的计划'),
-              onPressed: () => Navigator.of(context).push<void>(
-                MaterialPageRoute<void>(
-                  builder: (_) => const CourseSpaceEntry(plansOnly: true),
-                ),
-              ),
-            ),
+          PersonalPlanCard(
+            key: ValueKey(AppScope.of(context).user?.id ?? 'guest'),
+            refreshToken: _planRefresh,
           ),
+          const SizedBox(height: 16),
           _todaySection(),
           const SizedBox(height: 16),
           _tasksSection(),

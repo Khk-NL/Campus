@@ -2,7 +2,6 @@ import 'package:campus_mobile/core/app_scope_repository.dart';
 import 'package:campus_mobile/core/pocketbase_session.dart';
 import 'package:campus_mobile/data/models/course.dart';
 import 'package:campus_mobile/features/study/course_space_entry.dart';
-import 'package:campus_mobile/features/study/agent_explorer.dart';
 import 'package:campus_mobile/features/timetable/timetable_page.dart';
 import 'package:campus_mobile/features/timetable/course_import_page.dart';
 import 'package:campus_mobile/features/timetable/user_course_repository.dart';
@@ -17,7 +16,7 @@ class CourseHubPage extends StatefulWidget {
 }
 
 class _CourseHubPageState extends State<CourseHubPage> {
-  bool _byAgent = false;
+  bool _timetable = false;
   Future<List<Course>> _courses = Future<List<Course>>.value(const <Course>[]);
   bool _loadQueued = false;
 
@@ -78,11 +77,11 @@ class _CourseHubPageState extends State<CourseHubPage> {
 
   @override
   Widget build(BuildContext context) {
-    if (_byAgent) {
+    if (_timetable) {
       return Column(
         children: <Widget>[
           _viewSwitcher(),
-          const Expanded(child: AgentExplorer()),
+          const Expanded(child: TimetablePage()),
         ],
       );
     }
@@ -111,7 +110,7 @@ class _CourseHubPageState extends State<CourseHubPage> {
                       OutlinedButton.icon(
                         onPressed: _openTimetable,
                         icon: const Icon(Icons.calendar_view_week_outlined),
-                        label: const Text('查看课程表'),
+                        label: const Text('打开课程表'),
                       ),
                       OutlinedButton.icon(
                         onPressed: _importCourses,
@@ -169,6 +168,15 @@ class _CourseHubPageState extends State<CourseHubPage> {
                       for (final Course course in courses)
                         Card(
                           child: ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: Theme.of(context)
+                                  .colorScheme
+                                  .secondaryContainer,
+                              foregroundColor: Theme.of(context)
+                                  .colorScheme
+                                  .onSecondaryContainer,
+                              child: const Icon(Icons.menu_book_outlined),
+                            ),
                             title: Text(course.name),
                             subtitle: Text(
                               [
@@ -199,18 +207,18 @@ class _CourseHubPageState extends State<CourseHubPage> {
       segments: const <ButtonSegment<bool>>[
         ButtonSegment<bool>(
           value: false,
-          label: Text('按课程'),
+          label: Text('课程列表'),
           icon: Icon(Icons.school_outlined),
         ),
         ButtonSegment<bool>(
           value: true,
-          label: Text('按智能体'),
-          icon: Icon(Icons.smart_toy_outlined),
+          label: Text('课程表'),
+          icon: Icon(Icons.calendar_view_week_outlined),
         ),
       ],
-      selected: <bool>{_byAgent},
+      selected: <bool>{_timetable},
       onSelectionChanged: (Set<bool> value) =>
-          setState(() => _byAgent = value.first),
+          setState(() => _timetable = value.first),
     ),
   );
 }

@@ -1,10 +1,10 @@
 /// 从持久化存储读写用户偏好 / reading and writing user preferences.
 ///
-/// 只存三件事：界面语言、主题模式、以及**按板块隔离**的收藏。§19 要求最小化存储，所以这里
+/// 存储界面语言、主题模式、按板块隔离的收藏，以及按账号隔离的昵称和头像样式。这里
 /// 不放任何凭据；登录令牌将来必须走安全存储，不能落在这里。收藏也**只**存在本机——后端
 /// 的 `CampusService` 没有收藏字段，本轮刻意不去加。
 ///
-/// Only three things are persisted: UI language, theme mode and **per-board** favorites.
+/// Persists UI language, theme mode, per-board favorites and account-scoped personalization.
 /// §19 asks for minimal storage, so no credentials live here; a future auth token belongs in
 /// secure storage, never in this file. Favorites are local-only too: the backend's
 /// `CampusService` has no favorite field and this round deliberately does not add one.
@@ -15,6 +15,28 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 /// 偏好存储的薄封装 / a thin wrapper over preference storage.
 class PreferenceStore {
+  String? readNickname(String identity) =>
+      _preferences.getString('campulse.profile.$identity.name');
+  int readAvatarStyle(String identity) =>
+      _preferences.getInt('campulse.profile.$identity.avatar') ?? 0;
+
+  Future<void> writePersonalization(
+    String identity,
+    String name,
+    int avatar,
+  ) async {
+    if (!await _preferences.setString(
+          'campulse.profile.$identity.name',
+          name,
+        ) ||
+        !await _preferences.setInt(
+          'campulse.profile.$identity.avatar',
+          avatar,
+        )) {
+      throw StateError('个性化设置保存失败');
+    }
+  }
+
   PreferenceStore(this._preferences);
 
   final SharedPreferences _preferences;
