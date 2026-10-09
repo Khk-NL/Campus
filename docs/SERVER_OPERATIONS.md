@@ -8,7 +8,7 @@
 
 2026-10-02 用两名已有的普通测试用户，通过旧域名 `campus.allezafrique.cn` 再次完成线上计划、笔记、课程同步及跨用户隔离测试；该域名 TLS 1.2、TLS 1.3 和健康接口均通过。AI 网关此前返回 `aiReady=true`、`ready=false`、能力为 `chat`。这些结果尚不能代替新 APK 的界面验收。
 
-正式域名的外部 TLS 连接在 ClientHello 之后收到入站 RST，Caddy 未发出 TLS 响应；相同域名在服务器本机使用 TLS 1.2 可正常握手。原因尚未定位到 Caddy 或上游网络的具体设备。阿里云[备案阻断排查](https://help.aliyun.com/zh/icp-filing/basic-icp-service/web-site-for-the-record-to-block-1)把未完成网站备案、未接入阿里云列为这种现象的可能原因；`scsldr.cn` 的实际备案状态尚未确认，不能直接断言就是备案导致。为恢复 App 联网，当前云构建临时使用同一台服务器、同一套 PocketBase 与 AI 网关的 `campus.allezafrique.cn`；PocketBase 邮件应用地址也临时改为该域名，以便验证和重置链接可达，发件人配置保持不变。官网目标仍是 `campus.scsldr.cn`。这是有待撤销的传输绕行，不能当成主域名问题已解决。主域名恢复并通过 MuMu 实测后，把 `apps/mobile/config/eduwork.production.example.json` 与 PocketBase `meta.appURL` 均改回主域名，再重新发布 APK。
+正式域名的外部 TLS 连接在 ClientHello 之后收到入站 RST，Caddy 未发出 TLS 响应；相同域名在服务器本机使用 TLS 1.2 可正常握手。2026-10-09 已确认备案阻断：腾讯云与阿里云备案页均显示 `scsldr.cn` 未备案，公网 HTTP 返回 `403 / Server: Beaver`，页面标题为 `Non-compliance ICP Filing`，指向阿里云备案拦截页。DNSPod 的 `campus` A 记录正确指向 `47.100.32.82`。阿里云备案系统已通过现有服务器可用性校验，本次应走“有主体新增服务”。具体填写与恢复顺序见 [正式域名恢复与备案流程](DOMAIN_FILING.md)。当前云构建与 PocketBase 邮件应用地址保持 `campus.allezafrique.cn`；正式域名审核通过且连接与 MuMu 实测通过后，再同步切换 APK 配置和 `meta.appURL`，重新发布 APK。
 
 服务器已安装 `atop`，`/etc/default/atop` 设为 30 秒采样、保留 7 天，`atop.service` 运行且 `/var/log/atop/atop_20261002` 已生成。原配置备份为 `/etc/default/atop.campulse-pre-20261002`。当前磁盘占用 18%，I/O pressure 的 10/60/300 秒均为 0；此前的 I/O 峰值原因仍未知。
 
@@ -40,7 +40,7 @@ docker stats --no-stream
 
 ## Campulse HTTPS 单独验收
 
-在本地仓库运行 `node scripts/check-public-endpoint.mjs`，它只进行 3 个轻量只读检查：TLS 1.2、TLS 1.3 和 PocketBase 健康接口。三项都 OK 后，再用实际 Dart SDK 和 APK 登录、同步测试。
+在本地仓库运行 `node scripts/check-public-endpoint.mjs`，它进行 4 个轻量只读检查：HTTP 跳转到本站 HTTPS、TLS 1.2、TLS 1.3 和 PocketBase 健康接口。HTTP 页面命中阿里云备案拦截特征时会明确报出“ICP备案阻断”。四项都 OK 后，再用实际 Dart SDK 和 APK 登录、同步测试。
 
 仓库中的 `scripts/production_repository_test.dart` 默认检查正式域名。要复验当前 APK 的临时后端，可设置 `CAMPULSE_TEST_BASE_URL=https://campus.allezafrique.cn` 后运行该脚本；测试账号仍从忽略提交的 `CAMPULSE_TEST_USERS` 路径读取。`CAMPULSE_CHECK_HOST=campus.allezafrique.cn` 可对该域名运行轻量 TLS 探测。
 

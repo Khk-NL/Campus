@@ -105,3 +105,9 @@ $env:CAMPULSE_TEST_USERS = 'D:\Code\Projects\Campulse\.tools\remote-test-users.j
 | MuMu 当前 APK | 已装 `1.1.2 (1017)` 与 Release 元数据对应；本轮未能重新操作原生窗口验证 PDF/卡片页面 | **未验收（新版后端上的 APK 点击）** |
 
 PDF 测试文件是一页、带文字层的 1.4 KB PDF，上传前已渲染检查。API 结果证明现网数据路径与权限规则工作，尚不能证明 App 文件选择、PDF 阅读器或卡片页面交互。下一步直接用当前 MuMu APK 打开“操作系统”课程，导入 PDF、制作并评分卡片、重启再读回；另用账号 B 验证列表隔离。正式域名 TLS 1.2、真实邮件收件箱、微信真机和完整 EduWork 仍沿用上方未闭环状态。
+
+## 2026-10-09 正式域名阻断定位
+
+Edge 已登录的 DNSPod 确认 `campus.scsldr.cn` A 记录为 `47.100.32.82`，已启用。腾讯云备案页显示 `scsldr.cn` 未备案；阿里云备案系统校验同样显示未备案，本次订单类型为“有主体新增服务”，现有云服务符合备案要求。公网 HTTP 返回 `403 / Server: Beaver`，页面标题为 `Non-compliance ICP Filing`，指向阿里云备案拦截页。备案阻断已确认，T04 仍为失败态；恢复流程见 [正式域名恢复与备案流程](DOMAIN_FILING.md)。
+
+`check-public-endpoint.mjs` 已补充 HTTP 跳转和备案阻断识别。临时域名四项全部通过；正式域名明确报告“阿里云 ICP 备案阻断”，TLS 1.2 仍为 `ECONNRESET`，TLS 1.3 与健康接口通过。主办者资料、身份核验与备案订单尚未提交，APK 配置和 PocketBase `appURL` 保持临时域名。

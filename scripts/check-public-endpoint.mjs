@@ -1,3 +1,4 @@
+import http from 'node:http';
 import https from 'node:https';
 import tls from 'node:tls';
 
@@ -49,8 +50,42 @@ function checkHealth() {
   });
 }
 
+function checkHttpRedirect() {
+  return new Promise((resolve, reject) => {
+    const request = http.get(`http://${host}/`, { timeout: 8000 }, (response) => {
+      let body = '';
+      response.setEncoding('utf8');
+      response.on('data', (chunk) => {
+        body += chunk;
+        if (body.length > 4096) request.destroy(new Error('HTTP response too large'));
+      });
+      response.once('end', () => {
+        if (/Non-compliance ICP Filing|aliyun\.com\/beian\/beian-block/i.test(body)) {
+          reject(new Error(`阿里云 ICP 备案阻断（HTTP ${response.statusCode}）`));
+          return;
+        }
+        try {
+          const target = new URL(response.headers.location || '', `http://${host}/`);
+          if (![301, 302, 307, 308].includes(response.statusCode) ||
+              target.protocol !== 'https:' || target.hostname !== host) {
+            reject(new Error(`HTTP ${response.statusCode}，未跳转到本站 HTTPS`));
+          } else {
+            resolve();
+          }
+        } catch (error) {
+          reject(error);
+        }
+      });
+      response.once('error', reject);
+    });
+    request.once('timeout', () => request.destroy(new Error('timeout')));
+    request.once('error', reject);
+  });
+}
+
 let failures = 0;
 for (const [name, check] of [
+  ['HTTP → HTTPS', checkHttpRedirect],
   ['TLS 1.2', () => checkTls('TLSv1.2')],
   ['TLS 1.3', () => checkTls('TLSv1.3')],
   ['PocketBase /api/health', checkHealth],
