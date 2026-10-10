@@ -2,6 +2,12 @@
 
 更新：2026-10-10。验收状态见 [验收与下一步](E2E_ACCEPTANCE_20261010.md)。
 
+## 用户工作区与公共目录
+
+数据归属与集合映射见 [用户工作区](USER_WORKSPACE_20261010.md)。运营台通过 `workspaceViews/workspaceFilter` 组织用户、课程和项目关联视图；高级数据库表单保留全库维护能力。公共快速访问由管理员维护，收藏由 `user_favorites` 保存用户关系。个人通知和待办通过目录的可选 `owner` 指定收件人，公共公告与活动保留单一来源。
+
+Flutter 正式启动仅装配远程仓库，测试数据及内存演示仓库位于 `test/fixtures`。`FavoritesController` 按用户隔离缓存，`CampusFavoritesRepository` 定义可替换的数据接口，PocketBase 适配器实现云端收藏读写。
+
 ## 项目审核与 GitHub 绑定
 
 `ForgePage/ForgeProjectPage` 展示个人全部仓库、逐项目审核状态及 GitHub 链接；`ForgeRepository.saveProject` 保存草稿、`submitProject` 独立申请上架。公开发现和搜索查询批准且学校归属已核验的项目。

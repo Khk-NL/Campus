@@ -7,6 +7,7 @@
 | 功能、代码位置、数据流与技术边界 | [功能—代码架构实现](FUNCTION_CODE_ARCHITECTURE_20261010.md) |
 | 本轮检查结果、设备阻塞与执行顺序 | [全链路验收与下一步](E2E_ACCEPTANCE_20261010.md) |
 | 接手项目 | [交接入口](HANDOFF_20261002.md) |
+| 用户归属、公共目录与收藏 | [用户工作区与验收](USER_WORKSPACE_20261010.md) |
 | 服务器运维 | [服务器操作记录](SERVER_OPERATIONS.md) |
 | 手机数据与校园作品管理 | [运营台](ADMIN_CONSOLE.md) |
 | 开源依赖与许可 | [开源使用说明](OPEN_SOURCE_USAGE.md) |

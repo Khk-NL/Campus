@@ -5,6 +5,7 @@ const labels = { owner:'用户 ID', courseId:'课程 ID', title:'标题', conten
 let page = 1, totalPages = 1, version = 0, busy = false, editing = null, deleting = null;
 let reviewing = null;
 let activeView = 'users';
+let selectedUser = null;
 const reviewLabel = state => ({ draft: '待提交', pending: '待审核', approved: '已审核', rejected: '待修改' })[state] || '待提交';
 const labelFor = name => collections[name] || name;
 Object.assign(labels, { reviewState: '审核状态', schoolProof: '华师大归属材料', schoolVerified: '学校归属已核验', reviewNote: '审核意见', repository: '项目仓库', discussion: '讨论', visibility: '可见范围' });
@@ -12,6 +13,7 @@ function message(text) { $('message').textContent = text; }
 function signedOut() {
   version++; client.logout(); $('dashboard').hidden = true; $('login').hidden = false;
   activeView = 'users'; $('course-context').value = ''; $('user-context').textContent = '选择用户';
+  selectedUser = null;
   $('rows').replaceChildren(); $('detail-text').textContent = ''; $('detail').hidden = true;
   for (const id of ['app-dialog','record-dialog','delete-dialog','review-dialog']) $(id).close();
   for (const id of ['app-form','record-form','delete-form','review-form']) $(id).reset();
@@ -143,7 +145,7 @@ async function openRecord(row = {}) {
     const label = document.createElement('label'); label.textContent = labels[field.name] || field.name;
     if (['json','editor','file','geoPoint'].includes(field.type) || ['content','front','back'].includes(field.name)) label.className = 'wide';
     const view = workspaceViews[activeView];
-    const defaults = { owner: view?.personal ? $('owner').value : '', courseId: $('course-context').value, schemaVersion: 1, kind: view?.kind || view?.globalKind || (view?.target ? 'service' : undefined), payload: view?.target ? { origin: 'official', launchTarget: { type: view.target } } : undefined };
+    const defaults = { owner: view?.personal ? $('owner').value : '', courseId: $('course-context').value, universityId: 'ecnu', schemaVersion: 1, kind: view?.kind || view?.globalKind || (view?.target ? 'service' : undefined), payload: view?.target ? { name: '', origin: 'official', isOfficial: true, status: 'active', launchTarget: { type: view.target } } : undefined };
     const value = record[field.name] ?? defaults[field.name];
     const input = inputFor(field, value, record); label.append(input);
     const hint = document.createElement('small'); hint.className = 'field-help';
@@ -187,7 +189,7 @@ async function refresh() {
       actions.append(button('编辑', async () => openRecord(row)));
       actions.append(button('删除', async () => { deleting = { name, id:row.id }; $('delete-form').reset(); $('delete-message').textContent = ''; $('delete-context').textContent = `${labelFor(name)} · ${row.id}`; $('delete-dialog').showModal(); }, 'quiet'));
     }
-    if (name === 'users') actions.append(button('打开工作区', async () => { $('owner').value = row.id; $('user-context').textContent = row.name || row.email || row.id; $('course-context').value = ''; await selectView('courses'); }));
+    if (name === 'users') actions.append(button('打开工作区', async () => { selectedUser = { id: row.id, name: row.name || row.email || row.id }; $('owner').value = row.id; $('course-context').value = ''; await selectView('courses'); }));
     if (name === 'user_courses') actions.append(button('课程内容', async () => { $('course-context').value = row.id; await selectView('notes'); }));
     if (name === 'campus_content') {
       if (row.kind === 'app') actions.append(button('作品设置', async () => openApp(row), 'secondary'));
@@ -200,6 +202,8 @@ async function refresh() {
 function syncView() {
   const name = $('collection').value, schema = client.schemas.get(name), section = sections[name] || { action:'新增记录',description:'按数据库字段维护集合内容',tone:'purple' };
   const view = workspaceViews[activeView];
+  const owner = $('owner').value.trim();
+  $('user-context').textContent = owner ? (selectedUser?.id === owner ? selectedUser.name : owner) : '选择用户';
   $('owner-field').hidden = view ? !view.personal : !schema?.fields?.some(field=>field.name==='owner'); $('kind-field').hidden = !!view || name !== 'campus_content';
   $('review-field').hidden = !!view || name !== 'forge_repositories';
   $('course-field').hidden = !view?.course;
