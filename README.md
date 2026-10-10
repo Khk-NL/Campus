@@ -188,11 +188,3 @@ cd apps\api; node dist\src\main.js     # 启动后端
 进行中 / in progress：`packages/core`、`apps/mobile`（Flutter）、`apps/admin`、`docs/` 细分文档。
 
 详细进展、决策记录与踩坑见 [`DEVELOP_LOG.md`](DEVELOP_LOG.md)。
-
----
-
-## 非目标 / non-goals
-
-Campulse **不做**：聊天软件、私信、校园朋友圈、短视频、内容推荐流、支付系统，以及重新开发
-教务 / 校园卡 / 论坛 / 二手市场 / 拼车 / 竞赛组队。这些长尾功能应当由 Campulse Store 中的
-应用承担。
