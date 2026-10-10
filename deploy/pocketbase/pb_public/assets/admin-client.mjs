@@ -3,7 +3,7 @@ export const collections = Object.freeze({
   study_workspaces: '计划与工作台', course_review_cards: '复习卡片',
   course_artifacts: '学习成果', campus_content: '校园 GitHub 与服务',
   forge_repositories: '社区项目仓库', forge_discussions: '项目讨论与问题',
-  forge_replies: '讨论回复', forge_stars: '项目关注',
+  forge_replies: '讨论回复', forge_stars: '项目关注', user_favorites: '用户收藏',
 });
 
 export const sections = Object.freeze({
@@ -18,7 +18,56 @@ export const sections = Object.freeze({
   forge_discussions: { action: '新增项目讨论', description: '管理问答、建议、问题反馈与项目进展', tone: 'blue' },
   forge_replies: { action: '新增讨论回复', description: '查看和维护社区成员的交流内容', tone: 'gold' },
   forge_stars: { action: '新增项目关注', description: '管理成员与项目的关注关系', tone: 'red' },
+  user_favorites: { action: '新增收藏', description: '维护用户收藏的入口与板块归属', tone: 'gold' },
 });
+
+// Domain views share existing collections; their filters define each relationship.
+export const workspaceViews = Object.freeze({
+  users: { collection: 'users', label: '用户列表' },
+  courses: { collection: 'user_courses', label: '课程', personal: true },
+  notes: { collection: 'course_notes', label: '课程笔记', personal: true, course: true },
+  cards: { collection: 'course_review_cards', label: '复习卡片', personal: true, course: true },
+  artifacts: { collection: 'course_artifacts', label: '学习成果', personal: true, course: true },
+  timetable: { collection: 'user_courses', label: '课程表', personal: true },
+  plans: { collection: 'study_workspaces', label: '计划与工作台', personal: true },
+  notifications: { collection: 'campus_content', label: '个人通知', personal: true, kind: 'announcement' },
+  tasks: { collection: 'campus_content', label: '个人待办', personal: true, kind: 'task' },
+  announcements: { collection: 'campus_content', label: '校园公告', globalKind: 'announcement' },
+  events: { collection: 'campus_content', label: '校园活动', globalKind: 'event' },
+  repositories: { collection: 'forge_repositories', label: '个人仓库', personal: true },
+  incomingDiscussions: { collection: 'forge_discussions', label: '收到的讨论', personal: true, incoming: 'repository.owner' },
+  incomingReplies: { collection: 'forge_replies', label: '收到的回复', personal: true, incoming: 'discussion.repository.owner' },
+  community: { collection: 'forge_repositories', label: '社区项目仓库', community: true },
+  discussions: { collection: 'forge_discussions', label: '参与的讨论', personal: true, outgoing: 'repository.owner' },
+  replies: { collection: 'forge_replies', label: '参与的回复', personal: true, outgoing: 'discussion.repository.owner' },
+  stars: { collection: 'forge_stars', label: 'Star 关注', personal: true },
+  favorites: { collection: 'user_favorites', label: '个人收藏', personal: true },
+  reviews: { collection: 'forge_repositories', label: '项目上架审核', review: true },
+  miniPrograms: { collection: 'campus_content', label: '官方小程序', target: 'wechat-mini-program' },
+  websites: { collection: 'campus_content', label: '官方网站', target: 'web' },
+});
+
+export function workspaceFilter(viewId, owner = '', courseId = '') {
+  const view = workspaceViews[viewId];
+  if (!view) throw new Error('请选择工作区');
+  const filters = [];
+  if (view.personal) {
+    if (!owner) throw new Error('请先从用户列表打开个人工作区');
+    ownerFilter(owner);
+    if (view.incoming) filters.push(`${view.incoming} = ${JSON.stringify(owner)}`, `owner != ${JSON.stringify(owner)}`);
+    else {
+      filters.push(ownerFilter(owner));
+      if (view.outgoing) filters.push(`${view.outgoing} != ${JSON.stringify(owner)}`);
+    }
+  }
+  if (view.course && courseId) filters.push(`courseId = ${JSON.stringify(courseId)}`);
+  if (view.kind) filters.push(`kind = ${JSON.stringify(view.kind)}`);
+  if (view.globalKind) filters.push(`kind = ${JSON.stringify(view.globalKind)}`, 'owner = ""');
+  if (view.community) filters.push('reviewState = "approved"', 'schoolVerified = true', 'universityId = "ecnu"', 'visibility = "public"');
+  if (view.review) filters.push('reviewState = "pending"');
+  if (view.target) filters.push('owner = ""', 'kind = "service"', 'payload.origin = "official"', `payload.launchTarget.type = ${JSON.stringify(view.target)}`);
+  return filters.join(' && ');
+}
 
 export function editableFields(schema) {
   return (schema?.fields || []).filter(field =>
@@ -128,13 +177,18 @@ export class AdminClient {
     return '/collections/' + name + '/records' + (id ? '/' + id : '');
   }
 
-  async list(name, { page = 1, owner = '', search = '', kind = '', reviewState = '' } = {}) {
+  async list(name, { page = 1, owner = '', search = '', kind = '', reviewState = '', view = '', courseId = '' } = {}) {
     const query = new URLSearchParams({ page: String(page), perPage: '25' });
     const schema = this.schemas.get(name), filters = [];
     const hasOwner = schema ? schema.fields.some(field => field.name === 'owner') : name !== 'users' && name !== 'campus_content';
     if (hasOwner) {
       query.set('expand', 'owner');
-      if (owner) filters.push(ownerFilter(owner));
+      if (owner && !view) filters.push(ownerFilter(owner));
+    }
+    if (view) {
+      if (workspaceViews[view]?.collection !== name) throw new Error('工作区与数据集合不匹配');
+      const scope = workspaceFilter(view, owner, courseId);
+      if (scope) filters.push(scope);
     }
     if (search.trim()) filters.push(searchFilter(schema, search));
     if (kind && name === 'campus_content') filters.push(`kind = ${JSON.stringify(kind)}`);

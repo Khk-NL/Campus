@@ -134,6 +134,16 @@ class PreferenceStore {
       _preferences.getStringList('$_favoritesKeyPrefix$boardId')?.toSet() ??
       <String>{};
 
+  Set<String> readFavoriteBoards(String userId) =>
+      _preferences.getStringList('campus.favoriteBoards.$userId')?.toSet() ??
+      <String>{};
+  Future<void> writeFavoriteBoards(String userId, Set<String> boards) async {
+    await _preferences.setStringList(
+      'campus.favoriteBoards.$userId',
+      boards.toList(),
+    );
+  }
+
   /// 写一个板块的收藏键集合；空集合直接删键，不留空记录。
   /// Persist one board's favorite keys; an empty set removes the key instead of leaving an
   /// empty record behind.

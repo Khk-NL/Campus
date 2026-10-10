@@ -1,60 +1,102 @@
-/// 按板块隔离的收藏 / favorites, isolated per board.
-///
-/// 「应用」Tab 的三个分组各有**一份自己的收藏**：收藏是"我在这一组里常用什么"，因此
-/// 一组里的勾选不会改变另一组的排序，也不会让同一门服务在两处被收藏（服务本身只属于
-/// 一组，见 `ServiceGrouping`）。
-///
-/// 这一层刻意做得很薄，而且**不认识任何高校**：它只知道"有若干板块，每个板块是一组键"。
-/// 板块 id 与键都由调用方给出（`ServiceGrouping.favoriteScopeOf` / `favoriteKeyOf`），
-/// 因此通用层不出现任何校名或具体分组名。
-///
-/// Each of the Apps tab's three groups has **its own** favorite list: a favorite means "what I
-/// use in this group", so ticking one group never reorders another, and the same service is
-/// never favorited twice (a service belongs to exactly one group — see `ServiceGrouping`).
-///
-/// This layer is deliberately thin and **knows no university**: it only knows that several
-/// boards exist and that each holds a set of keys. Both the board ids and the keys come from
-/// the caller, so the generic layer names no school and no concrete group.
-library;
-
-// 私有字段无法用 `this.` 形参初始化（Dart 不允许下划线开头的具名形参），因此本文件有意
-// 使用初始化列表，与 `core/app_state.dart` 的处理一致。
-// A private field cannot be initialised through a `this.` formal (Dart forbids a named
-// parameter starting with an underscore), so this file deliberately assigns in the
-// initializer list, exactly as `core/app_state.dart` does.
-// ignore_for_file: prefer_initializing_formals
 import 'package:campus_mobile/core/config/preference_store.dart';
+import 'package:campus_mobile/data/repositories/campus_repository.dart';
 import 'package:flutter/foundation.dart';
 
-/// 收藏的读写与通知 / reading, writing and broadcasting favorites.
+// ignore_for_file: prefer_initializing_formals
+
+/// The directory is global; favorite records are isolated by user and board.
 class FavoritesController extends ChangeNotifier {
-  FavoritesController({required PreferenceStore preferences}) : _preferences = preferences;
-
+  FavoritesController({required PreferenceStore preferences})
+    : _preferences = preferences;
   final PreferenceStore _preferences;
+  final Map<String, Set<String>> _cache = {};
+  final Set<String> _busy = {};
+  String? _userId;
+  CampusFavoritesRepository? _remote;
+  int _generation = 0;
+  Future<void>? _hydrating;
 
-  /// 每个板块的键集合，读一次后缓存，避免每次 build 都碰存储。
-  /// One set per board, cached after the first read so a build never touches storage.
-  final Map<String, Set<String>> _cache = <String, Set<String>>{};
+  String _storageKey(String board) =>
+      _userId == null ? board : 'user:$_userId:$board';
+  Set<String> keysOf(String board) => _cache.putIfAbsent(
+    board,
+    () => _preferences.readFavoriteKeys(_storageKey(board)),
+  );
+  bool contains(String board, String key) => keysOf(board).contains(key);
 
-  /// 某个板块的全部收藏键（**只读**使用；修改请走 [toggle]）。
-  /// Every favorite key of one board (read-only; mutate through [toggle]).
-  Set<String> keysOf(String boardId) => _cache.putIfAbsent(
-        boardId,
-        () => _preferences.readFavoriteKeys(boardId),
-      );
-
-  /// 某个板块里是否收藏了某个键 / whether one board has favorited a key.
-  bool contains(String boardId, String key) => keysOf(boardId).contains(key);
-
-  /// 切换收藏 / toggle a favorite.
-  ///
-  /// 先通知再落盘：界面必须**立刻**反映（列表马上重排），写存储晚几十毫秒无妨。
-  /// Notify first, persist second: the UI must reflect the change at once (the list reorders
-  /// immediately) while the write lands a few milliseconds later.
-  Future<void> toggle(String boardId, String key) async {
-    final Set<String> keys = keysOf(boardId);
-    if (!keys.remove(key)) keys.add(key);
+  Future<void> bindUser(String? id, {CampusFavoritesRepository? remote}) async {
+    final generation = ++_generation;
+    _userId = id;
+    _remote = id == null ? null : remote;
+    _cache.clear();
+    _busy.clear();
+    _hydrating = null;
     notifyListeners();
-    await _preferences.writeFavoriteKeys(boardId, keys);
+    if (_remote == null) return;
+    final task = _hydrate(id!, generation, _remote!);
+    _hydrating = task;
+    try {
+      await task;
+    } finally {
+      if (generation == _generation) _hydrating = null;
+    }
+  }
+
+  Future<void> _hydrate(
+    String id,
+    int generation,
+    CampusFavoritesRepository remote,
+  ) async {
+    final result = await remote.fetchFavorites();
+    if (generation != _generation) return;
+    final boards = {
+      ..._preferences.readFavoriteBoards(id),
+      ...result.keys,
+      ..._cache.keys,
+    };
+    for (final board in boards) {
+      if (generation != _generation) return;
+      _cache[board] = result[board] ?? <String>{};
+      await _preferences.writeFavoriteKeys('user:$id:$board', _cache[board]!);
+    }
+    await _preferences.writeFavoriteBoards(id, boards);
+    if (generation == _generation) notifyListeners();
+  }
+
+  Future<void> toggle(String board, String key) async {
+    final started = _generation;
+    await _hydrating;
+    if (started != _generation) return;
+    final operation = '$board:$key', generation = _generation;
+    if (!_busy.add(operation)) return;
+    final storageKey = _storageKey(board),
+        selected = !contains(board, key),
+        userId = _userId;
+    try {
+      await _remote?.setFavorite(board, key, selected);
+      if (generation != _generation) return;
+      final keys = keysOf(board);
+      if (selected) {
+        keys.add(key);
+      } else {
+        keys.remove(key);
+      }
+      notifyListeners();
+      await _preferences.writeFavoriteKeys(storageKey, keys);
+      if (userId != null) {
+        await _preferences.writeFavoriteBoards(userId, {
+          ..._preferences.readFavoriteBoards(userId),
+          board,
+        });
+      }
+    } finally {
+      if (generation == _generation) _busy.remove(operation);
+    }
+  }
+
+  @override
+  void dispose() {
+    _generation++;
+    super.dispose();
   }
 }

@@ -25,7 +25,7 @@ import 'package:campus_mobile/core/config/app_config.dart';
 import 'package:campus_mobile/core/config/preference_store.dart';
 import 'package:campus_mobile/core/locale_resolution.dart';
 import 'package:campus_mobile/core/theme/campus_theme.dart';
-import 'package:campus_mobile/data/repositories/in_memory_campus_repository.dart';
+import 'fixtures/in_memory_campus_repository.dart';
 import 'package:campus_mobile/features/inbox/inbox_page.dart';
 import 'package:campus_mobile/features/search/search_page.dart';
 import 'package:campus_mobile/features/study/course_hub_page.dart';

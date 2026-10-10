@@ -49,7 +49,9 @@ import 'package:campus_mobile/data/models/transaction.dart';
 import 'package:campus_mobile/data/models/university.dart';
 import 'package:campus_mobile/data/repositories/campus_repository.dart';
 import 'package:campus_mobile/data/repositories/data_source_mode.dart';
-import 'package:campus_mobile/data/repositories/in_memory_campus_repository.dart';
+
+import 'in_memory_campus_repository.dart';
+
 import 'package:campus_mobile/data/repositories/remote_campus_repository.dart';
 import 'package:flutter/foundation.dart';
 

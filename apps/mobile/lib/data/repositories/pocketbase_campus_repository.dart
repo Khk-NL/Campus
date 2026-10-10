@@ -9,7 +9,6 @@ import 'package:campus_mobile/data/models/transaction.dart';
 import 'package:campus_mobile/data/models/university.dart';
 import 'package:campus_mobile/data/repositories/campus_repository.dart';
 import 'package:campus_mobile/data/repositories/data_source_mode.dart';
-import 'package:campus_mobile/data/repositories/in_memory_campus_repository.dart';
 import 'package:flutter/foundation.dart';
 import 'package:pocketbase/pocketbase.dart';
 
@@ -18,14 +17,53 @@ class PocketBaseCampusRepository
     implements
         CampusRepository,
         CampusAccountRepository,
+        CampusFavoritesRepository,
         CampusProbeRepository {
-  PocketBaseCampusRepository({
-    required this.client,
-    InMemoryCampusRepository? fallback,
-  }) : _fallback = fallback ?? InMemoryCampusRepository();
+  PocketBaseCampusRepository({required this.client});
 
   final PocketBase client;
-  final InMemoryCampusRepository _fallback;
+
+  @override
+  Future<Map<String, Set<String>>> fetchFavorites() async {
+    final owner = client.authStore.record?.id;
+    if (owner == null || !client.authStore.isValid) return {};
+    final rows = await client
+        .collection('user_favorites')
+        .getFullList(
+          filter: client.filter('owner = {:owner}', {'owner': owner}),
+        );
+    final result = <String, Set<String>>{};
+    for (final row in rows) {
+      (result[row.getStringValue('board')] ??= <String>{}).add(
+        row.getStringValue('entryKey'),
+      );
+    }
+    return result;
+  }
+
+  @override
+  Future<void> setFavorite(String board, String key, bool selected) async {
+    final owner = client.authStore.record?.id;
+    if (owner == null || !client.authStore.isValid) throw StateError('请登录后收藏');
+    final rows = await client
+        .collection('user_favorites')
+        .getFullList(
+          filter: client.filter(
+            'owner = {:owner} && board = {:board} && entryKey = {:key}',
+            {'owner': owner, 'board': board, 'key': key},
+          ),
+        );
+    if (selected && rows.isEmpty) {
+      await client
+          .collection('user_favorites')
+          .create(body: {'owner': owner, 'board': board, 'entryKey': key});
+    } else if (!selected) {
+      for (final row in rows) {
+        await client.collection('user_favorites').delete(row.id);
+      }
+    }
+  }
+
   final ValueNotifier<DataSourceMode> _mode = ValueNotifier(
     DataSourceMode.unknown,
   );
@@ -67,7 +105,7 @@ class PocketBaseCampusRepository
       lastConnectionError = null;
     } on ClientException catch (error) {
       lastConnectionError = _connectionError(error);
-      _mode.value = DataSourceMode.mock;
+      _mode.value = DataSourceMode.offline;
     }
     return _mode.value;
   }
@@ -105,9 +143,7 @@ class PocketBaseCampusRepository
     try {
       await requestVerification(email);
     } on Exception {
-      throw const CampusAccountException(
-        '账号已创建，邮件发送状态待确认。请查收最新验证邮件，需要时可重新发送。',
-      );
+      throw const CampusAccountException('账号已创建，邮件发送状态待确认。请查收最新验证邮件，需要时可重新发送。');
     }
   }
 
@@ -159,13 +195,7 @@ class PocketBaseCampusRepository
         );
     _mode.value = DataSourceMode.remote;
     lastConnectionError = null;
-    _setSource(
-      source,
-      records.isNotEmpty &&
-              records.every((record) => record.data['demo'] == true)
-          ? DataSourceMode.mock
-          : DataSourceMode.remote,
-    );
+    _setSource(source, DataSourceMode.remote);
     return <_ContentRow>[
       for (final RecordModel record in records)
         if (record.data['payload'] is Map)
@@ -184,23 +214,22 @@ class PocketBaseCampusRepository
     _sourceNotifier.value++;
   }
 
-  Future<T> _withFallback<T>(
+  Future<T> _readRemote<T>(
     DataSourceSource source,
     Future<T> Function() remote,
-    Future<T> Function() fallback,
   ) async {
     try {
       return await remote();
     } on ClientException catch (error) {
       lastConnectionError = _connectionError(error);
-      _mode.value = DataSourceMode.mock;
-      _setSource(source, DataSourceMode.mock);
-      return fallback();
+      _mode.value = DataSourceMode.offline;
+      _setSource(source, DataSourceMode.offline);
+      rethrow;
     }
   }
 
   @override
-  Future<List<University>> fetchUniversities() => _withFallback(
+  Future<List<University>> fetchUniversities() => _readRemote(
     DataSourceSource.services,
     () async => University.listFromJson(
       (await _read(
@@ -208,12 +237,11 @@ class PocketBaseCampusRepository
         DataSourceSource.services,
       )).map((_ContentRow row) => row.payload).toList(),
     ),
-    _fallback.fetchUniversities,
   );
 
   @override
   Future<List<CampusService>> listServices(CampusServicesQuery query) =>
-      _withFallback(DataSourceSource.services, () async {
+      _readRemote(DataSourceSource.services, () async {
         final List<CampusService> services =
             CampusService.listFromJson(
                   (await _read(
@@ -255,7 +283,7 @@ class PocketBaseCampusRepository
         return query.limit == null
             ? services
             : services.take(query.limit!).toList();
-      }, () => _fallback.listServices(query));
+      });
 
   @override
   Future<Map<String, LocalizedText>> fetchServiceNames() async => const {};
@@ -266,7 +294,7 @@ class PocketBaseCampusRepository
 
   @override
   Future<List<Course>> fetchCourses() =>
-      _withFallback(DataSourceSource.courses, () async {
+      _readRemote(DataSourceSource.courses, () async {
         final List<Course> publicCourses = Course.listFromJson(
           (await _read(
             'course',
@@ -296,10 +324,10 @@ class PocketBaseCampusRepository
           _setSource(DataSourceSource.courses, DataSourceMode.remote);
         }
         return <Course>[...publicCourses, ...personalCourses];
-      }, _fallback.fetchCourses);
+      });
 
   @override
-  Future<List<Announcement>> fetchAnnouncements() => _withFallback(
+  Future<List<Announcement>> fetchAnnouncements() => _readRemote(
     DataSourceSource.announcements,
     () async => Announcement.listFromJson(
       (await _read(
@@ -307,11 +335,10 @@ class PocketBaseCampusRepository
         DataSourceSource.announcements,
       )).map((_ContentRow row) => row.payload).toList(),
     ),
-    _fallback.fetchAnnouncements,
   );
 
   @override
-  Future<List<CampusEvent>> fetchEvents() => _withFallback(
+  Future<List<CampusEvent>> fetchEvents() => _readRemote(
     DataSourceSource.events,
     () async => CampusEvent.listFromJson(
       (await _read(
@@ -319,11 +346,10 @@ class PocketBaseCampusRepository
         DataSourceSource.events,
       )).map((_ContentRow row) => row.payload).toList(),
     ),
-    _fallback.fetchEvents,
   );
 
   @override
-  Future<List<CampusTask>> fetchTasks() => _withFallback(
+  Future<List<CampusTask>> fetchTasks() => _readRemote(
     DataSourceSource.tasks,
     () async => CampusTask.listFromJson(
       (await _read(
@@ -331,12 +357,11 @@ class PocketBaseCampusRepository
         DataSourceSource.tasks,
       )).map((_ContentRow row) => row.payload).toList(),
     ),
-    _fallback.fetchTasks,
   );
 
   @override
   Future<List<CampusApp>> fetchCampusApps(CampusAppsQuery query) =>
-      _withFallback(DataSourceSource.apps, () async {
+      _readRemote(DataSourceSource.apps, () async {
         final List<CampusApp> apps = CampusApp.listFromJson(
           (await _read(
             'app',
@@ -361,7 +386,7 @@ class PocketBaseCampusRepository
             );
         }
         return query.limit == null ? apps : apps.take(query.limit!).toList();
-      }, () => _fallback.fetchCampusApps(query));
+      });
 
   // 热度需要服务端原子计数；MVP 不在客户端直接改公开内容记录。
   @override
@@ -374,7 +399,6 @@ class PocketBaseCampusRepository
   void dispose() {
     _mode.dispose();
     _sourceNotifier.dispose();
-    _fallback.dispose();
   }
 }
 

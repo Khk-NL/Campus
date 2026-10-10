@@ -45,7 +45,7 @@ class SqliteStudyRepository implements StudyRepository {
       whereArgs: <Object>[1],
       limit: 1,
     );
-    if (rows.isEmpty) return StudyWorkspace.demo();
+    if (rows.isEmpty) return StudyWorkspace.empty();
     return StudyWorkspace.fromJson(
       jsonDecode(rows.single['payload']! as String) as Map<String, dynamic>,
     );

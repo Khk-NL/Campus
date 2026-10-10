@@ -1,3 +1,4 @@
+import 'fixtures/study_workspace_fixture.dart';
 import 'package:campus_mobile/features/study/study_page.dart';
 import 'package:campus_mobile/features/study/study_repository.dart';
 import 'package:campus_mobile/features/study/task_planner.dart';
@@ -6,7 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class _Store implements StudyRepository {
-  StudyWorkspace workspace = StudyWorkspace.demo();
+  StudyWorkspace workspace = buildStudyWorkspaceFixture();
   bool fail = false;
   @override
   Future<StudyWorkspace> load() async => workspace;
@@ -24,7 +25,7 @@ void main() {
       SharedPreferences.setMockInitialValues({});
       final prefs = await SharedPreferences.getInstance();
       final store = LocalStudyRepository(prefs);
-      final workspace = StudyWorkspace.demo();
+      final workspace = buildStudyWorkspaceFixture();
       expect(workspace.activities.first.isCompleted, isFalse);
       workspace.activities[0] = workspace.activities[0].copyWith(
         completed: true,

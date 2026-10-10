@@ -4,8 +4,8 @@
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="robots" content="noindex,nofollow"><meta name="referrer" content="same-origin">
   <title>运营台 · Campulse</title>
-  <link rel="icon" href="/assets/favicon.png"><link rel="stylesheet" href="/assets/admin.css?v=20261010">
-  <script src="/assets/admin.mjs?v=20261010-review" type="module"></script>
+  <link rel="icon" href="/assets/favicon.png"><link rel="stylesheet" href="/assets/admin.css?v=20261010-workspace">
+  <script src="/assets/admin.mjs?v=20261010-workspace" type="module"></script>
 </head>
 <body>
   <header><a class="brand" href="/"><img src="/assets/campulse-logo.png" width="32" height="32" alt="">Campulse</a><span>运营台</span><a href="/_/" target="_blank" rel="noopener">数据库后台 ↗</a></header>
@@ -22,11 +22,13 @@
     <p id="message" role="status" aria-live="polite"></p>
     <section id="dashboard" hidden>
       <nav id="sections" class="section-rail" aria-label="运营分区"></nav>
+      <div class="toolbar user-context"><span>当前用户：<strong id="user-context">选择用户</strong></span><button id="exit-workspace" class="quiet">返回用户列表</button></div>
       <div class="workspace-heading"><div><span class="eyebrow">CAMPULSE / CLOUD WORKSPACE</span><h1 id="section-title">云端内容</h1><p id="section-description">手机保存后，刷新即可查看最新记录。</p></div><div class="toolbar"><button id="refresh" class="secondary">刷新</button><button id="logout" class="quiet">退出</button></div></div>
       <div class="stats"><div><span>当前筛选记录</span><strong id="record-count">0</strong></div><div><span>数据库集合</span><strong id="collection-count">0</strong></div><div><span>连接</span><strong class="status-text">PocketBase</strong><small id="refreshed-at">等待刷新</small></div></div>
       <form id="filters" class="filter-panel">
-        <label>数据分区<select id="collection"></select></label><label>搜索<input id="search" type="search" placeholder="标题、邮箱、正文或记录 ID"></label>
+        <details><summary>高级数据库视图</summary><label>数据集合<select id="collection"></select></label></details><label>搜索<input id="search" type="search" placeholder="标题、邮箱、正文或记录 ID"></label>
         <label id="owner-field">用户 ID<input id="owner" placeholder="从用户列表查看内容"></label>
+        <label id="course-field" hidden>课程 ID<input id="course-context" placeholder="全部课程，可从课程列表进入"></label>
         <label id="kind-field" hidden>目录类型<select id="kind"><option value="">全部</option><option value="app">校园作品</option><option value="service">校园服务</option></select></label>
         <label id="review-field" hidden>审核状态<select id="review-state"><option value="">全部</option><option value="pending">待审核</option><option value="draft">待提交</option><option value="approved">已审核</option><option value="rejected">待修改</option></select></label>
         <button id="filter">搜索</button><button id="clear-filter" type="button" class="quiet">清空筛选</button>

@@ -1,15 +1,17 @@
-import { AdminClient, collections, sections, editableFields, workspaceSummary } from './admin-client.mjs?v=20261010-review';
+import { AdminClient, collections, sections, workspaceViews, editableFields, workspaceSummary } from './admin-client.mjs?v=20261010-workspace';
 
 const client = new AdminClient(), $ = id => document.getElementById(id);
 const labels = { owner:'用户 ID', courseId:'课程 ID', title:'标题', content:'正文', email:'邮箱', verified:'邮箱已验证', emailVisibility:'邮箱可见', name:'名称', payload:'内容数据', schemaVersion:'数据版本', front:'卡片正面', back:'卡片背面', due:'下次复习', scheduler:'排程数据', reviewHistory:'复习记录', attachment:'附件', kind:'类型', published:'公开发布', demo:'演示标记', universityId:'学校 ID', noteId:'笔记 ID' };
 let page = 1, totalPages = 1, version = 0, busy = false, editing = null, deleting = null;
 let reviewing = null;
+let activeView = 'users';
 const reviewLabel = state => ({ draft: '待提交', pending: '待审核', approved: '已审核', rejected: '待修改' })[state] || '待提交';
 const labelFor = name => collections[name] || name;
 Object.assign(labels, { reviewState: '审核状态', schoolProof: '华师大归属材料', schoolVerified: '学校归属已核验', reviewNote: '审核意见', repository: '项目仓库', discussion: '讨论', visibility: '可见范围' });
 function message(text) { $('message').textContent = text; }
 function signedOut() {
   version++; client.logout(); $('dashboard').hidden = true; $('login').hidden = false;
+  activeView = 'users'; $('course-context').value = ''; $('user-context').textContent = '选择用户';
   $('rows').replaceChildren(); $('detail-text').textContent = ''; $('detail').hidden = true;
   for (const id of ['app-dialog','record-dialog','delete-dialog','review-dialog']) $(id).close();
   for (const id of ['app-form','record-form','delete-form','review-form']) $(id).reset();
@@ -35,6 +37,10 @@ function button(label, action, style = 'quiet') {
 async function selectCollection(name) {
   $('collection').value = name; page = 1; $('search').value = ''; $('kind').value = ''; $('review-state').value = name === 'forge_repositories' ? 'pending' : ''; syncView(); await refresh();
 }
+async function selectView(id) {
+  activeView = id;
+  await selectCollection(workspaceViews[id].collection);
+}
 function renderCatalog() {
   $('collection').replaceChildren(); $('sections').replaceChildren();
   const common = document.createElement('optgroup'); common.label = '常用分区';
@@ -45,9 +51,28 @@ function renderCatalog() {
     (collections[name] ? common : other).append(option);
   }
   $('collection').append(common, other);
-  for (const name of Object.keys(collections).filter(name => client.schemas.has(name))) {
-    const node = button(collections[name], async () => selectCollection(name)); node.dataset.collection = name; $('sections').append(node);
-  }
+  const leaf = (parent, id) => {
+    const view = workspaceViews[id];
+    if (!client.schemas.has(view.collection)) return;
+    const node = button(view.label, () => selectView(id)); node.dataset.view = id; parent.append(node);
+  };
+  const branch = (parent, label, open = false) => {
+    const node = document.createElement('details'), title = document.createElement('summary');
+    node.open = open; title.textContent = label; node.append(title); parent.append(node); return node;
+  };
+  const user = branch($('sections'), '用户工作区', true); leaf(user, 'users');
+  const learning = branch(user, '学习', true), course = branch(learning, '课程', true);
+  for (const id of ['courses','notes','cards','artifacts']) leaf(course, id);
+  for (const id of ['timetable','plans','notifications','tasks']) leaf(learning, id);
+  const forge = branch(user, '校园 GitHub', true), own = branch(forge, '个人仓库');
+  for (const id of ['repositories','incomingDiscussions','incomingReplies']) leaf(own, id);
+  const community = branch(forge, '社区项目仓库');
+  for (const id of ['community','discussions','replies','stars']) leaf(community, id);
+  leaf(user, 'favorites');
+  const directory = branch($('sections'), '公共快速访问', true);
+  leaf(directory, 'miniPrograms'); leaf(directory, 'websites');
+  const operations = branch($('sections'), '公共内容与审核');
+  for (const id of ['announcements','events','reviews']) leaf(operations, id);
   $('collection').value = client.schemas.has('users') ? 'users' : client.schemas.keys().next().value;
   $('collection-count').textContent = String(client.schemas.size);
 }
@@ -117,7 +142,9 @@ async function openRecord(row = {}) {
   for (const field of editing.fields) {
     const label = document.createElement('label'); label.textContent = labels[field.name] || field.name;
     if (['json','editor','file','geoPoint'].includes(field.type) || ['content','front','back'].includes(field.name)) label.className = 'wide';
-    const value = record[field.name] ?? (field.name === 'owner' ? $('owner').value : field.name === 'schemaVersion' ? 1 : undefined);
+    const view = workspaceViews[activeView];
+    const defaults = { owner: view?.personal ? $('owner').value : '', courseId: $('course-context').value, schemaVersion: 1, kind: view?.kind || view?.globalKind || (view?.target ? 'service' : undefined), payload: view?.target ? { origin: 'official', launchTarget: { type: view.target } } : undefined };
+    const value = record[field.name] ?? defaults[field.name];
     const input = inputFor(field, value, record); label.append(input);
     const hint = document.createElement('small'); hint.className = 'field-help';
     hint.textContent = field.type === 'file' ? `当前附件：${[].concat(record[field.name] || []).filter(Boolean).join('、') || '选择文件上传'}${field.maxSize ? ' · 上限 ' + (field.maxSize / 1048576).toFixed(1) + ' MB' : ''}` : field.type === 'relation' ? `关联集合：${client.schemas.get(field.collectionId)?.name || [...client.schemas.values()].find(s=>s.id===field.collectionId)?.name || field.collectionId}` : field.type === 'date' ? '日期格式：YYYY-MM-DD HH:mm:ss，可包含时区' : field.type;
@@ -133,7 +160,11 @@ async function openRecord(row = {}) {
 }
 async function refresh() {
   const generation = ++version, name = $('collection').value;
-  const data = await client.list(name, { page, owner:$('owner').value.trim(), search:$('search').value, kind:$('kind').value, reviewState:$('review-state').value });
+  if (workspaceViews[activeView]?.personal && !$('owner').value.trim()) {
+    $('rows').replaceChildren(); $('record-count').textContent = '0'; $('summary').textContent = '从用户列表打开工作区，或填写用户 ID';
+    totalPages = 1; $('page').textContent = '1 / 1'; $('detail').hidden = true; return;
+  }
+  const data = await client.list(name, { page, owner:$('owner').value.trim(), search:$('search').value, kind:activeView ? '' : $('kind').value, reviewState:activeView ? '' : $('review-state').value, view:activeView, courseId:$('course-context').value.trim() });
   if (generation !== version) return;
   $('detail').hidden = true; $('detail-text').textContent = ''; $('rows').replaceChildren(); totalPages = Math.max(1, data.totalPages || 1);
   $('summary').textContent = `${labelFor(name)} · ${data.totalItems} 条记录`; $('record-count').textContent = String(data.totalItems); $('page').textContent = `${page} / ${totalPages}`;
@@ -156,7 +187,8 @@ async function refresh() {
       actions.append(button('编辑', async () => openRecord(row)));
       actions.append(button('删除', async () => { deleting = { name, id:row.id }; $('delete-form').reset(); $('delete-message').textContent = ''; $('delete-context').textContent = `${labelFor(name)} · ${row.id}`; $('delete-dialog').showModal(); }, 'quiet'));
     }
-    if (name === 'users') actions.append(button('查看内容', async () => { $('owner').value = row.id; await selectCollection('course_notes'); }));
+    if (name === 'users') actions.append(button('打开工作区', async () => { $('owner').value = row.id; $('user-context').textContent = row.name || row.email || row.id; $('course-context').value = ''; await selectView('courses'); }));
+    if (name === 'user_courses') actions.append(button('课程内容', async () => { $('course-context').value = row.id; await selectView('notes'); }));
     if (name === 'campus_content') {
       if (row.kind === 'app') actions.append(button('作品设置', async () => openApp(row), 'secondary'));
       actions.append(button(row.published ? '转为草稿' : '发布', async () => { await client.setPublished(row.id, !row.published); await refresh(); message('目录状态已更新'); }, 'secondary'));
@@ -167,20 +199,23 @@ async function refresh() {
 }
 function syncView() {
   const name = $('collection').value, schema = client.schemas.get(name), section = sections[name] || { action:'新增记录',description:'按数据库字段维护集合内容',tone:'purple' };
-  $('owner-field').hidden = !schema?.fields?.some(field=>field.name==='owner'); $('kind-field').hidden = name !== 'campus_content';
-  $('review-field').hidden = name !== 'forge_repositories';
-  $('new-app').hidden = name !== 'campus_content'; $('new-record').textContent = section.action; $('new-record').disabled = busy || !schema || schema.type === 'view';
-  $('section-title').textContent = labelFor(name); $('section-description').textContent = section.description; $('dashboard').dataset.tone = section.tone;
+  const view = workspaceViews[activeView];
+  $('owner-field').hidden = view ? !view.personal : !schema?.fields?.some(field=>field.name==='owner'); $('kind-field').hidden = !!view || name !== 'campus_content';
+  $('review-field').hidden = !!view || name !== 'forge_repositories';
+  $('course-field').hidden = !view?.course;
+  $('new-app').hidden = !!view || name !== 'campus_content'; $('new-record').textContent = section.action; $('new-record').disabled = busy || !schema || schema.type === 'view' || !!view?.personal && !$('owner').value.trim();
+  $('section-title').textContent = view?.label || labelFor(name); $('section-description').textContent = view?.target ? '全校共用目录 · 用户收藏单独维护' : section.description; $('dashboard').dataset.tone = section.tone;
   $('schema-link').href = '/_/#/collections?collection=' + encodeURIComponent(schema?.id || name);
-  for (const node of $('sections').children) { if (node.dataset.collection === name) node.setAttribute('aria-current','page'); else node.removeAttribute('aria-current'); }
+  for (const node of $('sections').querySelectorAll('[data-view]')) { if (node.dataset.view === activeView) node.setAttribute('aria-current','page'); else node.removeAttribute('aria-current'); }
 }
 $('login-form').addEventListener('submit', event => {
   event.preventDefault(); const form = event.currentTarget, email = form.elements.namedItem('email').value, password = form.elements.namedItem('password').value;
   run(async () => { await client.login(email,password); form.elements.namedItem('password').value = ''; await client.loadCollections(); renderCatalog(); $('login').hidden = true; $('dashboard').hidden = false; page = 1; syncView(); await refresh(); message('已连接当前站点的 PocketBase'); });
 });
-$('collection').addEventListener('change',()=>run(async()=>{page=1;$('kind').value='';$('review-state').value = $('collection').value === 'forge_repositories' ? 'pending' : '';syncView();await refresh();}));
+$('collection').addEventListener('change',()=>run(async()=>{activeView='';page=1;$('kind').value='';$('review-state').value = $('collection').value === 'forge_repositories' ? 'pending' : '';syncView();await refresh();}));
 $('filters').addEventListener('submit',event=>{event.preventDefault();run(async()=>{page=1;await refresh();});});
-$('clear-filter').addEventListener('click',()=>run(async()=>{$('owner').value='';$('search').value='';$('kind').value='';$('review-state').value='';page=1;await refresh();}));
+$('clear-filter').addEventListener('click',()=>run(async()=>{if(!activeView)$('owner').value='';$('course-context').value='';$('search').value='';$('kind').value='';$('review-state').value='';page=1;await refresh();}));
+$('exit-workspace').addEventListener('click',()=>run(async()=>{$('owner').value='';$('course-context').value='';$('user-context').textContent='选择用户';await selectView('users');}));
 $('refresh').addEventListener('click',()=>run(refresh));
 $('previous').addEventListener('click',()=>run(async()=>{if(page>1){page--;await refresh();}}));
 $('next').addEventListener('click',()=>run(async()=>{if(page<totalPages){page++;await refresh();}}));

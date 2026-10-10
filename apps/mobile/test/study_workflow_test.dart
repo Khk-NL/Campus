@@ -1,3 +1,4 @@
+import 'fixtures/study_workspace_fixture.dart';
 import 'package:campus_mobile/data/models/course.dart';
 import 'package:campus_mobile/features/study/study_page.dart';
 import 'package:campus_mobile/features/study/course_note_repository.dart';
@@ -8,7 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class _MemoryStudyRepository implements StudyRepository {
-  StudyWorkspace workspace = StudyWorkspace.demo();
+  StudyWorkspace workspace = buildStudyWorkspaceFixture();
   int saveCount = 0;
 
   @override
@@ -26,7 +27,7 @@ void main() {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final SharedPreferences preferences = await SharedPreferences.getInstance();
     final LocalStudyRepository repository = LocalStudyRepository(preferences);
-    final StudyWorkspace workspace = StudyWorkspace.demo();
+    final StudyWorkspace workspace = buildStudyWorkspaceFixture();
     workspace.sessions.add(
       StudySession(
         id: 's1',

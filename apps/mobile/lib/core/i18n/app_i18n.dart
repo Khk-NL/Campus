@@ -152,6 +152,8 @@ extension TransactionLocalization on AppLocalizations {
         return profileDataSourceRemote;
       case DataSourceMode.mock:
         return profileDataSourceMock;
+      case DataSourceMode.offline:
+        return stateOfflineTitle;
     }
   }
 

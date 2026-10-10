@@ -11,7 +11,7 @@ library;
 import 'package:campus_mobile/data/models/campus_service.dart';
 import 'package:campus_mobile/data/models/launch_target.dart';
 import 'package:campus_mobile/data/models/service_enums.dart';
-import 'package:campus_mobile/data/repositories/mock_campus_data.dart';
+import 'fixtures/mock_campus_data.dart';
 import 'package:campus_mobile/features/apps/service_grouping.dart';
 import 'package:flutter_test/flutter_test.dart';
 

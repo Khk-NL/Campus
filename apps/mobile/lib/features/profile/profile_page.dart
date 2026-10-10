@@ -251,25 +251,19 @@ class _ProfilePageState extends State<ProfilePage> {
     AppLocalizations l10n,
     AppState state,
   ) async {
-    final bool? confirmed = await showDialog<bool>(
+    await showDialog<void>(
       context: context,
       builder: (BuildContext context) => AlertDialog(
         title: Text(l10n.profileLoginDialogTitle),
         content: Text(l10n.profileLoginDialogBody),
         actions: <Widget>[
           TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
+            onPressed: () => Navigator.of(context).pop(),
             child: Text(l10n.actionCancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text(l10n.profileSignInDemo),
           ),
         ],
       ),
     );
-    if (confirmed != true) return;
-    await state.signInAsDemo();
   }
 
   Future<void> _showPocketBaseSignInDialog(

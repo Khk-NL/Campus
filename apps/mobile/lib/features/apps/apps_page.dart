@@ -314,8 +314,17 @@ class _AppsPageState extends State<AppsPage> {
                       name: _nameOf(catalogue, entry),
                       description: _descriptionOf(catalogue, entry),
                       isFavorite: favorites.contains(boardId, entry.key),
-                      onToggleFavorite: () =>
-                          favorites.toggle(boardId, entry.key),
+                      onToggleFavorite: () async {
+                        try {
+                          await favorites.toggle(boardId, entry.key);
+                        } catch (_) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('收藏保存失败，请检查连接后重试')),
+                            );
+                          }
+                        }
+                      },
                       onOpen: () => _open(context, entry),
                       onDetails: () => _showDetails(context, entry),
                     ),

@@ -16,6 +16,9 @@ enum DataSourceMode {
   /// 正在使用后端 REST 接口 / talking to the backend REST API.
   remote,
 
+  /// 连接暂时不可用；保留用户内容并提供重试。
+  offline,
+
   /// 正在使用内置演示数据 / showing the built-in demo data.
   mock,
 }

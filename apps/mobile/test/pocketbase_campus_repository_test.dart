@@ -97,7 +97,7 @@ void main() {
       ),
     );
     try {
-      expect(await repository.probe(), DataSourceMode.mock);
+      expect(await repository.probe(), DataSourceMode.offline);
       expect(repository.lastConnectionError, contains('HTTPS 握手失败'));
       await expectLater(
         repository.register('student@example.test', 'password'),
@@ -230,7 +230,7 @@ void main() {
       expect(courses.single.isDemo, isTrue);
       expect(
         repository.sourceMode(DataSourceSource.courses),
-        DataSourceMode.mock,
+        DataSourceMode.remote,
       );
 
       final services = await repository.listServices(
@@ -239,7 +239,7 @@ void main() {
       expect(services.single.name, '测试服务');
       expect(
         repository.sourceMode(DataSourceSource.services),
-        DataSourceMode.mock,
+        DataSourceMode.remote,
       );
     } finally {
       repository.dispose();

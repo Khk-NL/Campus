@@ -37,8 +37,9 @@ class _OfflineBannerState extends State<OfflineBanner> {
     if (mode == DataSourceMode.remote) return const SizedBox.shrink();
 
     final bool unknown = mode == DataSourceMode.unknown;
-    final Color accent =
-        unknown ? theme.statusColors.neutral : theme.statusColors.warning;
+    final Color accent = unknown
+        ? theme.statusColors.neutral
+        : theme.statusColors.warning;
 
     return Material(
       color: accent.withValues(alpha: 0.12),
@@ -48,7 +49,11 @@ class _OfflineBannerState extends State<OfflineBanner> {
           padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
           child: Row(
             children: <Widget>[
-              Icon(unknown ? Icons.sync : Icons.cloud_off, size: 18, color: accent),
+              Icon(
+                unknown ? Icons.sync : Icons.cloud_off,
+                size: 18,
+                color: accent,
+              ),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
@@ -161,6 +166,12 @@ class SourceModeBadge extends StatelessWidget {
           label: onlineLabel,
           icon: Icons.cloud_done_outlined,
           color: Theme.of(context).statusColors.success,
+        );
+      case DataSourceMode.offline:
+        return TinyBadge(
+          label: AppLocalizations.of(context).stateOfflineTitle,
+          icon: Icons.cloud_off,
+          color: Theme.of(context).statusColors.warning,
         );
       case DataSourceMode.mock:
         return TinyBadge(

@@ -15,6 +15,9 @@
 library;
 
 import 'package:campus_mobile/core/config/universities/ecnu.dart';
+
+import 'school_service_fixtures.dart';
+
 import 'package:campus_mobile/core/config/university_config.dart';
 import 'package:campus_mobile/core/text/localized_text.dart';
 import 'package:campus_mobile/data/models/app_user.dart';

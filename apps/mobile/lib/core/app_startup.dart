@@ -16,10 +16,7 @@ import 'package:campus_mobile/core/config/preference_store.dart';
 import 'package:campus_mobile/core/pocketbase_session.dart';
 import 'package:campus_mobile/core/launcher/wechat_mini_program_transport.dart';
 import 'package:campus_mobile/data/http/campus_api_client.dart';
-import 'package:campus_mobile/data/repositories/data_source_mode.dart';
 import 'package:campus_mobile/data/repositories/campus_repository.dart';
-import 'package:campus_mobile/data/repositories/in_memory_campus_repository.dart';
-import 'package:campus_mobile/data/repositories/offline_first_campus_repository.dart';
 import 'package:campus_mobile/data/repositories/pocketbase_campus_repository.dart';
 import 'package:campus_mobile/data/repositories/remote_campus_repository.dart';
 import 'package:flutter/material.dart';
@@ -75,13 +72,8 @@ class AppStartup {
       final RemoteCampusRepository remote = RemoteCampusRepository(
         apiClient: apiClient,
       );
-      final InMemoryCampusRepository fallback = InMemoryCampusRepository();
-      final DataSourceMode initialMode = await _probe(remote);
-      repository = OfflineFirstCampusRepository(
-        remote: remote,
-        fallback: fallback,
-        initialMode: initialMode,
-      );
+      await remote.probe();
+      repository = remote;
     }
 
     final PreferenceStore preferences =
@@ -121,14 +113,6 @@ class AppStartup {
 
   /// 探测后端；任何失败都只是"离线"，不是错误。
   /// Probe the backend; every failure simply means "offline", not an error.
-  static Future<DataSourceMode> _probe(RemoteCampusRepository remote) async {
-    try {
-      await remote.checkHealth();
-      return DataSourceMode.remote;
-    } on CampusApiException {
-      return DataSourceMode.mock;
-    }
-  }
 
   /// 存储不可用时的兜底：用 shared_preferences 自带的内存实现，App 依然可用
   /// （只是不记忆用户选择）。

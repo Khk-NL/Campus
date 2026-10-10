@@ -25,12 +25,15 @@ import 'package:campus_mobile/data/repositories/data_source_mode.dart';
 import 'package:flutter/foundation.dart';
 
 /// 全部数据来自后端 HTTP 的仓库 / a repository whose data all comes from HTTP.
-class RemoteCampusRepository implements CampusRepository {
-  RemoteCampusRepository({required CampusApiClient apiClient}) : _api = apiClient;
+class RemoteCampusRepository
+    implements CampusRepository, CampusProbeRepository {
+  RemoteCampusRepository({required CampusApiClient apiClient})
+    : _api = apiClient;
 
   final CampusApiClient _api;
-  final ValueNotifier<DataSourceMode> _mode =
-      ValueNotifier<DataSourceMode>(DataSourceMode.remote);
+  final ValueNotifier<DataSourceMode> _mode = ValueNotifier<DataSourceMode>(
+    DataSourceMode.remote,
+  );
   final ValueNotifier<int> _sourceNotifier = ValueNotifier<int>(0);
 
   @override
@@ -39,12 +42,9 @@ class RemoteCampusRepository implements CampusRepository {
   @override
   Listenable get modeChanges => _mode;
 
-  /// 远端实现永远如实回答"这一类来自后端"：真到了它要回退的时候，
-  /// [OfflineFirstCampusRepository] 会覆盖这个判断。
-  /// The remote implementation always claims its sources come from the backend; when a
-  /// fallback really happens, [OfflineFirstCampusRepository] overrides that answer.
+  /// 来源状态随连接探测结果更新。
   @override
-  DataSourceMode sourceMode(DataSourceSource source) => DataSourceMode.remote;
+  DataSourceMode sourceMode(DataSourceSource source) => mode;
 
   @override
   Listenable get sourceChanges => _sourceNotifier;
@@ -53,6 +53,17 @@ class RemoteCampusRepository implements CampusRepository {
   /// Probe whether the backend is reachable via `GET /api/health`; throws
   /// [CampusApiException] when it is not.
   Future<ApiHealth> checkHealth() => _api.fetchHealth();
+
+  @override
+  Future<DataSourceMode> probe() async {
+    try {
+      await checkHealth();
+      _mode.value = DataSourceMode.remote;
+    } on CampusApiException {
+      _mode.value = DataSourceMode.offline;
+    }
+    return _mode.value;
+  }
 
   /// 后端尚无用户与登录接口，因此返回 null，Profile 显示「未登录」。
   /// The backend has no user or auth endpoint yet, so this returns null and Profile
@@ -91,13 +102,15 @@ class RemoteCampusRepository implements CampusRepository {
   Future<Map<String, LocalizedText>> fetchServiceNames() async => const {};
 
   @override
-  Future<Map<String, LocalizedText>> fetchServiceDescriptions() async => const {};
+  Future<Map<String, LocalizedText>> fetchServiceDescriptions() async =>
+      const {};
 
   @override
   Future<List<Course>> fetchCourses() => _unimplemented('/courses');
 
   @override
-  Future<List<Announcement>> fetchAnnouncements() => _unimplemented('/announcements');
+  Future<List<Announcement>> fetchAnnouncements() =>
+      _unimplemented('/announcements');
 
   @override
   Future<List<CampusEvent>> fetchEvents() => _unimplemented('/events');

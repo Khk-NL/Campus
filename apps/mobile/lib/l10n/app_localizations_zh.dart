@@ -144,10 +144,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get stateEmpty => '内容将在这里展示';
 
   @override
-  String get stateOfflineTitle => '离线演示数据';
+  String get stateOfflineTitle => '连接暂时不可用';
 
   @override
-  String get stateOfflineBody => '本机演示模式';
+  String get stateOfflineBody => '请检查网络，恢复连接后点击重试。';
 
   @override
   String get stateOnline => '已连接后端服务';
@@ -568,7 +568,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get profileLoginDialogTitle => '登录';
 
   @override
-  String get profileLoginDialogBody => '使用演示身份体验操作流程。';
+  String get profileLoginDialogBody => '配置账号服务后，即可使用邮箱登录。';
 
   @override
   String get categoryOfficialHub => '官方入口';

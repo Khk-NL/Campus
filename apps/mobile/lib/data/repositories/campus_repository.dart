@@ -187,3 +187,8 @@ class CampusAccountException implements Exception {
 abstract class CampusProbeRepository {
   Future<DataSourceMode> probe();
 }
+
+abstract class CampusFavoritesRepository {
+  Future<Map<String, Set<String>>> fetchFavorites();
+  Future<void> setFavorite(String board, String key, bool selected);
+}

@@ -365,13 +365,13 @@ abstract class AppLocalizations {
   /// 后端不可用时的横幅标题 / banner title when the backend is unreachable
   ///
   /// In zh, this message translates to:
-  /// **'离线演示数据'**
+  /// **'连接暂时不可用'**
   String get stateOfflineTitle;
 
   /// No description provided for @stateOfflineBody.
   ///
   /// In zh, this message translates to:
-  /// **'本机演示模式'**
+  /// **'请检查网络，恢复连接后点击重试。'**
   String get stateOfflineBody;
 
   /// No description provided for @stateOnline.
@@ -1139,7 +1139,7 @@ abstract class AppLocalizations {
   /// No description provided for @profileLoginDialogBody.
   ///
   /// In zh, this message translates to:
-  /// **'使用演示身份体验操作流程。'**
+  /// **'配置账号服务后，即可使用邮箱登录。'**
   String get profileLoginDialogBody;
 
   /// No description provided for @categoryOfficialHub.

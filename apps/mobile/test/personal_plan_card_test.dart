@@ -1,3 +1,4 @@
+import 'fixtures/study_workspace_fixture.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:campus_mobile/core/theme/campus_theme.dart';
@@ -7,7 +8,7 @@ import 'package:campus_mobile/features/study/study_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class MemoryPlans implements StudyRepository {
-  StudyWorkspace workspace = StudyWorkspace.demo()..activities.clear();
+  StudyWorkspace workspace = buildStudyWorkspaceFixture()..activities.clear();
   bool failSave = false;
   @override
   Future<StudyWorkspace> load() async => workspace;

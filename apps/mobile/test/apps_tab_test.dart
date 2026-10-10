@@ -27,7 +27,7 @@ import 'package:campus_mobile/data/models/campus_app.dart';
 import 'package:campus_mobile/data/models/campus_service.dart';
 import 'package:campus_mobile/data/models/launch_target.dart';
 import 'package:campus_mobile/data/repositories/campus_repository.dart';
-import 'package:campus_mobile/data/repositories/in_memory_campus_repository.dart';
+import 'fixtures/in_memory_campus_repository.dart';
 import 'package:campus_mobile/features/apps/apps_page.dart';
 import 'package:campus_mobile/features/apps/campus_entry.dart';
 import 'package:campus_mobile/features/shared/widgets/university_brand_mark.dart';
@@ -504,7 +504,7 @@ void main() {
     state.dispose();
   });
 
-  testWidgets('群号只在详情里，且带演示数据标记 / the group number lives in details', (
+  testWidgets('官方目录详情仅展示管理员提供的群号', (
     WidgetTester tester,
   ) async {
     useTallViewport(tester);
@@ -518,12 +518,12 @@ void main() {
     await tester.longPress(row('随师办'));
     await tester.pumpAndSettle();
 
-    expect(find.text(l10n.contactGroupNumberLabel), findsOneWidget);
-    expect(find.text('1078634219'), findsOneWidget);
+    expect(find.text(l10n.contactGroupNumberLabel), findsNothing);
+    expect(find.text('1078634219'), findsNothing);
     // 不允许谎称它来自后端：必须带"演示数据"标记。
     expect(
       find.text(l10n.demoDataNotice(l10n.dataSourceLabelContactGroupNumber)),
-      findsOneWidget,
+      findsNothing,
     );
 
     state.dispose();

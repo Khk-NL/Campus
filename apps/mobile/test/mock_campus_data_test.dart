@@ -1,4 +1,4 @@
-import 'package:campus_mobile/data/repositories/mock_campus_data.dart';
+import 'fixtures/mock_campus_data.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

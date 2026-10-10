@@ -16,36 +16,37 @@ class LocalStudyRepository implements StudyRepository {
   @override
   Future<StudyWorkspace> load() async {
     final String? raw = preferences.getString(storageKey);
-    if (raw == null) return StudyWorkspace.demo();
+    if (raw == null) return StudyWorkspace.empty();
     try {
       final StudyWorkspace workspace = StudyWorkspace.fromJson(
         jsonDecode(raw) as Map<String, dynamic>,
       );
-      // 早期演示课程更名时保留既有会话 id，不丢弃用户已经写下的记录。
-      for (int index = 0; index < workspace.activities.length; index++) {
-        final StudyActivity activity = workspace.activities[index];
-        if (activity.id == 'demo-1' || activity.id == 'demo-2') {
-          workspace.activities[index] = StudyActivity(
-            id: activity.id,
-            course: 'Campulse 示例课程',
-            title: activity.title,
-            objective: activity.objective,
-            deadline: activity.deadline,
-            source: activity.source,
-            courseId: activity.courseId,
-            completedAt: activity.completedAt,
-            priority: activity.priority,
-            tags: activity.tags,
-            subtasks: activity.subtasks,
-            estimateMinutes: activity.estimateMinutes,
-          );
-        }
-      }
+      workspace.activities.removeWhere(
+        (activity) =>
+            activity.source == 'demo' &&
+            activity.course == 'Campulse 示例课程' &&
+            activity.completedAt == null &&
+            activity.tags.isEmpty &&
+            activity.subtasks.isEmpty &&
+            activity.priority == 0 &&
+            activity.estimateMinutes == 0 &&
+            !workspace.sessions.any(
+              (session) => session.activityId == activity.id,
+            ) &&
+            ((activity.id == 'demo-1' &&
+                    activity.title == '校园服务需求观察' &&
+                    activity.deadline == '本周内' &&
+                    activity.objective == '提出一个真实问题，记录两条可核查证据，并形成可修订的结论。') ||
+                (activity.id == 'demo-2' &&
+                    activity.title == '资料对照与观点形成' &&
+                    activity.deadline == '下周内' &&
+                    activity.objective == '比较不同资料的观点，标明来源与待解决的问题。')),
+      );
       return workspace;
     } on FormatException {
-      return StudyWorkspace.demo();
+      rethrow;
     } on TypeError {
-      return StudyWorkspace.demo();
+      throw const FormatException("学习记录格式错误，请检查本机数据");
     }
   }
 
@@ -55,12 +56,12 @@ class LocalStudyRepository implements StudyRepository {
       storageKey,
       jsonEncode(workspace.toJson()),
     )) {
-      throw StateError('本地演示数据保存失败');
+      throw StateError('本机学习记录保存失败');
     }
   }
 }
 
-/// 演示数据与真实课程隔离：所有初始活动均明确标注“演示”。
+/// 用户课程空间；初始内容为空，由用户创建或同步。
 class StudyWorkspace {
   StudyWorkspace({
     required this.activities,
@@ -78,23 +79,9 @@ class StudyWorkspace {
   final List<StudyWikiEntry> wikiEntries;
   final List<StudyAgent> agents;
 
-  factory StudyWorkspace.demo() => StudyWorkspace(
-    activities: <StudyActivity>[
-      StudyActivity(
-        id: 'demo-1',
-        course: 'Campulse 示例课程',
-        title: '校园服务需求观察',
-        objective: '提出一个真实问题，记录两条可核查证据，并形成可修订的结论。',
-        deadline: '本周内',
-      ),
-      StudyActivity(
-        id: 'demo-2',
-        course: 'Campulse 示例课程',
-        title: '资料对照与观点形成',
-        objective: '比较不同资料的观点，标明来源与待解决的问题。',
-        deadline: '下周内',
-      ),
-    ],
+  factory StudyWorkspace.empty() => StudyWorkspace(
+    activities: <StudyActivity>[],
+
     sessions: <StudySession>[],
     evidence: <StudyEvidence>[],
     knowledgeBases: <StudyKnowledgeBase>[],
@@ -143,7 +130,7 @@ class StudyActivity {
     required this.title,
     required this.objective,
     required this.deadline,
-    this.source = 'demo',
+    this.source = 'personal',
     this.courseId,
     this.completedAt,
     this.priority = 0,
@@ -194,7 +181,7 @@ class StudyActivity {
     title: j['title'] as String? ?? '',
     objective: j['objective'] as String? ?? '',
     deadline: j['deadline'] as String? ?? '',
-    source: j['source'] as String? ?? 'demo',
+    source: j['source'] as String? ?? 'personal',
     courseId: j['courseId'] as String?,
     completedAt: j['completedAt'] as String?,
     priority: (j['priority'] as num?)?.toInt() ?? 0,

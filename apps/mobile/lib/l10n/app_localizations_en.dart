@@ -146,10 +146,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get stateEmpty => 'Content will appear here';
 
   @override
-  String get stateOfflineTitle => 'Offline demo data';
+  String get stateOfflineTitle => 'Connection unavailable';
 
   @override
-  String get stateOfflineBody => 'Local demo mode';
+  String get stateOfflineBody =>
+      'Check your network, then retry when the connection returns.';
 
   @override
   String get stateOnline => 'Connected to the backend';
@@ -578,7 +579,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get profileLoginDialogTitle => 'Sign in';
 
   @override
-  String get profileLoginDialogBody => 'Explore the app with a demo identity.';
+  String get profileLoginDialogBody =>
+      'Configure the account service to sign in with your email.';
 
   @override
   String get categoryOfficialHub => 'Official hub';

@@ -170,19 +170,21 @@ class AppState extends ChangeNotifier {
     await _preferences.writeThemeMode(mode);
   }
 
-  /// 拉取用户与高校。失败时保持 null，Profile 显示「未登录」。
-  /// Load the user and university; on failure both stay null and Profile shows its
-  /// "not signed in" state.
+  /// 拉取账号与高校；连接中断时保留已读取的身份。
   Future<void> loadIdentity() async {
     try {
       final AppUser? user = await repository.fetchCurrentUser();
+      _user = user;
+      final Object current = repository;
+      await favorites.bindUser(
+        user?.id,
+        remote: current is CampusFavoritesRepository ? current : null,
+      );
       final List<University> universities = await repository
           .fetchUniversities();
-      _user = user;
       _university = universities.isEmpty ? null : universities.first;
     } on Exception {
-      _user = null;
-      _university = null;
+      // A temporary catalogue failure keeps the loaded account and school.
     }
     notifyListeners();
   }
@@ -196,26 +198,6 @@ class AppState extends ChangeNotifier {
     }
     await loadIdentity();
   }
-
-  /// 以演示身份登录。
-  ///
-  /// §19 禁止保存学校密码、禁止绕过学校认证，真正的统一身份认证属于 Phase 6。因此这个
-  /// "登录"只是把演示身份装进界面状态：它让「我的」与首页有明确身份可显示，同时**不**
-  /// 触碰任何凭据。真实登录接入时，需要改的只有这一个方法。
-  ///
-  /// 注意：身份从仓库取。用内置演示数据的仓库会给出演示同学；后端仓库目前没有用户接口，
-  /// 因此返回 null，"我的"会如实保持未登录——这比编造一个用户更诚实。
-  ///
-  /// Sign in as the demo identity.
-  ///
-  /// §19 forbids storing school passwords or bypassing school authentication, and real SSO
-  /// is Phase 6 work. So this "sign-in" only loads the identity into the UI state, touching
-  /// no credential, and it is the single method real sign-in will replace.
-  ///
-  /// Note that the identity comes from the repository: the in-memory repository yields the
-  /// demo student, while the remote one has no user endpoint yet and returns null, so
-  /// Profile honestly stays signed out rather than inventing a user.
-  Future<void> signInAsDemo() => loadIdentity();
 
   Future<void> signInWithPassword(String email, String password) async {
     final Object current = repository;
@@ -256,6 +238,7 @@ class AppState extends ChangeNotifier {
     final Object current = repository;
     if (current is CampusAccountRepository) current.signOut();
     _user = null;
+    await favorites.bindUser(null);
     notifyListeners();
   }
 

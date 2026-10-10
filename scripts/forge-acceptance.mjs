@@ -9,6 +9,7 @@ const local = process.argv.includes('--local');
 const base = local ? 'http://127.0.0.1:18094' : (process.env.CAMPULSE_ACCEPTANCE_BASE_URL || 'https://campus.allezafrique.cn');
 let service, adminToken;
 const createdUsers = [], repositories = [];
+const personalRows = [];
 let checks = 0;
 async function request(collection, token, body, method = body ? 'POST' : 'GET', suffix = '/records') {
   const response = await fetch(`${base}/api/collections/${collection}${suffix}`, { method,
@@ -27,6 +28,8 @@ try {
     const executable = process.env.POCKETBASE_EXE || 'E:/pocketbase_0.40.4_windows_amd64/pocketbase.exe';
     const directory = `.tools/pb-forge-check-${Date.now()}`;
     fs.mkdirSync(`${directory}/pb_migrations`, { recursive: true });
+    fs.copyFileSync('experiments/pocketbase/pb_migrations/1790208001_campus_content.js', `${directory}/pb_migrations/1790208001_campus_content.js`);
+    fs.copyFileSync('deploy/pocketbase/pb_migrations/1790210012_user_relationships.js', `${directory}/pb_migrations/1790210012_user_relationships.js`);
     // Code asset copied mechanically; credentials remain in process memory.
     fs.copyFileSync('deploy/pocketbase/pb_migrations/1790210010_forge_community.js', `${directory}/pb_migrations/1790210010_forge_community.js`);
     fs.copyFileSync('deploy/pocketbase/pb_migrations/1790210011_forge_project_review.js', `${directory}/pb_migrations/1790210011_forge_project_review.js`);
@@ -64,6 +67,21 @@ try {
     const auth = await good('普通用户登录', 'users', null, { identity: c.email, password: c.password }, undefined, '/auth-with-password');
     return { id: auth.record.id, token: auth.token };
   }));
+  const favorite = await good('收藏绑定用户A', 'user_favorites', a.token, { owner: a.id, board: 'web', entryKey: `qa-${Date.now()}` });
+  personalRows.push({ collection: 'user_favorites', id: favorite.id });
+  check('收藏对用户B隔离', (await request('user_favorites', b.token, undefined, 'GET', `/records/${favorite.id}`)).status === 404);
+  check('收藏归属固定', (await request('user_favorites', a.token, { owner: b.id }, 'PATCH', `/records/${favorite.id}`)).status !== 200);
+  const personalClient = new AdminClient(base); personalClient.token = adminToken; await personalClient.loadCollections();
+  check('运营台按用户读回收藏', (await personalClient.list('user_favorites', { view: 'favorites', owner: a.id })).items.some(row => row.id === favorite.id));
+  for (const kind of ['task', 'announcement']) {
+    const row = await good('管理员分配个人' + kind, 'campus_content', adminToken, { owner: a.id, kind, universityId: 'ecnu', published: true, schemaVersion: 1, payload: { id: `qa-${Date.now()}`, title: '关系验收' } });
+    personalRows.push({ collection: 'campus_content', id: row.id });
+    await good('用户A读回个人' + kind, 'campus_content', a.token, undefined, 'GET', `/records/${row.id}`);
+    check('个人' + kind + '对用户B隔离', (await request('campus_content', b.token, undefined, 'GET', `/records/${row.id}`)).status === 404);
+    check('匿名访问隔离个人' + kind, (await request('campus_content', null, undefined, 'GET', `/records/${row.id}`)).status === 404);
+  }
+  const directory = await personalClient.list('campus_content', { view: 'websites', owner: a.id });
+  check('官方目录保持公共归属', directory.items.every(row => !row.owner && row.kind === 'service' && row.payload.origin === 'official'));
   const repository = await good('用户A提交待审核项目', 'forge_repositories', a.token, { owner: a.id, name: `community-qa-${Date.now()}`, summary: '交流流程验收', readme: '# 项目\n参与讨论', topics: '校园 测试', visibility: 'public', reviewState: 'pending', universityId: 'ecnu', schoolVerified: false, reviewNote: '', schoolProof: '专用验收材料' });
   repositories.push({ id: repository.id, token: a.token });
   const second = await good('同一用户保留独立草稿项目', 'forge_repositories', a.token, { owner: a.id, name: `draft-${Date.now()}`, visibility: 'private', reviewState: 'draft', universityId: 'ecnu', schoolVerified: false, reviewNote: '', repositoryUrl: 'https://github.com/Khk-NL/Campulse' });
@@ -108,6 +126,7 @@ try {
   await good('所有者继续读回私有讨论', 'forge_discussions', a.token, undefined, 'GET', `/records/${thread.id}`);
   console.log(`PASS ${checks} community checks`);
 } finally {
+  for (const row of personalRows) await request(row.collection, adminToken, undefined, 'DELETE', `/records/${row.id}`).catch(() => {});
   for (const row of repositories) await request('forge_repositories', row.token, undefined, 'DELETE', `/records/${row.id}`).catch(() => {});
   for (const id of createdUsers) await request('users', adminToken, undefined, 'DELETE', `/records/${id}`).catch(() => {});
   if (service) { service.kill(); await new Promise(resolve => service.once('exit', resolve)); }

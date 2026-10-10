@@ -3,7 +3,7 @@ import 'package:campus_mobile/core/config/app_config.dart';
 import 'package:campus_mobile/core/config/preference_store.dart';
 import 'package:campus_mobile/core/theme/campus_theme.dart';
 import 'package:campus_mobile/core/theme/theme_colors.dart';
-import 'package:campus_mobile/data/repositories/in_memory_campus_repository.dart';
+import 'fixtures/in_memory_campus_repository.dart';
 import 'package:campus_mobile/features/profile/theme_color_settings.dart';
 import 'package:campus_mobile/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';

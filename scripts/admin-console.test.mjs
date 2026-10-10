@@ -1,8 +1,29 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { AdminClient, appPayload, ownerFilter, workspaceSummary, sections, editableFields, searchFilter } from '../deploy/pocketbase/pb_public/assets/admin-client.mjs';
+import { AdminClient, appPayload, ownerFilter, workspaceSummary, workspaceFilter, sections, editableFields, searchFilter } from '../deploy/pocketbase/pb_public/assets/admin-client.mjs';
 
 const recordId = '0123456789abcde';
+test('official quick access is global while favorites and tasks require a user', () => {
+  const filter = workspaceFilter('websites', recordId);
+  assert.ok(filter.includes('owner = ""') && filter.includes('payload.origin = "official"'));
+  assert.ok(!filter.includes(recordId));
+  assert.equal(workspaceFilter('favorites', recordId), ownerFilter(recordId));
+  assert.ok(workspaceFilter('tasks', recordId).includes('kind = "task"'));
+  assert.throws(() => workspaceFilter('favorites'));
+});
+test('workspace separates received and authored project interactions', () => {
+  assert.equal(workspaceFilter('incomingDiscussions', recordId), `repository.owner = "${recordId}" && owner != "${recordId}"`);
+  assert.equal(workspaceFilter('incomingReplies', recordId), `discussion.repository.owner = "${recordId}" && owner != "${recordId}"`);
+  assert.equal(workspaceFilter('discussions', recordId), `owner = "${recordId}" && repository.owner != "${recordId}"`);
+  assert.ok(workspaceFilter('notes', recordId, 'a"b').includes('courseId = "a\\"b"'));
+});
+test('domain listing preserves relationship scopes', async () => {
+  let requested;
+  const client = new AdminClient('', async url => { requested = url; return new Response('{"items":[]}'); });
+  await client.list('forge_discussions', { view: 'incomingDiscussions', owner: recordId });
+  assert.equal(new URL(requested, 'https://example.com').searchParams.get('filter'), workspaceFilter('incomingDiscussions', recordId));
+  await assert.rejects(client.list('course_notes', { view: 'websites' }));
+});
 test('project review queues use validated state filters', async () => {
   let requested;
   const client = new AdminClient('', async url => { requested = url; return new Response('{"items":[]}'); });

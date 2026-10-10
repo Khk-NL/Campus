@@ -20,15 +20,18 @@ import 'package:campus_mobile/data/models/transaction.dart';
 import 'package:campus_mobile/data/models/university.dart';
 import 'package:campus_mobile/data/repositories/campus_repository.dart';
 import 'package:campus_mobile/data/repositories/data_source_mode.dart';
-import 'package:campus_mobile/data/repositories/mock_campus_data.dart';
+
+import 'mock_campus_data.dart';
+
 import 'package:flutter/foundation.dart';
 
 /// 全部数据来自内存的仓库 / a repository whose data all lives in memory.
 class InMemoryCampusRepository implements CampusRepository {
   InMemoryCampusRepository();
 
-  final ValueNotifier<DataSourceMode> _mode =
-      ValueNotifier<DataSourceMode>(DataSourceMode.mock);
+  final ValueNotifier<DataSourceMode> _mode = ValueNotifier<DataSourceMode>(
+    DataSourceMode.mock,
+  );
   final ValueNotifier<int> _sourceNotifier = ValueNotifier<int>(0);
 
   /// 演示数据只在首次访问时构造一次。/ demo data is built once, lazily.
@@ -62,7 +65,9 @@ class InMemoryCampusRepository implements CampusRepository {
   Future<AppUser?> fetchCurrentUser() async => _user;
 
   @override
-  Future<List<University>> fetchUniversities() async => <University>[_university];
+  Future<List<University>> fetchUniversities() async => <University>[
+    _university,
+  ];
 
   @override
   Future<List<CampusService>> listServices(CampusServicesQuery query) async {
@@ -71,7 +76,9 @@ class InMemoryCampusRepository implements CampusRepository {
     );
     final ServiceCategory? category = query.category;
     if (category != null) {
-      result = result.where((CampusService service) => service.category == category);
+      result = result.where(
+        (CampusService service) => service.category == category,
+      );
     }
     final String needle = (query.text ?? '').trim().toLowerCase();
     if (needle.isNotEmpty) {
@@ -163,8 +170,8 @@ class InMemoryCampusRepository implements CampusRepository {
   /// online may differ when several entries share a listing day, which reads as a different
   /// order, not as wrong data.
   static void _sortApps(List<CampusApp> apps, CampusAppSortOrder sort) {
-    int byUpdatedDesc(CampusApp a, CampusApp b) => (b.updatedAt ?? _epoch)
-        .compareTo(a.updatedAt ?? _epoch);
+    int byUpdatedDesc(CampusApp a, CampusApp b) =>
+        (b.updatedAt ?? _epoch).compareTo(a.updatedAt ?? _epoch);
     switch (sort) {
       case CampusAppSortOrder.name:
         apps.sort((CampusApp a, CampusApp b) => a.name.compareTo(b.name));
@@ -184,7 +191,10 @@ class InMemoryCampusRepository implements CampusRepository {
 
   /// 与远端 `sort=name|recent` 等价的本地排序。
   /// The local equivalent of the remote `sort=name|recent`.
-  static void _sortServices(List<CampusService> services, ServiceSortOrder sort) {
+  static void _sortServices(
+    List<CampusService> services,
+    ServiceSortOrder sort,
+  ) {
     switch (sort) {
       case ServiceSortOrder.name:
         services.sort(
@@ -195,9 +205,13 @@ class InMemoryCampusRepository implements CampusRepository {
           // 后端目前用 lastVerifiedAt 当"最近"的占位，这里保持一致。
           // The backend stands in `lastVerifiedAt` for recency; stay consistent.
           final DateTime left =
-              a.lastVerifiedAt ?? a.updatedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+              a.lastVerifiedAt ??
+              a.updatedAt ??
+              DateTime.fromMillisecondsSinceEpoch(0);
           final DateTime right =
-              b.lastVerifiedAt ?? b.updatedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+              b.lastVerifiedAt ??
+              b.updatedAt ??
+              DateTime.fromMillisecondsSinceEpoch(0);
           return right.compareTo(left);
         });
     }

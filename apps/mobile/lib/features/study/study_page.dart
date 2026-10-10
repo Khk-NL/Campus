@@ -472,7 +472,7 @@ class _StudyPageState extends State<StudyPage> {
       child: Text(
         widget.remote
             ? 'PocketBase · 学习记录已同步'
-            : '${widget.localStorageName ?? '本机演示'} · 本机学习记录',
+            : '${widget.localStorageName ?? '本机存储'} · 本机学习记录',
       ),
     ),
   );

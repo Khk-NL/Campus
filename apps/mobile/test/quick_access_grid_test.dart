@@ -1,6 +1,6 @@
 import 'package:campus_mobile/core/text/localized_text.dart';
 import 'package:campus_mobile/data/models/campus_service.dart';
-import 'package:campus_mobile/data/repositories/in_memory_campus_repository.dart';
+import 'fixtures/in_memory_campus_repository.dart';
 import 'package:campus_mobile/features/home/widgets/quick_access_grid.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
