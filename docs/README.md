@@ -10,6 +10,7 @@
 | 用户归属、公共目录与收藏 | [用户工作区与验收](USER_WORKSPACE_20261010.md) |
 | 服务器运维 | [服务器操作记录](SERVER_OPERATIONS.md) |
 | 手机数据与校园作品管理 | [运营台](ADMIN_CONSOLE.md) |
+| 运营台视觉、侧边栏与浏览器验收 | [界面更新](ADMIN_VISUAL_20261010.md) |
 | 开源依赖与许可 | [开源使用说明](OPEN_SOURCE_USAGE.md) |
 | 域名备案 | [备案流程](DOMAIN_FILING.md) |
 

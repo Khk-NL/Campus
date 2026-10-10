@@ -1,8 +1,26 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { AdminClient, appPayload, ownerFilter, workspaceSummary, workspaceFilter, sections, editableFields, searchFilter } from '../deploy/pocketbase/pb_public/assets/admin-client.mjs';
 
 const recordId = '0123456789abcde';
+test('console uses unique IDs and an accessible layered sidebar', () => {
+  const html = readFileSync(new URL('../deploy/pocketbase/pb_public/admin.html', import.meta.url), 'utf8');
+  const ids = [...html.matchAll(/\bid="([^"]+)"/g)].map(match => match[1]);
+  assert.equal(new Set(ids).size, ids.length);
+  assert.match(html, /<aside id="sidebar"/);
+  assert.match(html, /aria-controls="sidebar"/);
+  assert.match(html, /id="breadcrumbs" aria-label="当前位置"/);
+  assert.match(html, /class="skip-link" href="#workspace"/);
+  for (const match of html.matchAll(/href="#(icon-[^"]+)"/g)) assert.ok(ids.includes(match[1]));
+});
+test('console styles respect reduced motion and bound table overflow', () => {
+  const css = readFileSync(new URL('../deploy/pocketbase/pb_public/assets/admin.css', import.meta.url), 'utf8');
+  assert.match(css, /prefers-reduced-motion:reduce/);
+  assert.match(css, /\.badge\{white-space:nowrap\}/);
+  assert.match(css, /\.table-wrap table\{min-width:700px\}/);
+  assert.ok(!css.includes('transition:all'));
+});
 test('official quick access is global while favorites and tasks require a user', () => {
   const filter = workspaceFilter('websites', recordId);
   assert.ok(filter.includes('owner = ""') && filter.includes('payload.origin = "official"'));
