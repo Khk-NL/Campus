@@ -2,6 +2,12 @@
 
 更新：2026-10-10。验收状态见 [验收与下一步](E2E_ACCEPTANCE_20261010.md)。
 
+## 项目审核与 GitHub 绑定
+
+`ForgePage/ForgeProjectPage` 展示个人全部仓库、逐项目审核状态及 GitHub 链接；`ForgeRepository.saveProject` 保存草稿、`submitProject` 独立申请上架。公开发现和搜索查询批准且学校归属已核验的项目。
+
+PocketBase 迁移 `1790210011` 在服务端执行可见范围及审核字段写入限制。运营台 `AdminClient.reviewProject` 与 `admin.mjs` 提供待审队列、归属材料、核验确认、通过及退回意见。讨论/回复继承项目访问权限，按 Issue 模式直接交流。具体流程见 [项目审核](PROJECT_REVIEW.md)。
+
 ## 运行架构
 
 ```text

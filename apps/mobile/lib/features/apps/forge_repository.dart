@@ -1,9 +1,13 @@
 import 'package:pocketbase/pocketbase.dart';
+import 'package:campus_mobile/core/config/university_config.dart';
 
 /// Community content belongs to Campulse; external code hosting is optional.
 class ForgeRepository {
-  ForgeRepository(this.client);
+  ForgeRepository(this.client, {String? universityId})
+    : universityId =
+          universityId ?? UniversityConfigs.defaultConfig.universityId;
   final PocketBase client;
+  final String universityId;
   String get userId => client.authStore.record?.id ?? '';
   bool get canWrite =>
       client.authStore.isValid &&
@@ -22,11 +26,11 @@ class ForgeRepository {
         filter: client.filter(
           [
             if (mine) 'owner = {:owner}',
-            if (!mine) 'visibility = "public" && reviewState = "approved" && schoolVerified = true && universityId = "ecnu"',
+            if (!mine) 'visibility = "public" && reviewState = "approved" && schoolVerified = true && universityId = {:university}',
             if (query.trim().isNotEmpty)
               '(name ~ {:query} || summary ~ {:query} || topics ~ {:query})',
           ].join(' && '),
-          {'owner': userId, 'query': query.trim()},
+          {'owner': userId, 'query': query.trim(), 'university': universityId},
         ),
       );
   Future<RecordModel> project(String id) =>
@@ -55,7 +59,7 @@ class ForgeRepository {
       return client.collection('forge_repositories').update(id, body: body);
     }
     body['owner'] = userId;
-    body['universityId'] = 'ecnu';
+    body['universityId'] = universityId;
     body['schoolVerified'] = false;
     body['reviewNote'] = '';
     return client.collection('forge_repositories').create(body: body);
