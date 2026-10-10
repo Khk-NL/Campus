@@ -10,7 +10,7 @@ from nacl.public import PublicKey, SealedBox
 credential = subprocess.run(['git', 'credential', 'fill'], input='protocol=https\nhost=github.com\n\n', text=True, capture_output=True, check=True)
 fields = dict(line.split('=', 1) for line in credential.stdout.splitlines() if '=' in line)
 token = fields['password']
-base = 'https://api.github.com/repos/Khk-NL/Campus/actions/secrets'
+base = 'https://api.github.com/repos/Khk-NL/Campulse/actions/secrets'
 def call(url, method='GET', body=None):
     headers={'Authorization': 'Bearer '+token, 'Accept':'application/vnd.github+json', 'X-GitHub-Api-Version':'2022-11-28'}
     data=json.dumps(body).encode() if body else None

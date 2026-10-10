@@ -79,7 +79,7 @@ open-code-review 首轮检查成功，后续复核选中 9 个代码文件，返
 - 生产网关已更新到 `ab091f4`，Git blob 哈希核对成功；备份为 `/opt/campus/backups/notebook-ux-20261009-151620`，另保留中间版本 `notebook-5071d2c.mjs`。服务器 staging 的 19 项测试通过，网关与 PocketBase 均 active；本轮沿用原数据库和锁定依赖。
 - 公网早期请求出现连接超时和空测验。修订生成指令后，测验与闪卡通过，随后模型连接仍出现 `ETIMEDOUT`。服务器实测 ChatECNU IPv4 可达、IPv6 不通；限定 AI 服务使用 IPv4 后，三次直接模型请求返回 200，完整公网验收脚本 exit 0。问答引用、Markdown 全文、PDF 第 101 页、测验生成/评分/编辑读回、闪卡生成与 FSRS、导图、分区分页、两轮智能体及历史持久化全部通过，测试记录清理并恢复原工作台。
 - 网络调整仅作用于 `campus-ai`：`/etc/systemd/system/campus-ai.service.d/ipv4.conf` 为 Node 启用 `--dns-result-order=ipv4first --no-network-family-autoselection`。部署模板同步这些参数。其他网站与系统网络保持原状；后续 IPv6 路由恢复时可重新评估。参数依据 [Node 22 CLI 文档](https://nodejs.org/docs/latest-v22.x/api/cli.html)。
-- APK 工作流 [37898899238](https://github.com/Khk-NL/Campus/actions/runs/37898899238) 已发布 `ab091f4`，版本 1.1.2 / 构建号 1024，82,976,403 字节；SHA-256 为 `5c81b569393737d91c001cb2d346e0037f2d1dc0efae7caa960e72da46aa2c26`，与校验文件一致。MuMu 覆盖安装成功，重新启动后个人课程和两份资料均读回。
+- APK 工作流 [37898899238](https://github.com/Khk-NL/Campulse/actions/runs/37898899238) 已发布 `ab091f4`，版本 1.1.2 / 构建号 1024，82,976,403 字节；SHA-256 为 `5c81b569393737d91c001cb2d346e0037f2d1dc0efae7caa960e72da46aa2c26`，与校验文件一致。MuMu 覆盖安装成功，重新启动后个人课程和两份资料均读回。
 - Windows 桌面访问曾被拒绝，随后恢复。新版搜索输入与正向检索已经点击验证；当前课程尚未创建智能体，界面提示先在课程工作台创建，发送按钮禁用。完整测验、智能体发送、评分与相关重启读回仍待设备验收。
 - MuMu 横屏实测显示，仅以高度小于 500 判定紧凑布局会漏掉较高的横屏设备。本轮补为横屏或低高度均启用紧凑头部，1280×720 回归测试通过；这项客户端调整需下一云构建后复验。
 

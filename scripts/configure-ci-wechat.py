@@ -19,7 +19,7 @@ value = ids.pop().encode()
 credential = subprocess.run(['git', 'credential', 'fill'], input='protocol=https\nhost=github.com\n\n', text=True, capture_output=True, check=True)
 fields = dict(line.split('=', 1) for line in credential.stdout.splitlines() if '=' in line)
 token = fields['password']
-base = 'https://api.github.com/repos/Khk-NL/Campus/actions/secrets'
+base = 'https://api.github.com/repos/Khk-NL/Campulse/actions/secrets'
 
 def call(url, method='GET', body=None):
     request = urllib.request.Request(url, data=json.dumps(body).encode() if body else None,

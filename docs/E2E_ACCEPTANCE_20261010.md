@@ -30,13 +30,17 @@
 
 生产数据库恢复点：`/opt/campus/backups/community-20261010-013029`。静态文件恢复点：`/opt/campus/backups/public-20261010-013143`。增量部署脚本为 `deploy/update-community.sh`；生产服务与 atop 均为 active。
 
-`190e034` 的 [TypeScript 云检查](https://github.com/Khk-NL/Campus/actions/runs/37966666952)通过；[Android 云构建](https://github.com/Khk-NL/Campus/actions/runs/37966666877)已触发。随后客户端审查修正会再触发构建，下载时以最终构建的 sourceCommit 为准。
+`190e034` 的 [TypeScript 云检查](https://github.com/Khk-NL/Campulse/actions/runs/37966666952)通过；[Android 云构建](https://github.com/Khk-NL/Campulse/actions/runs/37966666877)已触发。随后客户端审查修正会再触发构建，下载时以最终构建的 sourceCommit 为准。
 
 ## 代码审查
 
 上一轮 open-code-review 对 `167872e` 选择 19 个文件，完成 13 个，6 个超时，状态为 partial。已根据有效意见修正测试助手、测试覆盖及 CI 设置。完整审查仍需覆盖超时文件和新社区改动。
 
 社区核心审查选择 3 个文件，2 个完成并产生 8 条意见，迁移文件因上下文压缩中断。已处理关注加载状态、仓储读取真实关注记录、讨论翻页重复请求、作者显示、讨论状态刷新和搜索装饰按钮；空 filter 的 SDK 行为经公网检查确认可用。表单字段描述的集中整理属于后续维护项。审查原始结果保存在 `.tools/ocr-community-core-20261010.json`。
+
+迁移文件单独重审仍在 1 分钟后超时，本轮完整 OCR 审查继续处于待完成状态；数据库权限的本机 25 项、公网 22 项真实执行结果保留。最终客户端修正已推送 main，`3d0ed4a` 触发后续云构建。此前 `190e034` 的 APK 已成功发布。
+
+仓库已更名为 `Khk-NL/Campulse`，Git 远程、官网及部署脚本采用新路径；已执行的历史迁移保留原文。
 
 ## 下一步执行流程
 

@@ -14,7 +14,7 @@ node=/opt/campus/runtime/node-v22.23.3-linux-x64/bin/node
 for file in "${files[@]}"; do
   mkdir -p "$staging/$(dirname "$file")"
   curl --fail --silent --show-error --retry 2 --connect-timeout 15 --max-time 60 \
-    "https://api.github.com/repos/Khk-NL/Campus/contents/deploy/pocketbase/pb_public/$file?ref=$commit" -o "$staging/$file.json"
+    "https://api.github.com/repos/Khk-NL/Campulse/contents/deploy/pocketbase/pb_public/$file?ref=$commit" -o "$staging/$file.json"
   "$node" -e 'const fs=require("node:fs"),crypto=require("node:crypto"); const row=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); if(row.encoding!=="base64") throw Error("Expected base64 file"); const bytes=Buffer.from(row.content,"base64"); const hash=crypto.createHash("sha1").update(`blob ${bytes.length}\0`).update(bytes).digest("hex"); if(hash!==row.sha) throw Error("Git blob hash mismatch"); fs.writeFileSync(process.argv[2],bytes);' "$staging/$file.json" "$staging/$file"
 done
 "$node" --check "$staging/assets/admin.mjs"

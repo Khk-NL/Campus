@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 const root = path.resolve(import.meta.dirname, '../deploy/pocketbase/pb_public');
-const github = 'https://github.com/Khk-NL/Campus';
+const github = 'https://github.com/Khk-NL/Campulse';
 const assetVersion = (name) => createHash('sha256').update(fs.readFileSync(path.join(root, 'assets', name))).digest('hex').slice(0, 10);
 const routes = [['index.html', '首页'], ['features.html', '功能'], ['community.html', '校园共建'], ['about.html', '关于项目'], ['download.html', '下载']];
 const eyebrow = (text) => `<div class="eyebrow">${text}</div>`;

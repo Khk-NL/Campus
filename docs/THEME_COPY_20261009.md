@@ -32,4 +32,4 @@
 
 本轮 APK 依赖 main 推送后的 GitHub 云构建。MuMu 当前旧包的点击结果和本轮新增代码的测试结果分别记录；完整设备点击继续按 [执行清单](NEXT_STEPS_20261009.md)进行。
 
-本轮源码 `f24a2a2` 的 [GitHub Android 云构建](https://github.com/Khk-NL/Campus/actions/runs/37927096003)已触发；主题设置位于该包中，运营台后续修复为静态网站更新。
+本轮源码 `f24a2a2` 的 [GitHub Android 云构建](https://github.com/Khk-NL/Campulse/actions/runs/37927096003)已触发；主题设置位于该包中，运营台后续修复为静态网站更新。

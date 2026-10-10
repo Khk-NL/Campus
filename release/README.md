@@ -1,6 +1,6 @@
 # Campulse Android 安装包
 
-当前版本：[Campulse-latest.apk](./Campulse-latest.apk)。也可从 [GitHub Release](https://github.com/Khk-NL/Campus/releases/tag/campulse-preview) 下载。
+当前版本：[Campulse-latest.apk](./Campulse-latest.apk)。也可从 [GitHub Release](https://github.com/Khk-NL/Campulse/releases/tag/campulse-preview) 下载。
 
 安装包由 GitHub Actions 自动构建，不使用本地打包脚本发布。推送移动端或构建配置到 main 后，会运行检查与测试、构建连接公网服务的 APK、校验证书并更新本目录。
 

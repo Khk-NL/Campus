@@ -15,7 +15,7 @@ credential = subprocess.run(
 )
 token = dict(line.split('=', 1) for line in credential.stdout.splitlines()
              if '=' in line)['password']
-base = 'https://api.github.com/repos/Khk-NL/Campus/actions/runs/' + sys.argv[1]
+base = 'https://api.github.com/repos/Khk-NL/Campulse/actions/runs/' + sys.argv[1]
 headers = {'Authorization': 'Bearer ' + token, 'Accept': 'application/vnd.github+json'}
 with urllib.request.urlopen(urllib.request.Request(base + '/jobs', headers=headers), timeout=20) as response:
     jobs = json.load(response)['jobs']

@@ -10,7 +10,7 @@
 
 ## 环境与判定
 
-- 历史验收基线：当时 Android Release 元数据的源码提交为 `6c72cd8`，工作流 [37221032247](https://github.com/Khk-NL/Campus/actions/runs/37221032247)成功；TypeScript 工作流 [37221032221](https://github.com/Khk-NL/Campus/actions/runs/37221032221)成功。当前预览包已更新，需按新源码重新验收。
+- 历史验收基线：当时 Android Release 元数据的源码提交为 `6c72cd8`，工作流 [37221032247](https://github.com/Khk-NL/Campulse/actions/runs/37221032247)成功；TypeScript 工作流 [37221032221](https://github.com/Khk-NL/Campulse/actions/runs/37221032221)成功。当前预览包已更新，需按新源码重新验收。
 - APK：`Campulse-latest.apk`，版本 `1.1.2 (1015)`，SHA-256 `382dfdf9eb672df11066e4f59d8ff31a818f1741d303256768a5b3f891a0d817`。已安装在 MuMu Android 15，设备 `127.0.0.1:7555`。生产配置暂指向 `https://campus.allezafrique.cn`，不是目标域名。
 - 两名普通测试用户从 Git 忽略的 `.tools/remote-test-users.json` 读取；管理员凭据从 `.tools/remote-acceptance.env` 读取。不要把这两个文件、任何密码或令牌写进验收报告或提交 Git。管理员只用于后台操作，不能当 App 普通用户。
 - 状态：**通过**＝本日重跑成功；**历史通过**＝注明日期和包版本、未在本日重跑；**失败**＝实际检查不满足预期；**未验收**＝缺少设备、收件箱或功能实现。预览可用不等于生产发布门槛达成。

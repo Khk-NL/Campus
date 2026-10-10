@@ -50,7 +50,7 @@ try {
   console.log('PASS 通用记录表单 PDF 附件上传');
   const row = await client.publishApp({
     name: `运营台验收-${Date.now()}`, url: 'https://www.ecnu.edu.cn',
-    repository: 'https://github.com/Khk-NL/Campus', published: false,
+    repository: 'https://github.com/Khk-NL/Campulse', published: false,
   });
   appId = row.id;
   assert.equal(row.published, false);

@@ -34,7 +34,7 @@
 
 ## 已完成的发布操作
 
-工作流：[37914189754](https://github.com/Khk-NL/Campus/actions/runs/37914189754)。APK 源码提交为 `7354caeadc64b4a0c28d2a6a09c2fc19d5e296a3`，仓库中的 `07b1a50` 是随后同步 Release 元数据的提交。
+工作流：[37914189754](https://github.com/Khk-NL/Campulse/actions/runs/37914189754)。APK 源码提交为 `7354caeadc64b4a0c28d2a6a09c2fc19d5e296a3`，仓库中的 `07b1a50` 是随后同步 Release 元数据的提交。
 
 - APK 大小：83,206,511 字节。
 - APK SHA-256：`530819ddead0cab2bdb8fdccbfbddcc47d17a72f651f19de5ac89194f509e35e`。

@@ -20,7 +20,7 @@ test('owner filters use valid record IDs', () => {
   assert.throws(() => ownerFilter('" || true'));
 });
 test('app payload retains extra data and supplies mobile-compatible origin', () => {
-  const row = appPayload({ name: '作品', url: 'https://example.com', tags: '学习，工具', repository: 'https://github.com/Khk-NL/Campus' }, { version: '1.0' });
+  const row = appPayload({ name: '作品', url: 'https://example.com', tags: '学习，工具', repository: 'https://github.com/Khk-NL/Campulse' }, { version: '1.0' });
   assert.equal(row.version, '1.0');
   assert.equal(row.origin, 'student-developed');
   assert.deepEqual(row.tags, ['学习', '工具']);

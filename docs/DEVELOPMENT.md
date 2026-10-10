@@ -10,7 +10,7 @@
 ## 0. 开发要求
 1. 在进行开发先首先阅读https://developer.ecnu.edu.cn/vitepress/data/architecture/authentication.html,
 里面为ECNU的各种服务提供了接口,在后续开发中可按需嵌入。
-2. 本项目远程仓库位于https://github.com/Khk-NL/Campus.git，每一个阶段完成后自动提交、推送并撰写日志（维护在DEVELOP_LOG.md中）
+2. 本项目远程仓库位于https://github.com/Khk-NL/Campulse.git，每一个阶段完成后自动提交、推送并撰写日志（维护在DEVELOP_LOG.md中）
 3. 前端界面优先使用华东师范大学的**官方标准色** `#A41F35`（PANTONE 201C / R164G31B53）配白色。
    官方《标准色使用规范》原文为"ECNU标准色为：PANTONE 201C（C0M100Y63K29 / R164G31B53）"，
    并明确该色经标准化后**不得任意更改**，同时给出 85% / 70% / 55% / 40% / 25% / 10% 六档减网色。

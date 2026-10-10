@@ -6,7 +6,7 @@
 
 流程图：https://campus.scsldr.cn/workflow.svg
 
-GitHub 下载：https://github.com/Khk-NL/Campus/tree/main/release
+GitHub 下载：https://github.com/Khk-NL/Campulse/tree/main/release
 
 ## 应用简介
 

@@ -10,7 +10,7 @@ file=1790210010_forge_community.js
 staging=$(mktemp -d /tmp/campulse-community.XXXXXX)
 node=/opt/campus/runtime/node-v22.23.3-linux-x64/bin/node
 curl --fail --silent --show-error --retry 2 --connect-timeout 15 --max-time 60 \
-  "https://api.github.com/repos/Khk-NL/Campus/contents/deploy/pocketbase/pb_migrations/$file?ref=$commit" -o "$staging/source.json"
+  "https://api.github.com/repos/Khk-NL/Campulse/contents/deploy/pocketbase/pb_migrations/$file?ref=$commit" -o "$staging/source.json"
 "$node" -e 'const fs=require("node:fs"),crypto=require("node:crypto");const row=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));if(row.encoding!=="base64")throw Error("Expected base64");const data=Buffer.from(row.content,"base64");const hash=crypto.createHash("sha1").update(`blob ${data.length}\0`).update(data).digest("hex");if(hash!==row.sha)throw Error("Blob mismatch");fs.writeFileSync(process.argv[2],data);' "$staging/source.json" "$staging/$file"
 "$node" --check "$staging/$file"
 if [[ -f "$root/pb_migrations/$file" ]]; then
