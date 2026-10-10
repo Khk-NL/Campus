@@ -8,6 +8,7 @@
 | 本轮检查结果、设备阻塞与执行顺序 | [全链路验收与下一步](E2E_ACCEPTANCE_20261010.md) |
 | 接手项目 | [交接入口](HANDOFF_20261002.md) |
 | 用户归属、公共目录与收藏 | [用户工作区与验收](USER_WORKSPACE_20261010.md) |
+| 华师大小程序、官网录入与 MuMu 跳转 | [快速入口验收](QUICK_ACCESS_ACCEPTANCE_20261010.md) |
 | 服务器运维 | [服务器操作记录](SERVER_OPERATIONS.md) |
 | 手机数据与校园作品管理 | [运营台](ADMIN_CONSOLE.md) |
 | 运营台视觉、侧边栏与浏览器验收 | [界面更新](ADMIN_VISUAL_20261010.md) |
