@@ -22,6 +22,7 @@ class ForgeRepository {
         filter: client.filter(
           [
             if (mine) 'owner = {:owner}',
+            if (!mine) 'visibility = "public" && reviewState = "approved" && schoolVerified = true && universityId = "ecnu"',
             if (query.trim().isNotEmpty)
               '(name ~ {:query} || summary ~ {:query} || topics ~ {:query})',
           ].join(' && '),
@@ -37,6 +38,8 @@ class ForgeRepository {
     required String readme,
     required String topics,
     required bool isPublic,
+    String schoolProof = '',
+    String repositoryUrl = '',
   }) {
     final body = <String, dynamic>{
       'name': name.trim(),
@@ -44,12 +47,31 @@ class ForgeRepository {
       'readme': readme,
       'topics': topics.trim(),
       'visibility': isPublic ? 'public' : 'private',
+      'reviewState': 'draft',
+      'schoolProof': schoolProof.trim(),
+      'repositoryUrl': repositoryUrl.trim(),
     };
     if (id != null) {
       return client.collection('forge_repositories').update(id, body: body);
     }
     body['owner'] = userId;
+    body['universityId'] = 'ecnu';
+    body['schoolVerified'] = false;
+    body['reviewNote'] = '';
     return client.collection('forge_repositories').create(body: body);
+  }
+
+  Future<RecordModel> submitProject(String id) async {
+    final row = await project(id);
+    if (row.getStringValue('owner') != userId || !canWrite) {
+      throw StateError('请使用项目所有者的已验证账号提交');
+    }
+    if (row.getStringValue('schoolProof').trim().isEmpty) {
+      throw StateError('请在编辑项目中填写华师大归属材料');
+    }
+    return client
+        .collection('forge_repositories')
+        .update(id, body: {'reviewState': 'pending', 'visibility': 'public'});
   }
 
   Future<ResultList<RecordModel>> discussions(

@@ -1,15 +1,19 @@
-import { AdminClient, collections, sections, editableFields, workspaceSummary } from './admin-client.mjs?v=20261010';
+import { AdminClient, collections, sections, editableFields, workspaceSummary } from './admin-client.mjs?v=20261010-review';
 
 const client = new AdminClient(), $ = id => document.getElementById(id);
 const labels = { owner:'用户 ID', courseId:'课程 ID', title:'标题', content:'正文', email:'邮箱', verified:'邮箱已验证', emailVisibility:'邮箱可见', name:'名称', payload:'内容数据', schemaVersion:'数据版本', front:'卡片正面', back:'卡片背面', due:'下次复习', scheduler:'排程数据', reviewHistory:'复习记录', attachment:'附件', kind:'类型', published:'公开发布', demo:'演示标记', universityId:'学校 ID', noteId:'笔记 ID' };
 let page = 1, totalPages = 1, version = 0, busy = false, editing = null, deleting = null;
+let reviewing = null;
+const reviewLabel = state => ({ draft: '待提交', pending: '待审核', approved: '已审核', rejected: '待修改' })[state] || '待提交';
 const labelFor = name => collections[name] || name;
+Object.assign(labels, { reviewState: '审核状态', schoolProof: '华师大归属材料', schoolVerified: '学校归属已核验', reviewNote: '审核意见', repository: '项目仓库', discussion: '讨论', visibility: '可见范围' });
 function message(text) { $('message').textContent = text; }
 function signedOut() {
   version++; client.logout(); $('dashboard').hidden = true; $('login').hidden = false;
   $('rows').replaceChildren(); $('detail-text').textContent = ''; $('detail').hidden = true;
-  for (const id of ['app-dialog','record-dialog','delete-dialog']) $(id).close();
-  for (const id of ['app-form','record-form','delete-form']) $(id).reset();
+  for (const id of ['app-dialog','record-dialog','delete-dialog','review-dialog']) $(id).close();
+  for (const id of ['app-form','record-form','delete-form','review-form']) $(id).reset();
+  reviewing = null; $('review-state').value = ''; $('review-material').textContent = '';
   $('owner').value = ''; $('search').value = ''; editing = deleting = null;
 }
 async function run(action) {
@@ -29,7 +33,7 @@ function button(label, action, style = 'quiet') {
   node.addEventListener('click', () => run(action)); return node;
 }
 async function selectCollection(name) {
-  $('collection').value = name; page = 1; $('search').value = ''; $('kind').value = ''; syncView(); await refresh();
+  $('collection').value = name; page = 1; $('search').value = ''; $('kind').value = ''; $('review-state').value = name === 'forge_repositories' ? 'pending' : ''; syncView(); await refresh();
 }
 function renderCatalog() {
   $('collection').replaceChildren(); $('sections').replaceChildren();
@@ -129,15 +133,25 @@ async function openRecord(row = {}) {
 }
 async function refresh() {
   const generation = ++version, name = $('collection').value;
-  const data = await client.list(name, { page, owner:$('owner').value.trim(), search:$('search').value, kind:$('kind').value });
+  const data = await client.list(name, { page, owner:$('owner').value.trim(), search:$('search').value, kind:$('kind').value, reviewState:$('review-state').value });
   if (generation !== version) return;
   $('detail').hidden = true; $('detail-text').textContent = ''; $('rows').replaceChildren(); totalPages = Math.max(1, data.totalPages || 1);
   $('summary').textContent = `${labelFor(name)} · ${data.totalItems} 条记录`; $('record-count').textContent = String(data.totalItems); $('page').textContent = `${page} / ${totalPages}`;
   $('refreshed-at').textContent = '更新于 ' + new Date().toLocaleTimeString('zh-CN');
   for (const row of data.items) {
-    const tr = document.createElement('tr'), status = name === 'campus_content' ? row.published ? '已发布' : '草稿' : name === 'users' ? row.verified ? '已验证' : '待验证' : name === 'study_workspaces' ? workspaceSummary(row) : row.due || row.updated || '云端已保存';
+    const tr = document.createElement('tr'), status = name === 'forge_repositories' ? reviewLabel(row.reviewState) : name === 'campus_content' ? row.published ? '已发布' : '草稿' : name === 'users' ? row.verified ? '已验证' : '待验证' : name === 'study_workspaces' ? workspaceSummary(row) : row.due || row.updated || '云端已保存';
     for (const value of [row.title || row.payload?.name || row.name || row.email || row.front || row.id, ownerName(row), status]) { const td = document.createElement('td'); td.textContent = value; tr.append(td); }
     const actions = document.createElement('td'); actions.append(button('查看', async () => showDetail(row)));
+    if (name === 'forge_repositories') {
+      if (row.reviewState === 'pending') actions.append(button('审核申请', async () => {
+        const latest = await client.getRecord(name, row.id);
+        if (latest.reviewState !== 'pending') { await refresh(); message('项目状态已更新，请刷新后查看'); return; }
+        reviewing = latest.id; $('review-form').reset(); $('review-message').textContent = '';
+        $('review-context').textContent = `${latest.name} · ${ownerName(row)} · ${latest.id}`;
+        $('review-material').textContent = `学校：${latest.universityId}\nGitHub：${latest.repositoryUrl || '选填'}\n\n简介\n${latest.summary || ''}\n\n华师大归属材料\n${latest.schoolProof || ''}\n\nREADME\n${latest.readme || ''}`;
+        $('review-dialog').showModal();
+      }, 'secondary'));
+    }
     if (client.schemas.get(name).type !== 'view') {
       actions.append(button('编辑', async () => openRecord(row)));
       actions.append(button('删除', async () => { deleting = { name, id:row.id }; $('delete-form').reset(); $('delete-message').textContent = ''; $('delete-context').textContent = `${labelFor(name)} · ${row.id}`; $('delete-dialog').showModal(); }, 'quiet'));
@@ -154,6 +168,7 @@ async function refresh() {
 function syncView() {
   const name = $('collection').value, schema = client.schemas.get(name), section = sections[name] || { action:'新增记录',description:'按数据库字段维护集合内容',tone:'purple' };
   $('owner-field').hidden = !schema?.fields?.some(field=>field.name==='owner'); $('kind-field').hidden = name !== 'campus_content';
+  $('review-field').hidden = name !== 'forge_repositories';
   $('new-app').hidden = name !== 'campus_content'; $('new-record').textContent = section.action; $('new-record').disabled = busy || !schema || schema.type === 'view';
   $('section-title').textContent = labelFor(name); $('section-description').textContent = section.description; $('dashboard').dataset.tone = section.tone;
   $('schema-link').href = '/_/#/collections?collection=' + encodeURIComponent(schema?.id || name);
@@ -163,9 +178,9 @@ $('login-form').addEventListener('submit', event => {
   event.preventDefault(); const form = event.currentTarget, email = form.elements.namedItem('email').value, password = form.elements.namedItem('password').value;
   run(async () => { await client.login(email,password); form.elements.namedItem('password').value = ''; await client.loadCollections(); renderCatalog(); $('login').hidden = true; $('dashboard').hidden = false; page = 1; syncView(); await refresh(); message('已连接当前站点的 PocketBase'); });
 });
-$('collection').addEventListener('change',()=>run(async()=>{page=1;$('kind').value='';syncView();await refresh();}));
+$('collection').addEventListener('change',()=>run(async()=>{page=1;$('kind').value='';$('review-state').value = $('collection').value === 'forge_repositories' ? 'pending' : '';syncView();await refresh();}));
 $('filters').addEventListener('submit',event=>{event.preventDefault();run(async()=>{page=1;await refresh();});});
-$('clear-filter').addEventListener('click',()=>run(async()=>{$('owner').value='';$('search').value='';$('kind').value='';page=1;await refresh();}));
+$('clear-filter').addEventListener('click',()=>run(async()=>{$('owner').value='';$('search').value='';$('kind').value='';$('review-state').value='';page=1;await refresh();}));
 $('refresh').addEventListener('click',()=>run(refresh));
 $('previous').addEventListener('click',()=>run(async()=>{if(page>1){page--;await refresh();}}));
 $('next').addEventListener('click',()=>run(async()=>{if(page<totalPages){page++;await refresh();}}));
@@ -174,6 +189,16 @@ $('close-detail').addEventListener('click',()=>{$('detail').hidden=true;});
 $('new-record').addEventListener('click',()=>run(()=>openRecord()));
 $('new-app').addEventListener('click',()=>openApp());
 for (const name of ['app','record','delete']) $('cancel-'+name).addEventListener('click',()=>$(name+'-dialog').close());
+$('cancel-review').addEventListener('click', () => $('review-dialog').close());
+$('review-form').addEventListener('submit', event => {
+  event.preventDefault(); const approved = event.submitter?.value === 'approve', note = $('review-note').value.trim();
+  if (approved && !$('review-school').checked) { $('review-message').textContent = '请完成华师大归属核验并勾选确认'; return; }
+  if (!approved && !note) { $('review-message').textContent = '请填写修改建议'; return; }
+  run(async () => {
+    try { await client.reviewProject(reviewing, approved, note); $('review-dialog').close(); await refresh(); message(approved ? '项目已审核上架' : '项目已退回修改'); }
+    catch (error) { $('review-message').textContent = error.message; throw error; }
+  });
+});
 $('json-options').addEventListener('toggle',()=>{if($('json-options').open){try{$('record-json').value=JSON.stringify(readForm(),null,2);}catch(error){$('record-message').textContent=error.message;}}});
 $('apply-json').addEventListener('click',()=>{
   try {

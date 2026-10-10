@@ -6,7 +6,8 @@ commit="${1:?Usage: update-community.sh SOURCE_COMMIT}"
 root=/opt/campus/pocketbase
 test -f "$root/pb_data/data.db"
 test -x "$root/pocketbase"
-file=1790210010_forge_community.js
+file="${2:-1790210010_forge_community.js}"
+[[ "$file" =~ ^179021001[01]_forge_[a-z_]+\.js$ ]] || { echo 'Expected a supported community migration'; exit 1; }
 staging=$(mktemp -d /tmp/campulse-community.XXXXXX)
 node=/opt/campus/runtime/node-v22.23.3-linux-x64/bin/node
 curl --fail --silent --show-error --retry 2 --connect-timeout 15 --max-time 60 \

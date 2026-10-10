@@ -5,7 +5,7 @@
   <meta name="robots" content="noindex,nofollow"><meta name="referrer" content="same-origin">
   <title>运营台 · Campulse</title>
   <link rel="icon" href="/assets/favicon.png"><link rel="stylesheet" href="/assets/admin.css?v=20261010">
-  <script src="/assets/admin.mjs?v=20261010" type="module"></script>
+  <script src="/assets/admin.mjs?v=20261010-review" type="module"></script>
 </head>
 <body>
   <header><a class="brand" href="/"><img src="/assets/campulse-logo.png" width="32" height="32" alt="">Campulse</a><span>运营台</span><a href="/_/" target="_blank" rel="noopener">数据库后台 ↗</a></header>
@@ -28,6 +28,7 @@
         <label>数据分区<select id="collection"></select></label><label>搜索<input id="search" type="search" placeholder="标题、邮箱、正文或记录 ID"></label>
         <label id="owner-field">用户 ID<input id="owner" placeholder="从用户列表查看内容"></label>
         <label id="kind-field" hidden>目录类型<select id="kind"><option value="">全部</option><option value="app">校园作品</option><option value="service">校园服务</option></select></label>
+        <label id="review-field" hidden>审核状态<select id="review-state"><option value="">全部</option><option value="pending">待审核</option><option value="draft">待提交</option><option value="approved">已审核</option><option value="rejected">待修改</option></select></label>
         <button id="filter">搜索</button><button id="clear-filter" type="button" class="quiet">清空筛选</button>
       </form>
       <div class="toolbar data-actions"><p id="summary"></p><button id="new-record">新增记录</button><button id="new-app" hidden>发布校园作品</button><a id="schema-link" href="/_/" target="_blank" rel="noopener">结构与权限 ↗</a></div>
@@ -48,6 +49,16 @@
         <label class="check"><input name="published" type="checkbox">发布到应用目录</label>
         <p id="app-message" role="status"></p>
         <div class="toolbar"><button type="button" id="cancel-app" class="secondary">取消</button><button>保存作品</button></div>
+      </form>
+    </dialog>
+    <dialog id="review-dialog" class="record-dialog">
+      <form id="review-form">
+        <h2>项目上架审核</h2><p id="review-context" class="muted"></p>
+        <div class="card"><pre id="review-material"></pre></div>
+        <label class="check"><input id="review-school" type="checkbox">已核验华东师范大学归属、项目用途及公开内容</label>
+        <label>审核意见<textarea id="review-note" rows="3" maxlength="2000" placeholder="填写修改建议或核验记录"></textarea></label>
+        <p id="review-message" role="status"></p>
+        <div class="dialog-actions"><button id="cancel-review" type="button" class="quiet">取消</button><button name="decision" value="reject" class="secondary">退回修改</button><button name="decision" value="approve">通过上架</button></div>
       </form>
     </dialog>
     <dialog id="record-dialog" class="record-dialog">

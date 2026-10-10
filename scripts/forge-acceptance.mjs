@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import { spawn, spawnSync } from 'node:child_process';
+import { AdminClient } from '../deploy/pocketbase/pb_public/assets/admin-client.mjs';
 
 // --local uses a disposable database under .tools; remote uses existing test users.
 const local = process.argv.includes('--local');
@@ -28,6 +29,7 @@ try {
     fs.mkdirSync(`${directory}/pb_migrations`, { recursive: true });
     // Code asset copied mechanically; credentials remain in process memory.
     fs.copyFileSync('deploy/pocketbase/pb_migrations/1790210010_forge_community.js', `${directory}/pb_migrations/1790210010_forge_community.js`);
+    fs.copyFileSync('deploy/pocketbase/pb_migrations/1790210011_forge_project_review.js', `${directory}/pb_migrations/1790210011_forge_project_review.js`);
     const common = [`--dir=${directory}/pb_data`, `--migrationsDir=${directory}/pb_migrations`];
     const up = spawnSync(executable, ['migrate', 'up', ...common], { encoding: 'utf8' });
     if (up.status !== 0) throw new Error(`Migration failed: ${up.stderr}`);
@@ -52,13 +54,30 @@ try {
     }
   } else {
     credentials = JSON.parse(fs.readFileSync(process.env.CAMPULSE_TEST_USERS || '.tools/remote-test-users.json', 'utf8')).slice(0, 2);
+    const env = Object.fromEntries(fs.readFileSync('.tools/remote-acceptance.env', 'utf8').split(/\r?\n/).filter(line => /^[A-Z_]+\s*=/.test(line)).map(line => {
+      const split = line.indexOf('='); return [line.slice(0, split).trim(), line.slice(split + 1).trim().replace(/^(['"])(.*)\1$/, '$2')];
+    }));
+    const auth = await good('远程管理员认证', '_superusers', null, { identity: env.REMOTE_ADMIN_EMAIL, password: env.REMOTE_ADMIN_PASSWORD }, undefined, '/auth-with-password');
+    adminToken = auth.token;
   }
   const [a, b] = await Promise.all(credentials.map(async c => {
     const auth = await good('普通用户登录', 'users', null, { identity: c.email, password: c.password }, undefined, '/auth-with-password');
     return { id: auth.record.id, token: auth.token };
   }));
-  const repository = await good('用户A创建公开项目', 'forge_repositories', a.token, { owner: a.id, name: `community-qa-${Date.now()}`, summary: '交流流程验收', readme: '# 项目\n参与讨论', topics: '校园 测试', visibility: 'public' });
+  const repository = await good('用户A提交待审核项目', 'forge_repositories', a.token, { owner: a.id, name: `community-qa-${Date.now()}`, summary: '交流流程验收', readme: '# 项目\n参与讨论', topics: '校园 测试', visibility: 'public', reviewState: 'pending', universityId: 'ecnu', schoolVerified: false, reviewNote: '', schoolProof: '专用验收材料' });
   repositories.push({ id: repository.id, token: a.token });
+  const second = await good('同一用户保留独立草稿项目', 'forge_repositories', a.token, { owner: a.id, name: `draft-${Date.now()}`, visibility: 'private', reviewState: 'draft', universityId: 'ecnu', schoolVerified: false, reviewNote: '', repositoryUrl: 'https://github.com/Khk-NL/Campulse' });
+  repositories.push({ id: second.id, token: a.token });
+  for (const token of [null, b.token]) {
+    check('待审核项目对其他访客隔离', (await request('forge_repositories', token, undefined, 'GET', `/records/${repository.id}`)).status === 404);
+  }
+  await good('作者查看待审核项目', 'forge_repositories', a.token, undefined, 'GET', `/records/${repository.id}`);
+  check('普通用户无法自行审批', (await request('forge_repositories', a.token, { reviewState: 'approved', schoolVerified: true }, 'PATCH', `/records/${repository.id}`)).status !== 200);
+  check('待审核项目停止跨用户讨论', (await request('forge_discussions', b.token, { owner: b.id, repository: repository.id, title: '提前讨论', body: '验收', kind: 'question', status: 'open' })).status !== 200);
+  const consoleClient = new AdminClient(base); consoleClient.token = adminToken;
+  check('运营台管理员审核华师大项目', (await consoleClient.reviewProject(repository.id, true)).reviewState === 'approved');
+  const other = await good('审批后读回同用户另一草稿', 'forge_repositories', a.token, undefined, 'GET', `/records/${second.id}`);
+  check('逐项目审核互不影响且绑定GitHub', other.reviewState === 'draft' && other.repositoryUrl === 'https://github.com/Khk-NL/Campulse');
   await good('匿名查看公开项目', 'forge_repositories', null, undefined, 'GET', `/records/${repository.id}`);
   const forbidden = await request('forge_repositories', b.token, { owner: a.id, name: '伪造归属', visibility: 'public' });
   check('用户B创建项目不能伪造用户A归属', forbidden.status !== 200);
@@ -76,7 +95,10 @@ try {
   const closed = await request('forge_replies', b.token, { owner: b.id, discussion: thread.id, body: '关闭后回复' });
   check('关闭问题停止追加回复', closed.status !== 200);
   await good('问题作者重新开启', 'forge_discussions', b.token, { status: 'open' }, 'PATCH', `/records/${thread.id}`);
-  await good('项目转为私有', 'forge_repositories', a.token, { visibility: 'private' }, 'PATCH', `/records/${repository.id}`);
+  check('已审核内容禁止绕过复审直接改动', (await request('forge_repositories', a.token, { name: '绕过审核' }, 'PATCH', `/records/${repository.id}`)).status !== 200);
+  await good('项目修改后进入复审', 'forge_repositories', a.token, { name: '调整后的验收项目', reviewState: 'pending' }, 'PATCH', `/records/${repository.id}`);
+  check('复审项目重新对其他用户隐藏', (await request('forge_repositories', b.token, undefined, 'GET', `/records/${repository.id}`)).status === 404);
+  await good('项目转为私有', 'forge_repositories', a.token, { visibility: 'private', reviewState: 'pending' }, 'PATCH', `/records/${repository.id}`);
   for (const [collection, id] of [['forge_repositories', repository.id], ['forge_discussions', thread.id], ['forge_replies', reply.id], ['forge_stars', star.id]]) {
     const hidden = await request(collection, b.token, undefined, 'GET', `/records/${id}`);
     check(`私有项目隔离 ${collection}`, hidden.status === 404);

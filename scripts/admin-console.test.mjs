@@ -3,6 +3,32 @@ import assert from 'node:assert/strict';
 import { AdminClient, appPayload, ownerFilter, workspaceSummary, sections, editableFields, searchFilter } from '../deploy/pocketbase/pb_public/assets/admin-client.mjs';
 
 const recordId = '0123456789abcde';
+test('project review queues use validated state filters', async () => {
+  let requested;
+  const client = new AdminClient('', async url => { requested = url; return new Response('{"items":[]}'); });
+  await client.list('forge_repositories', { reviewState: 'pending' });
+  assert.equal(new URL(requested, 'https://example.com').searchParams.get('filter'), 'reviewState = "pending"');
+  await assert.rejects(client.list('forge_repositories', { reviewState: '" || true' }));
+});
+test('project review checks school material and writes an administrator decision', async () => {
+  const calls = [];
+  const client = new AdminClient('', async (url, options) => {
+    calls.push({ url, options });
+    return new Response(JSON.stringify(options.method === 'GET'
+      ? { reviewState: 'pending', visibility: 'public', universityId: 'ecnu', schoolProof: '学校归属材料' }
+      : JSON.parse(options.body)), { status: 200 });
+  });
+  const row = await client.reviewProject(recordId, true);
+  assert.equal(row.reviewState, 'approved');
+  assert.equal(row.schoolVerified, true);
+  assert.equal(calls.length, 2);
+});
+test('project approval requires school proof and the ECNU scope', async () => {
+  for (const row of [{ reviewState: 'draft', visibility: 'public', universityId: 'ecnu', schoolProof: '材料' }, { reviewState: 'pending', visibility: 'private', universityId: 'ecnu', schoolProof: '材料' }, { reviewState: 'pending', visibility: 'public', universityId: 'other', schoolProof: '材料' }, { reviewState: 'pending', visibility: 'public', universityId: 'ecnu', schoolProof: '' }]) {
+    const client = new AdminClient('', async () => new Response(JSON.stringify(row), { status: 200 }));
+    await assert.rejects(client.reviewProject(recordId, true));
+  }
+});
 test('browser fetch is called without a client receiver', async () => {
   const client = new AdminClient('', async function () {
     assert.equal(this, undefined);

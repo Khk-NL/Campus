@@ -14,6 +14,7 @@ Future<void> main() async {
     await File('../../.tools/remote-test-users.json').readAsString(),
   ) as List;
   final clients = [PocketBase(base), PocketBase(base)];
+  final admin = PocketBase(base);
   String? id;
   void check(String name, bool ok) {
     if (!ok) throw StateError(name);
@@ -37,8 +38,41 @@ Future<void> main() async {
       readme: '# SDK',
       topics: '校园 文档',
       isPublic: true,
+      schoolProof: '专用客户端仓储验收材料',
     );
     id = row.id;
+    check(
+      '草稿项目对另一客户端隐藏',
+      (await b.projects(query: row.getStringValue('name'))).items.isEmpty,
+    );
+    final submitted = await a.submitProject(id);
+    check(
+      '作者逐项目提交审核并读回状态',
+      submitted.getStringValue('reviewState') == 'pending',
+    );
+    final env = <String, String>{};
+    for (final line in await File(
+      '../../.tools/remote-acceptance.env',
+    ).readAsLines()) {
+      final split = line.indexOf('=');
+      if (split < 1 || line.trimLeft().startsWith('#')) continue;
+      var value = line.substring(split + 1).trim();
+      if (value.length >= 2 &&
+          ((value.startsWith('"') && value.endsWith('"')) ||
+              (value.startsWith("'") && value.endsWith("'")))) {
+        value = value.substring(1, value.length - 1);
+      }
+      env[line.substring(0, split).trim()] = value;
+    }
+    await admin
+        .collection('_superusers')
+        .authWithPassword(
+          env['REMOTE_ADMIN_EMAIL']!,
+          env['REMOTE_ADMIN_PASSWORD']!,
+        );
+    await admin
+        .collection('forge_repositories')
+        .update(id, body: {'reviewState': 'approved', 'schoolVerified': true});
     final found = await b.projects(query: row.getStringValue('name'));
     check('另一用户通过客户端搜索读回项目', found.items.any((item) => item.id == id));
     final mine = await a.projects(mine: true);
@@ -66,7 +100,7 @@ Future<void> main() async {
       '特殊搜索词经过参数转义',
       (await b.projects(query: '" || true')).totalItems == 0,
     );
-    stdout.writeln('PASS 9 Dart community repository checks');
+    stdout.writeln('PASS 11 Dart community repository checks');
   } finally {
     if (id != null) {
       await clients[0].collection('forge_repositories').delete(id);
@@ -74,5 +108,6 @@ Future<void> main() async {
     for (final client in clients) {
       client.close();
     }
+    admin.close();
   }
 }

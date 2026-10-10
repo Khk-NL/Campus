@@ -14,7 +14,7 @@ export const sections = Object.freeze({
   course_review_cards: { action: '新增复习卡片', description: '维护正反面、到期时间及排程数据', tone: 'purple' },
   course_artifacts: { action: '新增学习成果', description: '管理测验、闪卡、导图和对话归档', tone: 'blue' },
   campus_content: { action: '新增目录记录', description: '管理校园作品、服务入口与发布状态', tone: 'red' },
-  forge_repositories: { action: '新增项目仓库', description: '维护项目介绍、README、话题与可见范围', tone: 'purple' },
+  forge_repositories: { action: '新增项目仓库', description: '逐项目核验华师大归属，处理上架申请和修改意见', tone: 'purple' },
   forge_discussions: { action: '新增项目讨论', description: '管理问答、建议、问题反馈与项目进展', tone: 'blue' },
   forge_replies: { action: '新增讨论回复', description: '查看和维护社区成员的交流内容', tone: 'gold' },
   forge_stars: { action: '新增项目关注', description: '管理成员与项目的关注关系', tone: 'red' },
@@ -128,7 +128,7 @@ export class AdminClient {
     return '/collections/' + name + '/records' + (id ? '/' + id : '');
   }
 
-  async list(name, { page = 1, owner = '', search = '', kind = '' } = {}) {
+  async list(name, { page = 1, owner = '', search = '', kind = '', reviewState = '' } = {}) {
     const query = new URLSearchParams({ page: String(page), perPage: '25' });
     const schema = this.schemas.get(name), filters = [];
     const hasOwner = schema ? schema.fields.some(field => field.name === 'owner') : name !== 'users' && name !== 'campus_content';
@@ -138,12 +138,28 @@ export class AdminClient {
     }
     if (search.trim()) filters.push(searchFilter(schema, search));
     if (kind && name === 'campus_content') filters.push(`kind = ${JSON.stringify(kind)}`);
+    if (reviewState && name === 'forge_repositories') {
+      if (!['draft', 'pending', 'approved', 'rejected'].includes(reviewState)) throw new Error('请选择审核状态');
+      filters.push(`reviewState = ${JSON.stringify(reviewState)}`);
+    }
     if (filters.length) query.set('filter', filters.join(' && '));
     if (schema ? schema.fields.some(field => field.name === 'updated') : ['users', 'course_notes', 'course_review_cards', 'course_artifacts'].includes(name)) query.set('sort', '-updated');
     return this.api(this.collectionPath(name) + '?' + query);
   }
 
   getRecord(name, id) { return this.api(this.collectionPath(name, id)); }
+
+  async reviewProject(id, approved, note = '') {
+    const row = await this.getRecord('forge_repositories', id);
+    if (approved && (row.reviewState !== 'pending' || row.visibility !== 'public' || row.universityId !== 'ecnu' || !row.schoolProof?.trim())) {
+      throw new Error('请确认项目已提交审核、申请公开且华师大归属材料齐全');
+    }
+    return this.saveRecord('forge_repositories', {
+      reviewState: approved ? 'approved' : 'rejected',
+      schoolVerified: !!approved,
+      reviewNote: note.trim(),
+    }, id);
+  }
 
   saveRecord(name, data, id = '') {
     if (this.schemas.get(name)?.type === 'view') throw new Error('视图通过来源集合维护');

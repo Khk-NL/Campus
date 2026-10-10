@@ -37,6 +37,8 @@ class FakeForge extends ForgeRepository {
     required String readme,
     required String topics,
     required bool isPublic,
+    String schoolProof = '',
+    String repositoryUrl = '',
   }) async {
     final row = RecordModel.fromJson({
       'id': 'project1',
@@ -46,6 +48,9 @@ class FakeForge extends ForgeRepository {
       'readme': readme,
       'topics': topics,
       'visibility': isPublic ? 'public' : 'private',
+      'reviewState': 'draft',
+      'repositoryUrl': repositoryUrl,
+      'schoolProof': schoolProof,
     });
     rows.add(row);
     return row;
@@ -53,6 +58,13 @@ class FakeForge extends ForgeRepository {
 
   @override
   Future<RecordModel> project(String id) async => rows.first;
+  @override
+  Future<RecordModel> submitProject(String id) async {
+    final row = await project(id);
+    row.data['reviewState'] = 'pending';
+    return row;
+  }
+
   @override
   Future<ResultList<RecordModel>> stars(
     String repository, {
@@ -120,6 +132,34 @@ class PendingForge extends FakeForge {
 }
 
 void main() {
+  testWidgets(
+    'project owner submits one draft and sees its review state and GitHub link',
+    (tester) async {
+      final repo = FakeForge();
+      final row = await repo.saveProject(
+        name: '待提交的项目',
+        summary: '',
+        readme: '',
+        topics: '',
+        isPublic: true,
+        schoolProof: '归属材料',
+        repositoryUrl: 'https://github.com/Khk-NL/Campulse',
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ForgeProjectPage(repo: repo, id: row.id),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('待提交'), findsOneWidget);
+      expect(find.text('GitHub 仓库'), findsOneWidget);
+      await tester.tap(find.text('提交审核'));
+      await tester.pumpAndSettle();
+      expect(row.getStringValue('reviewState'), 'pending');
+      expect(find.text('待审核'), findsOneWidget);
+      expect(find.text('审核中'), findsOneWidget);
+    },
+  );
   testWidgets('leaving discussion during send avoids disposed input access', (
     tester,
   ) async {
@@ -168,6 +208,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(repo.rows.single.getStringValue('name'), '校园工具');
       expect(find.text('校园工具'), findsOneWidget);
+      expect(find.textContaining('待提交'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );

@@ -3,6 +3,7 @@ import 'package:pocketbase/pocketbase.dart';
 import 'package:campus_mobile/core/pocketbase_session.dart';
 
 import 'forge_repository.dart';
+import '../../core/launcher/external_opener.dart';
 
 class ForgePage extends StatefulWidget {
   const ForgePage({super.key, this.repository, this.embedded = false});
@@ -144,7 +145,7 @@ class _ForgePageState extends State<ForgePage> {
                                 leading: const Icon(Icons.source_outlined),
                                 title: Text(item.getStringValue('name')),
                                 subtitle: Text(
-                                  '${item.getStringValue('summary')}\n${item.getStringValue('topics')}',
+                                  '${item.getStringValue('summary')}\n${item.getStringValue('topics')} · ${_reviewLabel(item)}',
                                 ),
                                 isThreeLine: true,
                                 trailing: Icon(
@@ -200,6 +201,7 @@ class _ForgeProjectPageState extends State<ForgeProjectPage> {
   RecordModel? star;
   bool starReady = false;
   bool starring = false;
+  bool submitting = false;
   int page = 1;
   @override
   void initState() {
@@ -253,11 +255,76 @@ class _ForgeProjectPageState extends State<ForgeProjectPage> {
                       style: Theme.of(context).textTheme.headlineSmall,
                     ),
                     Text(item.getStringValue('summary')),
+                    if (owned) ...[
+                      Text(_reviewLabel(item)),
+                      if (item.getStringValue('reviewNote').isNotEmpty)
+                        Text(item.getStringValue('reviewNote')),
+                    ],
                     const SizedBox(height: 8),
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
                       children: [
+                        if (owned &&
+                            item.getStringValue('reviewState') != 'approved')
+                          FilledButton.icon(
+                            onPressed:
+                                submitting ||
+                                    item.getStringValue('reviewState') ==
+                                        'pending'
+                                ? null
+                                : () async {
+                                    setState(() => submitting = true);
+                                    try {
+                                      await widget.repo.submitProject(
+                                        widget.id,
+                                      );
+                                      if (mounted) {
+                                        setState(load);
+                                      }
+                                      if (context.mounted) {
+                                        _message(context, '项目已提交审核');
+                                      }
+                                    } catch (error) {
+                                      if (context.mounted) {
+                                        _message(
+                                          context,
+                                          error is StateError
+                                              ? error.message.toString()
+                                              : '提交失败，请重试',
+                                        );
+                                      }
+                                    } finally {
+                                      if (mounted) {
+                                        setState(() => submitting = false);
+                                      }
+                                    }
+                                  },
+                            icon: const Icon(Icons.fact_check_outlined),
+                            label: Text(
+                              item.getStringValue('reviewState') == 'pending'
+                                  ? '审核中'
+                                  : '提交审核',
+                            ),
+                          ),
+                        if (item.getStringValue('repositoryUrl').isNotEmpty)
+                          OutlinedButton.icon(
+                            onPressed: () async {
+                              final uri = Uri.tryParse(
+                                item.getStringValue('repositoryUrl'),
+                              );
+                              final ok =
+                                  uri != null &&
+                                  uri.scheme == 'https' &&
+                                  uri.host == 'github.com' &&
+                                  await openUrlExternally(uri);
+                              if (!ok && context.mounted) {
+                                _message(context, '链接打开失败，请重试');
+                              }
+                            },
+                            icon: const Icon(Icons.open_in_new),
+                            label: const Text('GitHub 仓库'),
+                          ),
                         FutureBuilder<ResultList<RecordModel>>(
                           future: stars,
                           builder: (context, count) => OutlinedButton.icon(
@@ -635,7 +702,14 @@ Future<bool> showProjectEditor(
   RecordModel? initial,
 }) async {
   final controllers = [
-    for (final field in ['name', 'summary', 'readme', 'topics'])
+    for (final field in [
+      'name',
+      'summary',
+      'readme',
+      'topics',
+      'schoolProof',
+      'repositoryUrl',
+    ])
       TextEditingController(text: initial?.getStringValue(field) ?? ''),
   ];
   bool public = initial?.getStringValue('visibility') != 'private';
@@ -661,7 +735,7 @@ Future<bool> showProjectEditor(
                       child: TextField(
                         controller: controllers[i],
                         enabled: !saving,
-                        maxLength: [100, 500, 100000, 300][i],
+                        maxLength: [100, 500, 100000, 300, 2000, 500][i],
                         minLines: i == 2 ? 4 : 1,
                         maxLines: i == 2 ? 8 : 2,
                         decoration: InputDecoration(
@@ -670,12 +744,15 @@ Future<bool> showProjectEditor(
                             '简介',
                             'README：目标、用法与参与方式',
                             '话题：用空格分隔',
+                            '华师大归属材料：团队、用途与核验方式',
+                            'GitHub 仓库链接（选填）',
                           ][i],
                         ),
                       ),
                     ),
                   SwitchListTile(
-                    title: const Text('公开项目'),
+                    title: const Text('校园作品公开范围'),
+                    subtitle: const Text('保存为草稿后，在项目详情独立提交审核'),
                     value: public,
                     onChanged: saving
                         ? null
@@ -707,6 +784,16 @@ Future<bool> showProjectEditor(
                         setState(() => error = '请填写项目名称');
                         return;
                       }
+                      final link = controllers[5].text.trim();
+                      if (link.isNotEmpty &&
+                          !RegExp(
+                            r'^https://github[.]com/[A-Za-z0-9_-]+/[A-Za-z0-9_.-]+/?$',
+                          ).hasMatch(link)) {
+                        setState(
+                          () => error = '请填写 https://github.com/所有者/仓库 格式的链接',
+                        );
+                        return;
+                      }
                       setState(() {
                         saving = true;
                         error = null;
@@ -719,6 +806,8 @@ Future<bool> showProjectEditor(
                           readme: controllers[2].text,
                           topics: controllers[3].text,
                           isPublic: public,
+                          schoolProof: controllers[4].text,
+                          repositoryUrl: controllers[5].text,
                         );
                         if (dialogContext.mounted) {
                           Navigator.pop(dialogContext, true);
@@ -844,6 +933,16 @@ Future<bool> _newDiscussion(
     ),
   );
   return result ?? false;
+}
+
+String _reviewLabel(RecordModel row) {
+  if (row.getStringValue('visibility') == 'private') return '个人草稿';
+  return switch (row.getStringValue('reviewState')) {
+    'approved' => '已审核',
+    'rejected' => '待修改',
+    'draft' => '待提交',
+    _ => '待审核',
+  };
 }
 
 String _kind(String value) => switch (value) {
